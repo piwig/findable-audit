@@ -67,13 +67,22 @@ Each check is explained in detail — including how to fix failures — in the [
 | `--min-score <n>` | Score threshold for exit code 0 (default: `60`). Below it, exit code is 1. |
 | `--timeout <ms>` | Per-request timeout in milliseconds (default: `10000`). |
 | `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
-| `--report <file>`, `-r` | Also write the report as Markdown to the given file. |
+| `--user-agent <ua>` | Override the crawler User-Agent, e.g. `--user-agent "GPTBot/1.0"`, to see what an AI crawler that a site filters by UA would get. |
+| `--report <file>`, `-r` | Also write the report to the given file. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
 
 Exit codes: `0` = score >= min-score, `1` = below, `2` = site unreachable / error (including a report file that cannot be written). This makes `findable-audit` usable as a CI gate:
 
 ```bash
 npx findable-audit https://your-site.com --min-score 80
 ```
+
+Write both a Markdown and an HTML report in one run:
+
+```bash
+npx findable-audit https://your-site.com --report audit.md --report audit.html
+```
+
+The `broken-internal-links` check ignores Cloudflare `/cdn-cgi/` endpoints (e.g. email protection) — they are infrastructure, not content pages.
 
 ## Claude Code plugin
 

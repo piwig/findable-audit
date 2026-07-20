@@ -131,3 +131,11 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 **Why it matters:** The viewport tag is the marker of a mobile-ready page. Search engines index mobile-first, and its absence flags the site as unmaintained.
 
 **How to fix:** Add `<meta name="viewport" content="width=device-width, initial-scale=1">` to the `<head>` of every page.
+
+### `broken-internal-links` (8 pts)
+
+**What it verifies:** Every same-origin `<a href>` link on the sampled pages resolves with a status below 400. Infrastructure endpoints under `/cdn-cgi/` (injected by Cloudflare, e.g. email protection) are ignored — they are not content pages.
+
+**Why it matters:** Broken internal links waste crawl budget and break the trail an assistant follows to verify or expand on a citation.
+
+**How to fix:** Fix or remove links returning 400+ so crawlers do not hit dead ends.

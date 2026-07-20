@@ -131,3 +131,11 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 **Pourquoi c'est important :** La balise viewport est le marqueur d'une page adaptée au mobile. Les moteurs indexent mobile-first, et son absence signale un site non maintenu.
 
 **Comment corriger :** Ajoutez `<meta name="viewport" content="width=device-width, initial-scale=1">` dans le `<head>` de chaque page.
+
+### `broken-internal-links` (8 pts)
+
+**Ce qu'il vérifie :** Chaque lien `<a href>` de même origine sur les pages échantillonnées répond avec un statut inférieur à 400. Les points d'accès d'infrastructure sous `/cdn-cgi/` (injectés par Cloudflare, ex. protection email) sont ignorés — ce ne sont pas des pages de contenu.
+
+**Pourquoi c'est important :** Des liens internes cassés gaspillent le budget de crawl et brisent le chemin qu'un assistant suit pour vérifier ou approfondir une citation.
+
+**Comment corriger :** Corrigez ou supprimez les liens renvoyant 400 ou plus, pour que les crawlers n'atterrissent pas sur des impasses.
