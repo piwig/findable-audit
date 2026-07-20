@@ -62,30 +62,45 @@ export const redirectHygiene: Check = {
   },
 };
 
-interface AlternateRef { href: string; }
+interface AlternateRef { href: string; from: string; }
 
-/** Distinct hreflang alternate URLs declared on the sampled pages (bounded). */
+/** Distinct hreflang alternate URLs declared on the sampled pages (bounded), with their source page. */
 function hreflangRefs(pages: FetchedResource[], baseUrl: URL): AlternateRef[] {
   const seen = new Set<string>();
   const out: AlternateRef[] = [];
   for (const p of pages) {
+    const from = new URL(p.finalUrl || baseUrl).toString();
     for (const l of parse(p.body).querySelectorAll('link')) {
       if (l.getAttribute('rel') !== 'alternate' || !l.getAttribute('hreflang')) continue;
       const href = l.getAttribute('href');
       if (!href) continue;
       try {
         const u = new URL(href, p.finalUrl || baseUrl).toString();
-        if (!seen.has(u)) { seen.add(u); out.push({ href: u }); }
+        if (!seen.has(u)) { seen.add(u); out.push({ href: u, from }); }
       } catch { /* invalid href ignored */ }
     }
   }
   return out.slice(0, MAX_HREFLANG);
 }
 
-/** true when the page body declares at least one hreflang alternate (reciprocity). */
-function declaresHreflang(body: string): boolean {
+/** true when the page body declares a hreflang alternate pointing back to referrerUrl. */
+function declaresBackReference(body: string, alternateFinalUrl: string, referrerUrl: string): boolean {
+  const target = stripHash(referrerUrl);
   return parse(body).querySelectorAll('link')
-    .some((l) => l.getAttribute('rel') === 'alternate' && !!l.getAttribute('hreflang'));
+    .some((l) => {
+      if (l.getAttribute('rel') !== 'alternate' || !l.getAttribute('hreflang')) return false;
+      const href = l.getAttribute('href');
+      if (!href) return false;
+      try {
+        return stripHash(new URL(href, alternateFinalUrl).toString()) === target;
+      } catch { return false; }
+    });
+}
+
+function stripHash(url: string): string {
+  const u = new URL(url);
+  u.hash = '';
+  return u.toString();
 }
 
 export const hreflang: Check = {
@@ -98,7 +113,8 @@ export const hreflang: Check = {
     const offenders: string[] = [];
     for (const ref of refs) {
       const res = await ctx.fetch(ref.href);
-      if (res?.status !== 200 || !declaresHreflang(res.body)) {
+      const alternateFinalUrl = res?.finalUrl || ref.href;
+      if (res?.status !== 200 || !declaresBackReference(res.body, alternateFinalUrl, ref.from)) {
         try { offenders.push(new URL(ref.href).pathname); } catch { offenders.push(ref.href); }
       }
     }

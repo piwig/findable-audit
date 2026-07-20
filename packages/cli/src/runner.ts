@@ -2,6 +2,7 @@ import { Crawler } from './crawler.js';
 import { samplePages } from './sampler.js';
 import type { Check, CheckResult } from './types.js';
 import { makeResult } from './types.js';
+import { pathOf } from './checks/aggregate.js';
 
 export class UnreachableSiteError extends Error {}
 
@@ -36,8 +37,6 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   const scored = results.filter((r) => r.status !== 'skip');
   const max = scored.reduce((s, r) => s + r.maxPoints, 0);
   const earned = scored.reduce((s, r) => s + r.points, 0);
-  const sampledPages = crawler.sample.pages.map((p) => {
-    try { return new URL(p.finalUrl).pathname; } catch { return '/'; }
-  });
+  const sampledPages = crawler.sample.pages.map(pathOf);
   return { url: crawler.baseUrl.toString(), score: max === 0 ? 0 : Math.round((earned / max) * 100), sampledPages, results };
 }

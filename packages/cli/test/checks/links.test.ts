@@ -48,4 +48,9 @@ describe('hreflang', () => {
     expect(r.status).toBe('fail');
     expect(r.message).toContain('/de.html');
   });
+  it('fails when an alternate 200s but does not declare a back-reference', async () => {
+    const r = await hreflang.run(await sampled('hreflang-nonreciprocal'));
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('/fr.html');
+  });
 });
