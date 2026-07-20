@@ -4,7 +4,7 @@
   "description": "SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=20.3" },
   "bin": { "findable": "./dist/index.js" },
   "files": ["dist"],
   "publishConfig": { "access": "public" },
