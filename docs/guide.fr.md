@@ -1,6 +1,6 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers 22 checks répartis en 4 familles. Ce guide explique, pour chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers 23 checks répartis en 4 familles. Ce guide explique, pour chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de réponse IA, et comment corriger un échec.
 
 Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels), `XX` (échec, 0 point), `--` (ignoré, non comptabilisé mais aucun point gagné).
 
@@ -29,6 +29,14 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 **Pourquoi c'est important :** Si la page d'accueil renvoie une erreur, redirige vers un login, ou exige JavaScript pour produire le moindre HTML, les crawlers n'ont rien à indexer et les assistants IA n'ont rien à citer.
 
 **Comment corriger :** Assurez-vous que l'URL racine sert une page HTML en 200 sans nécessiter JavaScript. Vérifiez la configuration d'hébergement, les chaînes de redirection, et toute couche anti-bot qui pourrait servir des erreurs aux clients non-navigateurs.
+
+### `robots-directives` (4 pts)
+
+**Ce qu'il vérifie :** Que la page d'accueil ne porte aucune directive robots bloquante (`noindex` ou `noai`), que ce soit dans l'en-tête HTTP `X-Robots-Tag` ou dans une balise `<meta name="robots">`. Avertit si une telle directive est trouvée.
+
+**Pourquoi c'est important :** Une directive `noindex`/`noai` sur la page d'accueil indique aux moteurs de recherche et aux crawlers IA d'ignorer entièrement la page — l'exact contraire de la findabilité.
+
+**Comment corriger :** Retirez `noindex`/`noai` de l'en-tête `X-Robots-Tag` et de `<meta name="robots">`, sauf si cette exclusion est volontaire.
 
 ## Contenu pour LLM
 

@@ -1,6 +1,6 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across 22 checks in 4 families. This guide explains, for each check: what it verifies, why it matters for AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across 23 checks in 4 families. This guide explains, for each check: what it verifies, why it matters for AI answer engines, and how to fix a failure.
 
 Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 points), `--` (skip, not counted against you but no points earned).
 
@@ -29,6 +29,14 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 **Why it matters:** If the homepage errors, redirects to a login, or requires JavaScript to produce any HTML, crawlers get nothing to index and AI assistants get nothing to cite.
 
 **How to fix:** Ensure the root URL serves a 200 HTML page without requiring JavaScript. Check hosting configuration, redirect chains, and any bot-protection layer that might be serving errors to non-browser clients.
+
+### `robots-directives` (4 pts)
+
+**What it verifies:** The homepage carries no blocking robots directive (`noindex` or `noai`), in either the `X-Robots-Tag` HTTP header or a `<meta name="robots">` tag. Warns if such a directive is found.
+
+**Why it matters:** A `noindex`/`noai` directive on the homepage tells search engines and AI crawlers to skip the page entirely — the opposite of being findable.
+
+**How to fix:** Remove `noindex`/`noai` from the `X-Robots-Tag` header and `<meta name="robots">` unless the exclusion is intentional.
 
 ## Content for LLMs
 
