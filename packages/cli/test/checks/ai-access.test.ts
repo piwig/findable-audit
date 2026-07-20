@@ -4,8 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { serveFixture } from '../helpers/server.js';
 import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
-import { parseRobots, isBlocked } from '../../src/robots.js';
-import { robotsExists, aiCrawlersAllowed, homepageOk, robotsDirectives } from '../../src/checks/ai-access.js';
+import { parseRobots, isBlocked, robotsWellformed } from '../../src/robots.js';
+import {
+  robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
+  homepageOk, robotsDirectives,
+} from '../../src/checks/ai-access.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
@@ -61,6 +64,42 @@ describe('parseRobots / isBlocked (RFC 9309)', () => {
   });
 });
 
+describe('robotsWellformed (RFC 9309 hygiene)', () => {
+  const asRes = (body: string, contentType = 'text/plain') =>
+    ({ status: 200, ok: true, body, contentType, finalUrl: 'http://x/robots.txt', headers: {} });
+
+  it('passes a clean file with only known directives', () => {
+    const r = robotsWellformed(asRes('User-agent: *\nDisallow:\n\nSitemap: https://example.com/sitemap.xml\n'));
+    expect(r.status).toBe('pass');
+  });
+  it('warns on Disallow before the first User-agent', () => {
+    const r = robotsWellformed(asRes('Disallow: /private\nUser-agent: *\nAllow: /\n'));
+    expect(r.status).toBe('warn');
+    expect(r.reason).toContain('before the first User-agent');
+  });
+  it('warns on an unknown directive', () => {
+    const r = robotsWellformed(asRes('User-agent: *\nDisallow:\nNoindex: /secret\n'));
+    expect(r.status).toBe('warn');
+    expect(r.reason).toContain('unknown directive');
+  });
+  it('fails when served as an HTML error page', () => {
+    const r = robotsWellformed(asRes('<html><body>404 Not Found</body></html>', 'text/html'));
+    expect(r.status).toBe('fail');
+    expect(r.reason).toContain('content-type');
+  });
+  it('fails on garbled content with no recognizable directives', () => {
+    const r = robotsWellformed(asRes('this is not a robots file at all, just prose text.'));
+    expect(r.status).toBe('fail');
+    expect(r.reason).toContain('garbled');
+  });
+  it('fails when the file exceeds 500KB', () => {
+    const huge = 'User-agent: *\nDisallow:\n' + '# padding\n'.repeat(60_000);
+    const r = robotsWellformed(asRes(huge));
+    expect(r.status).toBe('fail');
+    expect(r.reason).toContain('500KB');
+  });
+});
+
 describe('ai-access checks', () => {
   it('robots-exists passes when robots.txt is 200 text/plain', async () => {
     const c = await ctx('mini');
@@ -77,13 +116,13 @@ describe('ai-access checks', () => {
     expect(r.status).toBe('warn');
     expect(r.message).toContain('text/html');
   });
-  it('ai-crawlers-allowed fails when a critical bot is blocked', async () => {
-    const c = await ctx('blocked-ai');
+  it('ai-crawlers-allowed fails when a citation-time bot is blocked', async () => {
+    const c = await ctx('blocked-ai'); // robots.txt disallows PerplexityBot (citation-time)
     const r = await aiCrawlersAllowed.run(c);
     expect(r.status).toBe('fail');
-    expect(r.message).toContain('GPTBot');
+    expect(r.message).toContain('PerplexityBot');
   });
-  it('ai-crawlers-allowed warns when only extended bots are blocked', async () => {
+  it('ai-crawlers-allowed warns when only training-time bots are blocked', async () => {
     const c = stubCtx({
       '/': { contentType: 'text/html', body: '<html></html>' },
       '/robots.txt': { body: 'User-agent: Bytespider\nUser-agent: CCBot\nDisallow: /\n' },
@@ -91,6 +130,70 @@ describe('ai-access checks', () => {
     const r = await aiCrawlersAllowed.run(c);
     expect(r.status).toBe('warn');
     expect(r.message).toContain('Bytespider');
+  });
+  it('ai-crawlers-allowed fails naming both tiers when training and citation bots are both blocked', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: GPTBot\nUser-agent: PerplexityBot\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('GPTBot');
+    expect(r.message).toContain('PerplexityBot');
+  });
+  it('ai-crawlers-allowed warns (not fails) with no usable robots.txt', async () => {
+    const c = await ctx('llm-good');
+    expect((await aiCrawlersAllowed.run(c)).status).toBe('warn');
+  });
+  it('search-crawlers-allowed fails when Googlebot is blocked', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: Googlebot\nDisallow: /\n' },
+    });
+    const r = await searchCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('Googlebot');
+  });
+  it('search-crawlers-allowed fails when the wildcard group is disallowed at /', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: *\nDisallow: /\n' },
+    });
+    const r = await searchCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+  });
+  it('search-crawlers-allowed passes when only a non-search bot is blocked', async () => {
+    const c = await ctx('blocked-ai'); // disallows PerplexityBot only; Googlebot/Bingbot/* stay open
+    expect((await searchCrawlersAllowed.run(c)).status).toBe('pass');
+  });
+  it('robots-wellformed passes for a clean robots.txt', async () => {
+    const c = await ctx('perfect-site');
+    expect((await robotsWellformedCheck.run(c)).status).toBe('pass');
+  });
+  it('robots-wellformed skips when robots.txt is missing', async () => {
+    const c = await ctx('llm-good');
+    expect((await robotsWellformedCheck.run(c)).status).toBe('skip');
+  });
+  it('robots-wellformed warns on an orphan Disallow before the first User-agent', async () => {
+    const c = stubCtx({
+      '/robots.txt': { body: 'Disallow: /private\nUser-agent: *\nAllow: /\n' },
+    });
+    const r = await robotsWellformedCheck.run(c);
+    expect(r.status).toBe('warn');
+  });
+  it('robots-wellformed warns on an unknown directive', async () => {
+    const c = stubCtx({
+      '/robots.txt': { body: 'User-agent: *\nDisallow:\nCrawl-Delay-ish: 5\n' },
+    });
+    const r = await robotsWellformedCheck.run(c);
+    expect(r.status).toBe('warn');
+  });
+  it('robots-wellformed fails when robots.txt is served as HTML', async () => {
+    const c = stubCtx({
+      '/robots.txt': { contentType: 'text/html', body: '<html><body>Not Found</body></html>' },
+    });
+    const r = await robotsWellformedCheck.run(c);
+    expect(r.status).toBe('fail');
   });
   it('homepage-ok fails on 404 homepage', async () => {
     const c = await ctx('mini'); // mini has no index.html

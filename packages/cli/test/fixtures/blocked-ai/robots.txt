@@ -1,4 +1,4 @@
-User-agent: GPTBot
+User-agent: PerplexityBot
 Disallow: /
 
 User-agent: *

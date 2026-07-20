@@ -1,5 +1,8 @@
 import type { Check } from '../types.js';
-import { robotsExists, aiCrawlersAllowed, homepageOk, robotsDirectives } from './ai-access.js';
+import {
+  robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
+  homepageOk, robotsDirectives,
+} from './ai-access.js';
 import { llmsTxt, llmsFullTxt, contentWithoutJs } from './llm-content.js';
 import {
   jsonLd, jsonLdEntity, twitterCard, jsonLdValid, sdOrganization, sdEntityGrounding,
@@ -8,7 +11,7 @@ import {
 import { sdArticle, sdProduct, sdFaq, sdBreadcrumb, napConsistency } from './structured-data-mp.js';
 import { sitemapCheck, indexnowCheck } from './sitemap.js';
 import { titleDescription, canonical, openGraph, httpsCheck, viewport } from './fundamentals.js';
-import { metaRobotsNoindex, uniqueTitles, imagesAlt, schemaCoverage } from './multi-page.js';
+import { metaRobotsNoindex, snippetPreviewDirectives, uniqueTitles, imagesAlt, schemaCoverage } from './multi-page.js';
 import { brokenInternalLinks, redirectHygiene, hreflang } from './links.js';
 import {
   metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
@@ -17,7 +20,8 @@ import {
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
-    robotsExists, aiCrawlersAllowed, homepageOk, robotsDirectives,
+    robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
+    homepageOk, robotsDirectives, snippetPreviewDirectives,
     llmsTxt, llmsFullTxt, contentWithoutJs, imagesAlt,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,

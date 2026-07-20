@@ -1,13 +1,47 @@
 import { parse } from 'node-html-parser';
-import type { Check, FetchedResource } from '../types.js';
+import type { Check } from '../types.js';
 import { makeResult } from '../types.js';
 import { extractJsonLd } from './structured-data.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
+import { robotsDirectiveSet, hasDirectiveToken, directiveValue, type RobotsDirectiveSet } from '../robots.js';
 
-function hasNoindex(res: FetchedResource): boolean {
-  const header = res.headers['x-robots-tag'] ?? '';
-  const meta = parse(res.body).querySelector('meta[name="robots"]')?.getAttribute('content') ?? '';
-  return [header, meta].some((v) => /\b(noindex|none)\b/i.test(v));
+/** Truncate an offender path list to 3 entries + "(+N more)", matching the rest of the MP checks. */
+function offenderList(paths: string[]): string {
+  const shown = paths.slice(0, 3).join(', ');
+  const more = paths.length > 3 ? ` (+${paths.length - 3} more)` : '';
+  return `${shown}${more}`;
+}
+
+function isNoindex(set: RobotsDirectiveSet): boolean {
+  return hasDirectiveToken(set, 'noindex') || hasDirectiveToken(set, 'none');
+}
+
+function isNofollow(set: RobotsDirectiveSet): boolean {
+  return hasDirectiveToken(set, 'nofollow');
+}
+
+/** Header and meta disagree on indexability: one explicitly says noindex/none, the other explicitly says index. */
+function isConflict(set: RobotsDirectiveSet): boolean {
+  if (!set.headerRaw || !set.metaRaw) return false;
+  const headerNoindex = set.headerTokens.includes('noindex') || set.headerTokens.includes('none');
+  const metaNoindex = set.metaTokens.includes('noindex') || set.metaTokens.includes('none');
+  const headerIndex = set.headerTokens.includes('index');
+  const metaIndex = set.metaTokens.includes('index');
+  return (headerNoindex && metaIndex) || (metaNoindex && headerIndex);
+}
+
+type NoindexVerdict = 'noindex' | 'conflict' | 'nofollow' | 'clean';
+
+/**
+ * A conflicting header/meta pair is reported as a conflict (warn), taking
+ * priority over the blunt noindex fail — the site owner needs to reconcile
+ * the signals, but we can't be sure which one search engines will honor.
+ */
+function classifyNoindex(set: RobotsDirectiveSet): NoindexVerdict {
+  if (isConflict(set)) return 'conflict';
+  if (isNoindex(set)) return 'noindex';
+  if (isNofollow(set)) return 'nofollow';
+  return 'clean';
 }
 
 export const metaRobotsNoindex: Check = {
@@ -15,13 +49,67 @@ export const metaRobotsNoindex: Check = {
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
-    const offenders = pages.filter(hasNoindex).map(pathOf);
-    if (offenders.length === 0) return makeResult(this, 'pass', `no noindex on ${pages.length} sampled page(s)`);
-    // Any noindexed sampled page is a hard fail: it is invisible to search and AI crawlers.
-    const shown = offenders.slice(0, 3).join(', ');
-    const more = offenders.length > 3 ? ` (+${offenders.length - 3} more)` : '';
-    return makeResult(this, 'fail', `noindex found on: ${shown}${more}`,
-      'Remove noindex/none from meta robots or the X-Robots-Tag header on pages that should be discoverable.');
+    const rows = pages.map((p) => ({ path: pathOf(p), verdict: classifyNoindex(robotsDirectiveSet(p)) }));
+
+    // Any unambiguously noindexed sampled page is a hard fail: it is invisible to search and AI crawlers.
+    const noindexOffenders = rows.filter((r) => r.verdict === 'noindex').map((r) => r.path);
+    if (noindexOffenders.length > 0) {
+      return makeResult(this, 'fail', `noindex found on: ${offenderList(noindexOffenders)}`,
+        'Remove noindex/none from meta robots or the X-Robots-Tag header on pages that should be discoverable.');
+    }
+
+    const conflictOffenders = rows.filter((r) => r.verdict === 'conflict').map((r) => r.path);
+    if (conflictOffenders.length > 0) {
+      return makeResult(this, 'warn', `X-Robots-Tag header and meta robots disagree on: ${offenderList(conflictOffenders)}`,
+        'Make the X-Robots-Tag header and <meta name="robots"> agree on indexability.');
+    }
+
+    const nofollowOffenders = rows.filter((r) => r.verdict === 'nofollow').map((r) => r.path);
+    if (nofollowOffenders.length > 0) {
+      return makeResult(this, 'warn', `nofollow found on: ${offenderList(nofollowOffenders)}`,
+        'Remove nofollow from meta robots / X-Robots-Tag unless intentionally blocking link equity.');
+    }
+
+    return makeResult(this, 'pass', `no noindex on ${pages.length} sampled page(s)`);
+  },
+};
+
+/** A directive that actively starves the search/AI snippet or preview (spec §3.1 snippet-preview-directives). */
+function isPreviewRestrictive(set: RobotsDirectiveSet): boolean {
+  return hasDirectiveToken(set, 'nosnippet')
+    || directiveValue(set, 'max-snippet') === '0'
+    || directiveValue(set, 'max-image-preview') === 'none'
+    || directiveValue(set, 'max-video-preview') === '0';
+}
+
+/** A page explicitly states a preview preference (positive or restrictive), as opposed to leaving platform defaults. */
+function hasPreviewDirective(set: RobotsDirectiveSet): boolean {
+  return hasDirectiveToken(set, 'nosnippet')
+    || directiveValue(set, 'max-snippet') !== undefined
+    || directiveValue(set, 'max-image-preview') !== undefined
+    || directiveValue(set, 'max-video-preview') !== undefined;
+}
+
+export const snippetPreviewDirectives: Check = {
+  id: 'snippet-preview-directives', family: 'ai-access', maxPoints: 4,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
+    const rows = pages.map((p) => ({ path: pathOf(p), set: robotsDirectiveSet(p) }));
+
+    const restrictive = rows.filter((r) => isPreviewRestrictive(r.set)).map((r) => r.path);
+    if (restrictive.length > 0) {
+      return makeResult(this, 'fail', `preview-limiting directive on: ${offenderList(restrictive)}`,
+        'Set max-image-preview:large, max-snippet:-1, max-video-preview:-1; remove stray nosnippet/max-snippet:0.');
+    }
+
+    const missing = rows.filter((r) => !hasPreviewDirective(r.set)).map((r) => r.path);
+    if (missing.length > 0) {
+      return makeResult(this, 'warn', `no preview directives set on: ${offenderList(missing)}`,
+        'Set max-image-preview:large, max-snippet:-1, max-video-preview:-1 on every page to guarantee full search/AI previews.');
+    }
+
+    return makeResult(this, 'pass', `preview directives set on ${pages.length} sampled page(s)`);
   },
 };
 
