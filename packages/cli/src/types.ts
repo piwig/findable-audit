@@ -38,9 +38,17 @@ export function isXml(res: FetchedResource): boolean {
   return ct === '' || ct === 'application/xml' || ct === 'text/xml' || ct.endsWith('+xml');
 }
 
+/** A deterministic sample of same-origin HTML pages, homepage included. */
+export interface PageSample {
+  pages: FetchedResource[];
+  source: 'sitemap' | 'links' | 'homepage-only';
+}
+
 export interface CrawlContext {
   baseUrl: URL;
   fetch(path: string): Promise<FetchedResource | null>;
+  /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
+  sample?: PageSample;
 }
 
 export interface Check {
