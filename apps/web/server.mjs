@@ -1,0 +1,368 @@
+// findable-audit — public web front-end.
+//
+// A tiny, dependency-free HTTP server: a visitor enters a URL and gets the
+// findable-audit report (SEO + GEO / AI-search visibility) rendered as HTML or
+// JSON. It reuses the CLI's built library modules directly (they are
+// side-effect-free); run `npm run build` in packages/cli first so dist/ exists.
+//
+// Public-facing on a shared VPS, so it is defensive by default: every target
+// URL passes SSRF validation before we fetch it, audits are concurrency-capped
+// and per-IP rate-limited, and each audit has a hard timeout.
+//
+// Binds to 127.0.0.1 and expects to sit behind nginx (which terminates TLS and
+// sets X-Forwarded-For). Configure the port with the PORT env var (default 3021).
+
+import http from 'node:http';
+
+import { runAudit, UnreachableSiteError } from '../../packages/cli/dist/runner.js';
+import { buildChecks } from '../../packages/cli/dist/checks/index.js';
+import { renderHtml } from '../../packages/cli/dist/report/html.js';
+import { renderJson } from '../../packages/cli/dist/report/json.js';
+
+import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
+import { createRateLimiter } from './lib/rate-limit.mjs';
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+const PORT = Number(process.env.PORT) || 3021;
+const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
+const MAX_CONCURRENT = 3; // at most N audits running at once.
+const RATE_LIMIT = 6; // audits per IP...
+const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
+const AUDIT_TIMEOUT_MS = 25_000; // hard cap on a single audit.
+const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
+const MAX_PAGES = 8; // pages sampled per audit (capped for cost).
+const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
+const REPO_URL = 'https://github.com/piwig/findable-audit';
+
+const checks = buildChecks();
+const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW_MS });
+
+let inFlight = 0; // current number of running audits.
+/** @type {Map<string, { at: number, report: import('../../packages/cli/dist/runner.js').AuditReport }>} */
+const cache = new Map();
+
+class AuditTimeoutError extends Error {}
+
+// ---------------------------------------------------------------------------
+// HTML helpers
+// ---------------------------------------------------------------------------
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const PAGE_STYLE = `
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font: 16px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    color: #1a1a1a; background: #fff; margin: 0; padding: 3rem 1.5rem; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin: 0 0 .35rem; }
+  p.lead { color: #555; margin: 0 0 2rem; }
+  form { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 1rem; }
+  input[type=url], input[type=text] { flex: 1 1 18rem; min-width: 0; font-size: 1rem;
+    padding: .6rem .7rem; border: 1px solid #ccc; border-radius: 6px; color: #1a1a1a; }
+  input:focus { outline: 2px solid #1a7f37; outline-offset: 1px; border-color: #1a7f37; }
+  button { font-size: 1rem; font-weight: 600; padding: .6rem 1.2rem; border: 0; border-radius: 6px;
+    background: #1a7f37; color: #fff; cursor: pointer; }
+  button:hover { background: #166a2e; }
+  .hint { color: #777; font-size: .85rem; margin: 0 0 2rem; }
+  .err { border-left: 3px solid #b42318; background: #fdf3f2; padding: .75rem 1rem; border-radius: 0 6px 6px 0; }
+  .err h1 { color: #b42318; font-size: 1.2rem; }
+  a { color: #1a7f37; }
+  footer { margin-top: 3rem; color: #888; font-size: .85rem; border-top: 1px solid #e5e5e5; padding-top: 1rem; }
+`;
+
+function shell(title, bodyHtml) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${escapeHtml(title)}</title>
+<style>${PAGE_STYLE}</style>
+</head>
+<body>
+<main>
+${bodyHtml}
+<footer>findable-audit · <a href="${REPO_URL}">source on GitHub</a></footer>
+</main>
+</body>
+</html>
+`;
+}
+
+function landingPage() {
+  return shell('findable-audit', `
+<h1>findable-audit</h1>
+<p class="lead">Audit a website's SEO and GEO &mdash; how findable it is by AI search crawlers
+  (GPTBot, ClaudeBot, PerplexityBot&hellip;) and classic search engines.</p>
+<form method="get" action="/audit">
+  <input type="url" name="url" placeholder="https://example.com" aria-label="Website URL"
+    autocomplete="off" autocapitalize="off" spellcheck="false" required>
+  <button type="submit">Audit</button>
+</form>
+<p class="hint">Enter a public http(s) URL. Internal, private and reserved addresses are refused.</p>
+`);
+}
+
+function errorPage(title, message, { status = 400 } = {}) {
+  const body = `
+<div class="err">
+<h1>${escapeHtml(title)}</h1>
+<p>${escapeHtml(message)}</p>
+</div>
+<p><a href="/">&larr; Audit another site</a></p>
+`;
+  return { status, html: shell(title, body) };
+}
+
+// The rendered report + a small footer link back to the form.
+function reportWithBackLink(reportHtml) {
+  const back = '<p style="max-width:860px;margin:1.5rem auto 0;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
+    + '<a href="/" style="color:#1a7f37">&larr; Audit another site</a></p>';
+  const marker = '</body>';
+  const idx = reportHtml.lastIndexOf(marker);
+  if (idx === -1) return reportHtml + back;
+  return reportHtml.slice(0, idx) + back + '\n' + reportHtml.slice(idx);
+}
+
+// ---------------------------------------------------------------------------
+// Audit execution
+// ---------------------------------------------------------------------------
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new AuditTimeoutError('Audit timed out.')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Run an audit for an already-validated URL, honouring the concurrency cap,
+ * hard timeout and short-lived result cache.
+ * @param {URL} url validated target
+ * @returns {Promise<import('../../packages/cli/dist/runner.js').AuditReport>}
+ */
+async function auditUrl(url) {
+  const key = url.href;
+
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.report;
+
+  if (inFlight >= MAX_CONCURRENT) {
+    const err = new Error('busy');
+    err.code = 'BUSY';
+    throw err;
+  }
+
+  inFlight++;
+  const auditPromise = runAudit(key, checks, { timeoutMs: FETCH_TIMEOUT_MS, maxPages: MAX_PAGES });
+  // Free the slot when the real audit settles, even if the HTTP response has
+  // already timed out below; swallow a late rejection so it is never unhandled.
+  auditPromise.then(
+    () => { inFlight--; },
+    () => { inFlight--; },
+  );
+
+  const report = await withTimeout(auditPromise, AUDIT_TIMEOUT_MS);
+  cache.set(key, { at: Date.now(), report });
+  return report;
+}
+
+// ---------------------------------------------------------------------------
+// Request helpers
+// ---------------------------------------------------------------------------
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) {
+    const first = xff.split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.socket.remoteAddress ?? 'unknown';
+}
+
+function send(res, status, contentType, body, extraHeaders = {}) {
+  res.writeHead(status, {
+    'content-type': contentType,
+    'content-length': Buffer.byteLength(body),
+    'referrer-policy': 'no-referrer',
+    'x-content-type-options': 'nosniff',
+    ...extraHeaders,
+  });
+  res.end(body);
+}
+
+// Normalize what the user typed: allow a bare "example.com" (default https).
+function normalizeInput(raw) {
+  const trimmed = raw.trim();
+  if (trimmed === '') return '';
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+// ---------------------------------------------------------------------------
+// Route handler for /audit and /audit.json
+// ---------------------------------------------------------------------------
+async function handleAudit(req, res, wantJson) {
+  const ip = clientIp(req);
+  const rl = rateLimiter.take(ip);
+  if (!rl.allowed) {
+    const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+    const headers = { 'retry-after': String(retryAfter) };
+    if (wantJson) {
+      send(res, 429, 'application/json; charset=utf-8',
+        JSON.stringify({ error: 'rate_limited', retryAfterSeconds: retryAfter }), headers);
+    } else {
+      const p = errorPage('Too many requests',
+        `You have run too many audits in a short time. Try again in about ${retryAfter}s.`, { status: 429 });
+      send(res, p.status, 'text/html; charset=utf-8', p.html, headers);
+    }
+    return;
+  }
+
+  const parsed = new URL(req.url, 'http://localhost');
+  const rawUrl = parsed.searchParams.get('url') ?? '';
+  const normalized = normalizeInput(rawUrl);
+  if (normalized === '') {
+    if (wantJson) {
+      send(res, 400, 'application/json; charset=utf-8', JSON.stringify({ error: 'missing url parameter' }));
+    } else {
+      const p = errorPage('Missing URL', 'Please provide a URL to audit.');
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+    }
+    return;
+  }
+
+  // 1) SSRF + validation. Failures are safe 400s.
+  let url;
+  try {
+    url = await assertPublicUrl(normalized);
+  } catch (err) {
+    if (err instanceof BlockedUrlError) {
+      if (wantJson) {
+        send(res, 400, 'application/json; charset=utf-8',
+          JSON.stringify({ error: 'blocked', reason: err.code, message: err.message }));
+      } else {
+        const p = errorPage('URL not allowed', err.message);
+        send(res, p.status, 'text/html; charset=utf-8', p.html);
+      }
+      return;
+    }
+    throw err;
+  }
+
+  // 2) Run the audit (concurrency-capped, timed).
+  let report;
+  try {
+    report = await auditUrl(url);
+  } catch (err) {
+    if (err && err.code === 'BUSY') {
+      const msg = 'The server is busy running other audits. Please try again in a few seconds.';
+      if (wantJson) {
+        send(res, 429, 'application/json; charset=utf-8', JSON.stringify({ error: 'busy', message: msg }),
+          { 'retry-after': '5' });
+      } else {
+        const p = errorPage('Server busy', msg, { status: 429 });
+        send(res, p.status, 'text/html; charset=utf-8', p.html, { 'retry-after': '5' });
+      }
+      return;
+    }
+    if (err instanceof AuditTimeoutError) {
+      const msg = 'The audit took too long and was stopped. The target site may be slow or unresponsive.';
+      if (wantJson) {
+        send(res, 504, 'application/json; charset=utf-8', JSON.stringify({ error: 'timeout', message: msg }));
+      } else {
+        const p = errorPage('Audit timed out', msg, { status: 504 });
+        send(res, p.status, 'text/html; charset=utf-8', p.html);
+      }
+      return;
+    }
+    if (err instanceof UnreachableSiteError) {
+      const msg = `Could not reach ${url.href} — the site may be down or blocking automated requests.`;
+      if (wantJson) {
+        send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'unreachable', message: msg }));
+      } else {
+        const p = errorPage('Site unreachable', msg, { status: 502 });
+        send(res, p.status, 'text/html; charset=utf-8', p.html);
+      }
+      return;
+    }
+    // Unexpected failure: log server-side, return a generic message.
+    console.error('audit error:', err);
+    const msg = 'Something went wrong while auditing that site.';
+    if (wantJson) {
+      send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'internal', message: msg }));
+    } else {
+      const p = errorPage('Audit failed', msg, { status: 502 });
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+    }
+    return;
+  }
+
+  // 3) Render.
+  if (wantJson) {
+    send(res, 200, 'application/json; charset=utf-8', renderJson(report));
+  } else {
+    send(res, 200, 'text/html; charset=utf-8', reportWithBackLink(renderHtml(report)));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Server
+// ---------------------------------------------------------------------------
+const server = http.createServer((req, res) => {
+  // Only GET (and HEAD) are supported.
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    send(res, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', { allow: 'GET' });
+    return;
+  }
+
+  let pathname;
+  try {
+    pathname = new URL(req.url, 'http://localhost').pathname;
+  } catch {
+    send(res, 400, 'text/plain; charset=utf-8', 'Bad Request');
+    return;
+  }
+
+  if (pathname === '/healthz') {
+    send(res, 200, 'text/plain; charset=utf-8', 'ok');
+    return;
+  }
+  if (pathname === '/') {
+    send(res, 200, 'text/html; charset=utf-8', landingPage());
+    return;
+  }
+  if (pathname === '/audit') {
+    handleAudit(req, res, false).catch((err) => {
+      console.error('unhandled /audit error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/audit.json') {
+    handleAudit(req, res, true).catch((err) => {
+      console.error('unhandled /audit.json error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+
+  send(res, 404, 'text/html; charset=utf-8', errorPage('Not found', 'No such page.', { status: 404 }).html);
+});
+
+// Periodically drop stale rate-limiter buckets; unref so it never blocks exit.
+setInterval(() => rateLimiter.sweep(), RATE_WINDOW_MS).unref();
+
+server.listen(PORT, HOST, () => {
+  console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
+});
+
+export { server };

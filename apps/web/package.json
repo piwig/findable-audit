@@ -1,0 +1,13 @@
+{
+  "name": "findable-audit-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public web front-end for findable-audit: enter a URL, get an SEO + GEO audit report.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/"
+  }
+}
