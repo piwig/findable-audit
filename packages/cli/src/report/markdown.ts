@@ -1,12 +1,6 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
-
-const FAMILY_LABELS: Record<Family, string> = {
-  'ai-access': 'AI crawler access',
-  'llm-content': 'Content for LLMs',
-  'structured-data': 'Structured data',
-  'seo-fundamentals': 'SEO fundamentals',
-};
+import { FAMILY_LABELS } from './terminal.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
   pass: '✅', warn: '⚠️', fail: '❌', skip: '⏭️',

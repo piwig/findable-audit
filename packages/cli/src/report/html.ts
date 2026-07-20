@@ -39,6 +39,7 @@ const STYLE = `
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
   .st.pass { color: #1a7f37; } .st.warn { color: #9a6700; } .st.fail { color: #b42318; } .st.skip { color: #999; }
   .fix { color: #555; font-size: .85rem; margin-top: .15rem; }
+  .msg { color: #333; font-size: .9rem; margin-top: .1rem; }
   .row { break-inside: avoid; }
   footer { margin-top: 2rem; color: #888; font-size: .8rem; border-top: 1px solid #e5e5e5; padding-top: .75rem; }
   @media print {

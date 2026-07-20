@@ -26,6 +26,8 @@ describe('broken-internal-links', () => {
   });
   it('passes when every internal link resolves', async () => {
     // Links: /one.html, /two.html, /style.css — all exist in the fixture and return 200.
+    // The fixture also links /cdn-cgi/l/email-protection, but /cdn-cgi/ is excluded
+    // from the internal-link check (see the next test), so it does not affect this pass.
     expect((await brokenInternalLinks.run(await sampled('links-fallback'))).status).toBe('pass');
   });
   it('ignores Cloudflare /cdn-cgi/ links instead of reporting them broken', async () => {
