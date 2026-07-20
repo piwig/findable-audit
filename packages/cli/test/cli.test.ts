@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveFixture } from './helpers/server.js';
@@ -69,4 +71,29 @@ describe('findable CLI binary', () => {
     expect(code).toBe(2);
     expect(stderr).toContain('--timeout');
   });
+
+  it('writes a Markdown report with --report', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const out = path.join(tmpdir(), `findable-report-${Date.now()}.md`);
+    try {
+      const { code } = await runCli([srv.url, '--report', out, '--indexnow-key', 'testkey123']);
+      expect(code).toBe(0);
+      const md = readFileSync(out, 'utf8');
+      expect(md).toContain('# findable-audit — ');
+      expect(md).toContain('**Score: 100/100**');
+      expect(md).toContain('## AI crawler access');
+    } finally {
+      rmSync(out, { force: true });
+    }
+  }, 30_000);
+
+  it('exits 2 when the --report path is not writable', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const bad = path.join(tmpdir(), `no-such-dir-${Date.now()}`, 'report.md');
+    const { code, stderr } = await runCli([srv.url, '--report', bad, '--indexnow-key', 'testkey123']);
+    expect(code).toBe(2);
+    expect(stderr).toContain('cannot write report');
+  }, 30_000);
 });

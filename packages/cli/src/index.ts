@@ -1,14 +1,17 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
+import { writeFileSync } from 'node:fs';
 import { buildChecks } from './checks/index.js';
 import { runAudit, UnreachableSiteError } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
+import { renderMarkdown } from './report/markdown.js';
 
-const USAGE = `Usage: findable <url> [--json] [--min-score <n>] [--timeout <ms>] [--indexnow-key <key>]
+const USAGE = `Usage: findable <url> [--json] [--report <file.md>] [--min-score <n>] [--timeout <ms>] [--indexnow-key <key>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
+--report writes a Markdown report to the given file, in addition to the terminal/JSON output.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
 const parseCliArgs = () =>
@@ -19,6 +22,7 @@ const parseCliArgs = () =>
       'min-score': { type: 'string', default: '60' },
       timeout: { type: 'string', default: '10000' },
       'indexnow-key': { type: 'string' },
+      report: { type: 'string', short: 'r' },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     } as const,
@@ -67,11 +71,23 @@ try {
   const report = await runAudit(targetUrl,
     buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
+  let reportWriteFailed = false;
+  if (values.report) {
+    try {
+      writeFileSync(values.report, renderMarkdown(report), 'utf8');
+      console.error(`report written to ${values.report}`);
+    } catch (err) {
+      // Same rule as below: never process.exit() while undici sockets may
+      // still be closing (libuv crash on Windows) — set exitCode instead.
+      console.error(`findable-audit: cannot write report to "${values.report}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
   // Do NOT call process.exit() here: on Windows, exiting while undici (fetch)
   // keep-alive sockets are still closing crashes Node with a libuv assertion
   // ("!(handle->flags & UV_HANDLE_CLOSING)", src\win\async.c). Setting
   // process.exitCode lets the event loop drain and the process exit cleanly.
-  process.exitCode = report.score >= minScore ? 0 : 1;
+  process.exitCode = reportWriteFailed ? 2 : report.score >= minScore ? 0 : 1;
 } catch (err) {
   if (err instanceof UnreachableSiteError) {
     console.error(`findable-audit: ${err.message}`);
