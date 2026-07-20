@@ -9,14 +9,24 @@ import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 
-const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>]
+const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html>] [--no-report] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
---report writes a report file; repeat it for several formats. The format is chosen by extension:
-  .html/.htm -> a self-contained, printable HTML report (open it and "Print to PDF"); anything else -> Markdown.
+By default, two report files are written to the current directory: <host>-<date>.md and <host>-<date>.html
+  (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
+--report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
+  by extension: .html/.htm -> HTML, anything else -> Markdown.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
+
+/** Default report basename written when neither --report nor --no-report is given. */
+function defaultReportBase(url: string, now: Date): string {
+  let host = 'report';
+  try { host = new URL(url).hostname || 'report'; } catch { /* keep 'report' */ }
+  const safeHost = host.replace(/[^a-z0-9.-]/gi, '-');
+  return `${safeHost}-${now.toISOString().slice(0, 10)}`;
+}
 
 const parseCliArgs = () =>
   parseArgs({
@@ -29,6 +39,7 @@ const parseCliArgs = () =>
       'user-agent': { type: 'string' },
       'indexnow-key': { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
+      'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     } as const,
@@ -89,10 +100,25 @@ try {
   const report = await runAudit(targetUrl,
     buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs, maxPages, userAgent });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
+  // Decide which report files to write:
+  //   --report given  -> exactly those (format by extension); default suppressed
+  //   --no-report     -> none
+  //   otherwise       -> <host>-<date>.md and .html in the current directory
+  const now = new Date();
+  const explicit = values.report ?? [];
+  let targets: string[];
+  if (explicit.length > 0) {
+    targets = explicit;
+  } else if (values['no-report']) {
+    targets = [];
+  } else {
+    const base = defaultReportBase(report.url, now);
+    targets = [`${base}.md`, `${base}.html`];
+  }
   let reportWriteFailed = false;
-  for (const file of values.report ?? []) {
+  for (const file of targets) {
     const isHtml = /\.html?$/i.test(file);
-    const body = isHtml ? renderHtml(report) : renderMarkdown(report);
+    const body = isHtml ? renderHtml(report, now) : renderMarkdown(report, now);
     try {
       writeFileSync(file, body, 'utf8');
       console.error(`report written to ${file}`);
