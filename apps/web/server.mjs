@@ -21,6 +21,8 @@ import { renderJson } from '../../packages/cli/dist/report/json.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
+import { createResultCache } from './lib/cache.mjs';
+import { clientIp } from './lib/client-ip.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -34,14 +36,20 @@ const AUDIT_TIMEOUT_MS = 25_000; // hard cap on a single audit.
 const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
 const MAX_PAGES = 8; // pages sampled per audit (capped for cost).
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
+const CACHE_MAX_ENTRIES = 500; // bound the result cache so it can't grow unbounded.
 const REPO_URL = 'https://github.com/piwig/findable-audit';
+
+// Defense-in-depth CSP for the (already-escaped) HTML pages. The report uses an
+// inline <style>, hence style-src 'unsafe-inline'; there is no script and no
+// external origin, so scripts and everything else are locked to 'self'/'none'.
+const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; "
+  + "img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 
 const checks = buildChecks();
 const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW_MS });
 
 let inFlight = 0; // current number of running audits.
-/** @type {Map<string, { at: number, report: import('../../packages/cli/dist/runner.js').AuditReport }>} */
-const cache = new Map();
+const cache = createResultCache({ ttlMs: CACHE_TTL_MS, maxEntries: CACHE_MAX_ENTRIES });
 
 class AuditTimeoutError extends Error {}
 
@@ -155,7 +163,7 @@ async function auditUrl(url) {
   const key = url.href;
 
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.report;
+  if (cached !== undefined) return cached;
 
   if (inFlight >= MAX_CONCURRENT) {
     const err = new Error('busy');
@@ -164,7 +172,16 @@ async function auditUrl(url) {
   }
 
   inFlight++;
-  const auditPromise = runAudit(key, checks, { timeoutMs: FETCH_TIMEOUT_MS, maxPages: MAX_PAGES });
+  // Tie an AbortController to the hard timeout: when the audit times out we
+  // abort it, which cancels every in-flight crawler fetch, lets runAudit settle
+  // promptly and frees the concurrency slot instead of leaking it for ~10s.
+  const ac = new AbortController();
+  const auditPromise = runAudit(key, checks, {
+    timeoutMs: FETCH_TIMEOUT_MS,
+    maxPages: MAX_PAGES,
+    blockPrivateHosts: true, // fetch-layer SSRF guard: every hop is revalidated.
+    signal: ac.signal,
+  });
   // Free the slot when the real audit settles, even if the HTTP response has
   // already timed out below; swallow a late rejection so it is never unhandled.
   auditPromise.then(
@@ -172,31 +189,31 @@ async function auditUrl(url) {
     () => { inFlight--; },
   );
 
-  const report = await withTimeout(auditPromise, AUDIT_TIMEOUT_MS);
-  cache.set(key, { at: Date.now(), report });
+  let report;
+  try {
+    report = await withTimeout(auditPromise, AUDIT_TIMEOUT_MS);
+  } catch (err) {
+    ac.abort(); // on timeout (or any race failure) cancel in-flight fetches.
+    throw err;
+  }
+  cache.set(key, report);
   return report;
 }
 
 // ---------------------------------------------------------------------------
 // Request helpers
 // ---------------------------------------------------------------------------
-function clientIp(req) {
-  const xff = req.headers['x-forwarded-for'];
-  if (typeof xff === 'string' && xff.length > 0) {
-    const first = xff.split(',')[0].trim();
-    if (first) return first;
-  }
-  return req.socket.remoteAddress ?? 'unknown';
-}
-
 function send(res, status, contentType, body, extraHeaders = {}) {
-  res.writeHead(status, {
+  const headers = {
     'content-type': contentType,
     'content-length': Buffer.byteLength(body),
     'referrer-policy': 'no-referrer',
     'x-content-type-options': 'nosniff',
     ...extraHeaders,
-  });
+  };
+  // Content-Security-Policy for served HTML (landing, report, error pages).
+  if (contentType.startsWith('text/html')) headers['content-security-policy'] = CSP;
+  res.writeHead(status, headers);
   res.end(body);
 }
 
@@ -358,8 +375,9 @@ const server = http.createServer((req, res) => {
   send(res, 404, 'text/html; charset=utf-8', errorPage('Not found', 'No such page.', { status: 404 }).html);
 });
 
-// Periodically drop stale rate-limiter buckets; unref so it never blocks exit.
-setInterval(() => rateLimiter.sweep(), RATE_WINDOW_MS).unref();
+// Periodically drop stale rate-limiter buckets and cache entries; unref so it
+// never blocks exit.
+setInterval(() => { rateLimiter.sweep(); cache.sweep(); }, RATE_WINDOW_MS).unref();
 
 server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);

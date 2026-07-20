@@ -20,10 +20,22 @@ export interface AuditOptions {
   maxPages?: number;
   /** Override the crawler User-Agent (e.g. "GPTBot/1.0" to test UA-based blocking). */
   userAgent?: string;
+  /**
+   * Enable the crawler's fetch-layer SSRF guard: refuse to connect to internal/
+   * reserved addresses on any hop (initial URL, sitemap, sampled pages, hreflang
+   * alternates), re-validate redirects, and pin to the validated IP. The public
+   * web app sets this; the CLI leaves it off so it can audit loopback fixtures.
+   */
+  blockPrivateHosts?: boolean;
+  /** Abort in-flight fetches (e.g. when the caller's hard timeout fires). */
+  signal?: AbortSignal;
 }
 
 export async function runAudit(url: string, checks: Check[], opts: AuditOptions = {}): Promise<AuditReport> {
-  const crawler = new Crawler(url, opts.timeoutMs, opts.userAgent);
+  const crawler = new Crawler(url, opts.timeoutMs, opts.userAgent, {
+    blockPrivateHosts: opts.blockPrivateHosts,
+    signal: opts.signal,
+  });
   const home = await crawler.fetch('/');
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);

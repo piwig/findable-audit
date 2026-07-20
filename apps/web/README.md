@@ -33,8 +33,14 @@ Environment:
 | ------ | --------- | ---------------------------------------- |
 | `PORT` | `3021`    | TCP port. The server always binds `127.0.0.1`. |
 
-Put nginx in front to terminate TLS and forward to `http://127.0.0.1:3021`,
-passing `X-Forwarded-For` so per-IP rate limiting sees the real client.
+Put nginx in front to terminate TLS and forward to `http://127.0.0.1:3021`.
+
+**This app trusts its reverse proxy and MUST NOT be exposed directly.** It
+derives the rate-limit client IP from `X-Real-IP` (falling back to the last
+`X-Forwarded-For` hop, then the socket address). Configure nginx to set
+`proxy_set_header X-Real-IP $remote_addr;` and to append the real client to
+`X-Forwarded-For`. Without such a proxy in front, a client can forge both
+headers and spoof the rate-limit key.
 
 ## Endpoints
 
@@ -71,24 +77,49 @@ Before any audit runs, the target URL must pass `assertPublicUrl()`:
 
 Any value that is not a valid IP literal is treated as blocked (defensive default).
 
-**Known limitation (redirect-based SSRF).** Only the *initial* URL is validated.
-The audited page can reply with a 3xx redirect to an internal address, and the
-crawler follows redirects, so a public host could bounce the crawler to
-`http://169.254.169.254/`. There is also a DNS-rebinding / TOCTOU window: a host
-that validates here could resolve to a private IP when the crawler actually
-connects. Closing these requires a custom fetch that re-runs `assertPublicUrl()`
-on every redirect hop and pins the resolved IP for the connection. This is left
-for a future hardening pass and is called out in `lib/ssrf.mjs`.
+`isBlockedAddress` is the **single source of truth** for the IP-range table: it
+is defined once in the CLI (`packages/cli/src/ssrf.ts`) and imported here from
+`packages/cli/dist/ssrf.js`, and it is the same predicate the crawler's
+fetch-layer guard uses. There is no second copy of the ranges.
+
+### Fetch-layer SSRF guard (redirect / hreflang / rebinding)
+
+`assertPublicUrl()` validates the *initial* URL only. The deeper vectors are
+closed one layer down, in the crawler, which the web app runs with
+`blockPrivateHosts: true` (`runAudit(..., { blockPrivateHosts: true })`):
+
+- **Redirects** are followed *manually* (`redirect: 'manual'`, max 5 hops); the
+  host/port/IP guard re-runs on every hop, so a public host cannot 3xx-bounce
+  the crawler to `http://169.254.169.254/`.
+- **Discovered URLs** (sitemap entries, sampled pages, and cross-origin
+  `hreflang` alternates) all go through the same guard — an hreflang `<link>`
+  pointing at loopback is not fetched.
+- **DNS rebinding / TOCTOU** is closed by pinning: after the guard resolves and
+  validates the host, the connection is pinned to that exact IP (node:http(s)
+  `lookup`), so it cannot be re-resolved to an internal address between check
+  and connect. TLS SNI/cert validation still uses the hostname, so HTTPS stays
+  valid.
+
+A rejected hop makes the fetch return `null` (the checks treat that as
+unreachable) and logs nothing sensitive.
 
 ### Abuse / resource limits
 
 - **Concurrency cap:** at most 3 audits run at once; over that → `429` "busy".
-- **Per-IP rate limit:** ~6 audits per rolling minute (keyed on the first
-  `X-Forwarded-For` hop when present, else the socket address) → `429`.
+- **Per-IP rate limit:** ~6 audits per rolling minute (keyed on `X-Real-IP`, else
+  the last `X-Forwarded-For` hop, else the socket address) → `429`. The key map
+  is bounded (`maxKeys`, default 10000; oldest evicted) so rotating/spoofed keys
+  cannot grow memory without bound.
 - **Per-audit hard timeout:** ~25s wall-clock (plus a 10s per-request timeout
-  inside the crawler) → `504`.
+  inside the crawler). The timeout aborts in-flight fetches via an
+  `AbortController`, so the concurrency slot is freed promptly rather than after
+  the remaining requests drain → `504`.
 - **Page cap:** at most 8 pages sampled per audit.
-- **Result cache:** identical URLs are served from a 60s in-memory cache.
+- **Result cache:** identical URLs are served from a 60s in-memory cache, bounded
+  to 500 entries (TTL sweep + oldest-eviction) so it cannot grow without bound.
+- **CSP:** HTML responses carry a `Content-Security-Policy`
+  (`default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; …`)
+  as defense-in-depth over the already-escaped output.
 
 ## Tests
 
