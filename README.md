@@ -68,15 +68,30 @@ Each check is explained in detail — including how to fix failures — in the [
 | `--timeout <ms>` | Per-request timeout in milliseconds (default: `10000`). |
 | `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
 | `--user-agent <ua>` | Override the crawler User-Agent, e.g. `--user-agent "GPTBot/1.0"`, to see what an AI crawler that a site filters by UA would get. |
-| `--report <file>`, `-r` | Also write the report to the given file. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
+| `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
+| `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
+
+### Report files
+
+By default, every successful audit writes two files to the current directory: `<host>-<date>.md` and `<host>-<date>.html`. For example:
+
+```bash
+npx findable-audit https://your-site.com
+# writes ./your-site.com-2026-07-20.md
+# and    ./your-site.com-2026-07-20.html
+```
+
+The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
+
+Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
 
 Exit codes: `0` = score >= min-score, `1` = below, `2` = site unreachable / error (including a report file that cannot be written). This makes `findable-audit` usable as a CI gate:
 
 ```bash
-npx findable-audit https://your-site.com --min-score 80
+npx findable-audit https://your-site.com --min-score 80 --no-report
 ```
 
-Write both a Markdown and an HTML report in one run:
+Write both a Markdown and an HTML report to specific paths in one run:
 
 ```bash
 npx findable-audit https://your-site.com --report audit.md --report audit.html
