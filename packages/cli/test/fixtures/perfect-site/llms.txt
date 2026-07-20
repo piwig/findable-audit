@@ -1,0 +1,7 @@
+# Example Bakery
+
+> Family bakery in Springfield, open Tuesday to Sunday.
+
+## Pages
+
+- [Home](https://example.com/): products and opening hours

@@ -1,0 +1,27 @@
+{
+  "name": "findable-audit",
+  "version": "0.1.0",
+  "description": "SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "bin": { "findable": "./dist/index.js" },
+  "files": ["dist"],
+  "publishConfig": { "access": "public" },
+  "repository": { "type": "git", "url": "git+https://github.com/piwig/findable-audit.git" },
+  "keywords": ["seo", "geo", "llms.txt", "ai-search", "audit", "lint"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0",
+    "node-html-parser": "^6.1.13",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
