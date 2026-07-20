@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
+import { createRequire } from 'node:module';
 import { buildChecks } from './checks/index.js';
 import { runAudit, UnreachableSiteError } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
@@ -10,16 +11,33 @@ const USAGE = `Usage: findable <url> [--json] [--min-score <n>] [--timeout <ms>]
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    json: { type: 'boolean', default: false },
-    'min-score': { type: 'string', default: '60' },
-    timeout: { type: 'string', default: '10000' },
-    'indexnow-key': { type: 'string' },
-    help: { type: 'boolean', short: 'h', default: false },
-  },
-});
+const parseCliArgs = () =>
+  parseArgs({
+    allowPositionals: true,
+    options: {
+      json: { type: 'boolean', default: false },
+      'min-score': { type: 'string', default: '60' },
+      timeout: { type: 'string', default: '10000' },
+      'indexnow-key': { type: 'string' },
+      help: { type: 'boolean', short: 'h', default: false },
+      version: { type: 'boolean', short: 'v', default: false },
+    } as const,
+  });
+
+let parsed: ReturnType<typeof parseCliArgs>;
+try {
+  parsed = parseCliArgs();
+} catch (err) {
+  // Unknown option / missing value: a clean message, not a stack trace.
+  console.error(`findable-audit: ${(err as Error).message}\n\n${USAGE}`);
+  process.exit(2);
+}
+const { values, positionals } = parsed;
+
+if (values.version) {
+  console.log(createRequire(import.meta.url)('../package.json').version);
+  process.exit(0);
+}
 
 const url = positionals[0];
 if (values.help || !url) {
@@ -39,8 +57,14 @@ if (values.timeout.trim() === '' || !Number.isFinite(timeoutMs) || timeoutMs <= 
   process.exit(2);
 }
 
+const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) {
+  console.error(`findable-audit: invalid URL "${url}"\n\n${USAGE}`);
+  process.exit(2);
+}
+
 try {
-  const report = await runAudit(/^https?:\/\//.test(url) ? url : `https://${url}`,
+  const report = await runAudit(targetUrl,
     buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
   // Do NOT call process.exit() here: on Windows, exiting while undici (fetch)

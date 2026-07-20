@@ -2,6 +2,11 @@ import type { CrawlContext, FetchedResource } from './types.js';
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB
 
+function charsetFrom(contentType: string): string {
+  const m = /charset=["']?([\w-]+)/i.exec(contentType);
+  return m ? m[1] : 'utf-8';
+}
+
 async function readBody(res: Response): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return '';
@@ -18,7 +23,13 @@ async function readBody(res: Response): Promise<string> {
     }
     chunks.push(value);
   }
-  return new TextDecoder().decode(Buffer.concat(chunks));
+  let decoder: TextDecoder;
+  try {
+    decoder = new TextDecoder(charsetFrom(res.headers.get('content-type') ?? ''));
+  } catch {
+    decoder = new TextDecoder(); // unknown label -> fall back to utf-8
+  }
+  return decoder.decode(Buffer.concat(chunks));
 }
 
 export class Crawler implements CrawlContext {
