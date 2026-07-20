@@ -2,8 +2,9 @@ import { describe, it, expect, afterAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveFixture } from '../helpers/server.js';
+import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
-import { extractJsonLd, jsonLd, jsonLdEntity } from '../../src/checks/structured-data.js';
+import { extractJsonLd, jsonLd, jsonLdEntity, twitterCard } from '../../src/checks/structured-data.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
@@ -31,5 +32,39 @@ describe('structured-data checks', () => {
   it('json-ld-entity warns on incomplete NAP', async () => {
     const c = await ctx('jsonld-bad'); // Bakery without telephone
     expect((await jsonLdEntity.run(c)).status).toBe('warn');
+  });
+});
+
+describe('twitter-card', () => {
+  const withHead = (head: string) => stubCtx({ '/': { contentType: 'text/html', body: `<html><head>${head}</head></html>` } });
+
+  it('passes with a complete twitter:card set', async () => {
+    const c = withHead(
+      '<meta name="twitter:card" content="summary_large_image">'
+      + '<meta name="twitter:title" content="Example Bakery">'
+      + '<meta name="twitter:description" content="Sourdough bread in Springfield.">'
+      + '<meta name="twitter:image" content="https://example.com/storefront.jpg">',
+    );
+    expect((await twitterCard.run(c)).status).toBe('pass');
+  });
+  it('passes with no twitter:card when Open Graph fully covers title/description/image', async () => {
+    const c = withHead(
+      '<meta property="og:title" content="Example Bakery">'
+      + '<meta property="og:description" content="Sourdough bread in Springfield.">'
+      + '<meta property="og:image" content="https://example.com/storefront.jpg">',
+    );
+    expect((await twitterCard.run(c)).status).toBe('pass');
+  });
+  it('fails with no twitter:card and no usable Open Graph fallback', async () => {
+    const c = withHead('');
+    expect((await twitterCard.run(c)).status).toBe('fail');
+  });
+  it('warns on a non-standard card type', async () => {
+    const c = withHead('<meta name="twitter:card" content="photo">');
+    expect((await twitterCard.run(c)).status).toBe('warn');
+  });
+  it('warns when twitter:card is set but title/description/image are incomplete', async () => {
+    const c = withHead('<meta name="twitter:card" content="summary">');
+    expect((await twitterCard.run(c)).status).toBe('warn');
   });
 });

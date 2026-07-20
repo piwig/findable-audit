@@ -56,3 +56,37 @@ describe('seo fundamentals', () => {
     expect((await viewport.run(c)).status).toBe('fail');
   });
 });
+
+describe('open-graph (upgraded)', () => {
+  const og = (extra: Record<string, string>) => {
+    const tags = Object.entries(extra).map(([k, v]) => `<meta property="og:${k}" content="${v}">`).join('');
+    return stubCtx({ '/': { contentType: 'text/html', body: `<html><head>${tags}</head></html>` } });
+  };
+  it('passes with the full core set plus site_name and locale', async () => {
+    const c = og({
+      title: 'Example Bakery', description: 'Sourdough bread in Springfield.',
+      image: 'https://example.com/storefront.jpg', type: 'website', url: 'https://example.com/',
+      site_name: 'Example Bakery', locale: 'en_US',
+    });
+    expect((await openGraph.run(c)).status).toBe('pass');
+  });
+  it('warns when site_name and locale are missing but the core set is complete', async () => {
+    const c = og({
+      title: 'Example Bakery', description: 'Sourdough bread in Springfield.',
+      image: 'https://example.com/storefront.jpg', type: 'website', url: 'https://example.com/',
+    });
+    expect((await openGraph.run(c)).status).toBe('warn');
+  });
+  it('warns when og:description/og:type/og:url are missing but title+image are present', async () => {
+    const c = og({ title: 'Example Bakery', image: 'https://example.com/storefront.jpg' });
+    expect((await openGraph.run(c)).status).toBe('warn');
+  });
+  it('fails when og:image is present but not an absolute https URL', async () => {
+    const c = og({ title: 'Example Bakery', image: '/storefront.jpg' });
+    expect((await openGraph.run(c)).status).toBe('fail');
+  });
+  it('fails when og:title is missing', async () => {
+    const c = og({ image: 'https://example.com/storefront.jpg' });
+    expect((await openGraph.run(c)).status).toBe('fail');
+  });
+});

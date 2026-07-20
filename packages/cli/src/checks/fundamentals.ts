@@ -42,10 +42,31 @@ export const openGraph: Check = {
   async run(ctx) {
     const root = await home(ctx);
     if (!root) return makeResult(this, 'fail', 'homepage not reachable');
-    const og = (p: string) => root.querySelector(`meta[property="og:${p}"]`)?.getAttribute('content');
-    if (og('title') && og('description')) return makeResult(this, 'pass', 'Open Graph tags present');
-    return makeResult(this, 'fail', 'og:title / og:description missing',
-      'Add Open Graph meta tags so shared links and AI previews render correctly.');
+    const og = (p: string) => root.querySelector(`meta[property="og:${p}"]`)?.getAttribute('content')?.trim() ?? '';
+    const title = og('title');
+    const description = og('description');
+    const image = og('image');
+    const type = og('type');
+    const url = og('url');
+    const siteName = og('site_name');
+    const locale = og('locale');
+    const imageAbsoluteHttps = /^https:\/\//i.test(image);
+
+    if (!title || !image || !imageAbsoluteHttps) {
+      const missing = [
+        !title && 'og:title',
+        !image ? 'og:image' : !imageAbsoluteHttps && 'og:image (must be an absolute https URL)',
+      ].filter(Boolean).join(', ');
+      return makeResult(this, 'fail', `Open Graph incomplete (missing: ${missing})`,
+        'Add the full Open Graph set: og:title, og:description, og:image (absolute https, >=1200x630), og:type, og:url.');
+    }
+    const missingCore = [!description && 'og:description', !type && 'og:type', !url && 'og:url'].filter(Boolean) as string[];
+    const missingBonus = [!siteName && 'og:site_name', !locale && 'og:locale'].filter(Boolean) as string[];
+    if (missingCore.length > 0 || missingBonus.length > 0) {
+      return makeResult(this, 'warn', `Open Graph missing: ${[...missingCore, ...missingBonus].join(', ')}`,
+        'Fill out the full Open Graph set including og:site_name and og:locale.');
+    }
+    return makeResult(this, 'pass', 'Open Graph complete (core set + site_name + locale)');
   },
 };
 

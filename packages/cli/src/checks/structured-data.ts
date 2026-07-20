@@ -53,6 +53,40 @@ export const jsonLd: Check = {
   },
 };
 
+export const twitterCard: Check = {
+  id: 'twitter-card', family: 'structured-data', maxPoints: 2,
+  async run(ctx) {
+    const res = await ctx.fetch('/');
+    if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
+    const root = parse(res.body);
+    const tw = (p: string) => root.querySelector(`meta[name="twitter:${p}"]`)?.getAttribute('content')?.trim() ?? '';
+    const og = (p: string) => root.querySelector(`meta[property="og:${p}"]`)?.getAttribute('content')?.trim() ?? '';
+    const card = tw('card');
+    const KNOWN_TYPES = new Set(['summary', 'summary_large_image']);
+    const title = tw('title') || og('title');
+    const description = tw('description') || og('description');
+    const image = tw('image') || og('image');
+    const imageAbsoluteHttps = /^https:\/\//i.test(image);
+
+    if (!card) {
+      if (title && description && imageAbsoluteHttps) {
+        return makeResult(this, 'pass', 'no twitter:card, but a complete Open Graph fallback covers card rendering');
+      }
+      return makeResult(this, 'fail', 'no Twitter Card and no Open Graph fallback',
+        'Add <meta name="twitter:card" content="summary_large_image"> or a complete Open Graph set.');
+    }
+    if (!KNOWN_TYPES.has(card)) {
+      return makeResult(this, 'warn', `twitter:card has a non-standard type (${card})`,
+        'Use "summary" or "summary_large_image".');
+    }
+    if (!title || !description || !imageAbsoluteHttps) {
+      return makeResult(this, 'warn', 'Twitter Card missing title/description/absolute image',
+        'Set twitter:title/twitter:description/twitter:image, or rely on a complete Open Graph fallback.');
+    }
+    return makeResult(this, 'pass', `twitter:card=${card} complete`);
+  },
+};
+
 export const jsonLdEntity: Check = {
   id: 'json-ld-entity', family: 'structured-data', maxPoints: 6,
   async run(ctx) {
