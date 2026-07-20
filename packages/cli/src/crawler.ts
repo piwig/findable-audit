@@ -1,4 +1,4 @@
-import type { CrawlContext, FetchedResource } from './types.js';
+import type { CrawlContext, FetchedResource, PageSample } from './types.js';
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -34,6 +34,8 @@ async function readBody(res: Response): Promise<string> {
 
 export class Crawler implements CrawlContext {
   baseUrl: URL;
+  /** Sampled pages, attached by the runner after the homepage fetch. */
+  sample?: PageSample;
   private cache = new Map<string, FetchedResource | null>();
   private originResolved = false;
 

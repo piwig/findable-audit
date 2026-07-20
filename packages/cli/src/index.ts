@@ -8,9 +8,10 @@ import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 
-const USAGE = `Usage: findable <url> [--json] [--report <file.md>] [--min-score <n>] [--timeout <ms>] [--indexnow-key <key>]
+const USAGE = `Usage: findable <url> [--json] [--report <file.md>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--indexnow-key <key>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
+Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
 --report writes a Markdown report to the given file, in addition to the terminal/JSON output.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
@@ -21,6 +22,7 @@ const parseCliArgs = () =>
       json: { type: 'boolean', default: false },
       'min-score': { type: 'string', default: '60' },
       timeout: { type: 'string', default: '10000' },
+      'max-pages': { type: 'string', default: '10' },
       'indexnow-key': { type: 'string' },
       report: { type: 'string', short: 'r' },
       help: { type: 'boolean', short: 'h', default: false },
@@ -61,6 +63,12 @@ if (values.timeout.trim() === '' || !Number.isFinite(timeoutMs) || timeoutMs <= 
   process.exit(2);
 }
 
+const maxPages = Number(values['max-pages']);
+if (values['max-pages'].trim() === '' || !Number.isInteger(maxPages) || maxPages < 1) {
+  console.error(`findable-audit: invalid --max-pages value "${values['max-pages']}" (expected an integer >= 1)\n\n${USAGE}`);
+  process.exit(2);
+}
+
 const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
 if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) {
   console.error(`findable-audit: invalid URL "${url}"\n\n${USAGE}`);
@@ -69,7 +77,7 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
 
 try {
   const report = await runAudit(targetUrl,
-    buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs });
+    buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs, maxPages });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
   let reportWriteFailed = false;
   if (values.report) {

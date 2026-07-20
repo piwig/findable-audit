@@ -19,6 +19,7 @@ describe('perfect site e2e', () => {
     const failing = report.results.filter((r) => r.status === 'fail' || r.status === 'warn');
     expect(failing).toEqual([]); // every non-skip check passes
     expect(report.score).toBe(100);
+    expect(report.sampledPages).toEqual(['/', '/about.html']);
     expect(renderTerminal(report)).toContain('100/100');
     expect(JSON.parse(renderJson(report)).score).toBe(100);
   });
