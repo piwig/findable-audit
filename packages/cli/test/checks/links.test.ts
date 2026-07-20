@@ -28,6 +28,11 @@ describe('broken-internal-links', () => {
     // Links: /one.html, /two.html, /style.css — all exist in the fixture and return 200.
     expect((await brokenInternalLinks.run(await sampled('links-fallback'))).status).toBe('pass');
   });
+  it('ignores Cloudflare /cdn-cgi/ links instead of reporting them broken', async () => {
+    // links-fallback links to /cdn-cgi/l/email-protection, which does not exist
+    // as a page; it must NOT be counted as a broken internal link.
+    expect((await brokenInternalLinks.run(await sampled('links-fallback'))).status).toBe('pass');
+  });
 });
 
 describe('redirect-hygiene', () => {

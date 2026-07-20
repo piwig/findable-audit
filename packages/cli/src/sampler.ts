@@ -2,9 +2,8 @@ import { parse } from 'node-html-parser';
 import type { CrawlContext, FetchedResource, PageSample } from './types.js';
 import { mediaType } from './types.js';
 import { discoverSitemap } from './checks/sitemap.js';
+import { NON_PAGE_EXT, isContentPath } from './crawl-filters.js';
 
-/** Extensions that are never HTML pages worth sampling. */
-const NON_PAGE_EXT = /\.(png|jpe?g|gif|svg|webp|ico|pdf|zip|gz|mp4|webm|css|js|json|xml|txt)$/i;
 const MAX_CHILD_SITEMAPS = 2;
 
 function isHtml(res: FetchedResource | null): res is FetchedResource {
@@ -68,7 +67,7 @@ export async function samplePages(ctx: CrawlContext, maxPages: number): Promise<
   for (const c of raw) {
     let u: URL;
     try { u = new URL(c, ctx.baseUrl); } catch { continue; }
-    if (u.origin !== ctx.baseUrl.origin || NON_PAGE_EXT.test(u.pathname)) continue;
+    if (u.origin !== ctx.baseUrl.origin || NON_PAGE_EXT.test(u.pathname) || !isContentPath(u.pathname)) continue;
     u.hash = '';
     const s = u.toString();
     if (!seen.has(s)) { seen.add(s); candidates.push(s); }

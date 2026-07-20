@@ -3,6 +3,7 @@ import type { Check, FetchedResource } from '../types.js';
 import { makeResult } from '../types.js';
 import { isLocalOrPrivateHost } from './fundamentals.js';
 import { pagesOf, aggregate } from './aggregate.js';
+import { isContentPath } from '../crawl-filters.js';
 
 const MAX_LINKS = 30;
 const MAX_HREFLANG = 5;
@@ -16,7 +17,7 @@ function internalLinks(pages: FetchedResource[], baseUrl: URL): string[] {
       if (!href) continue;
       try {
         const u = new URL(href, p.finalUrl || baseUrl);
-        if (u.origin !== baseUrl.origin) continue;
+        if (u.origin !== baseUrl.origin || !isContentPath(u.pathname)) continue;
         u.hash = '';
         seen.add(u.toString());
       } catch { /* invalid href ignored */ }
