@@ -32,6 +32,8 @@ async function readBody(res: Response): Promise<string> {
   return decoder.decode(Buffer.concat(chunks));
 }
 
+export const DEFAULT_UA = 'findable-audit/0.1 (+https://github.com/piwig/findable-audit)';
+
 export class Crawler implements CrawlContext {
   baseUrl: URL;
   /** Sampled pages, attached by the runner after the homepage fetch. */
@@ -39,7 +41,7 @@ export class Crawler implements CrawlContext {
   private cache = new Map<string, FetchedResource | null>();
   private originResolved = false;
 
-  constructor(url: string, private timeoutMs = 10_000) {
+  constructor(url: string, private timeoutMs = 10_000, private userAgent = DEFAULT_UA) {
     this.baseUrl = new URL(url);
   }
 
@@ -51,7 +53,7 @@ export class Crawler implements CrawlContext {
       const res = await fetch(target, {
         redirect: 'follow',
         signal: AbortSignal.timeout(this.timeoutMs),
-        headers: { 'user-agent': 'findable-audit/0.1 (+https://github.com/piwig/findable-audit)' },
+        headers: { 'user-agent': this.userAgent },
       });
       out = {
         status: res.status,

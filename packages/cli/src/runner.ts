@@ -18,10 +18,12 @@ export interface AuditOptions {
   timeoutMs?: number;
   /** Max pages sampled (homepage included). 1 = homepage only. Default 10. */
   maxPages?: number;
+  /** Override the crawler User-Agent (e.g. "GPTBot/1.0" to test UA-based blocking). */
+  userAgent?: string;
 }
 
 export async function runAudit(url: string, checks: Check[], opts: AuditOptions = {}): Promise<AuditReport> {
-  const crawler = new Crawler(url, opts.timeoutMs);
+  const crawler = new Crawler(url, opts.timeoutMs, opts.userAgent);
   const home = await crawler.fetch('/');
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);

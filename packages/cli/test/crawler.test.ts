@@ -78,4 +78,16 @@ describe('Crawler', () => {
     const res = await crawler.fetch('/robots.txt');
     expect(res?.headers['content-type']).toBe('text/plain');
   });
+  it('sends the default user-agent, and an override when provided', async () => {
+    const seen: string[] = [];
+    const url = await listen(http.createServer((req, res) => {
+      seen.push(req.headers['user-agent'] ?? '');
+      res.writeHead(200, { 'content-type': 'text/plain' });
+      res.end('ok');
+    }));
+    await new Crawler(url).fetch('/');
+    await new Crawler(url, undefined, 'GPTBot/1.0').fetch('/');
+    expect(seen[0]).toMatch(/^findable-audit/);
+    expect(seen[1]).toBe('GPTBot/1.0');
+  });
 });
