@@ -12,7 +12,7 @@ function sitemapsFromRobots(robots: FetchedResource | null, baseUrl: URL): strin
   return out;
 }
 
-async function discoverSitemap(ctx: CrawlContext): Promise<{ res: FetchedResource; fromRobots: boolean } | null> {
+export async function discoverSitemap(ctx: CrawlContext): Promise<{ res: FetchedResource; fromRobots: boolean } | null> {
   const robotsUrls = sitemapsFromRobots(await ctx.fetch('/robots.txt'), ctx.baseUrl);
   const fallbacks = ['/sitemap.xml', '/sitemap-index.xml', '/sitemap_index.xml'];
   const candidates = [...robotsUrls, ...fallbacks];

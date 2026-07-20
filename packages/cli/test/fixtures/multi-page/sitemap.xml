@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{{ORIGIN}}/</loc></url>
+  <url><loc>{{ORIGIN}}/deep/nested/page.html</loc></url>
+  <url><loc>{{ORIGIN}}/b.html</loc></url>
+  <url><loc>{{ORIGIN}}/a.html</loc></url>
+  <url><loc>https://elsewhere.example/x.html</loc></url>
+</urlset>
