@@ -88,6 +88,24 @@ describe('findable CLI binary', () => {
     }
   }, 30_000);
 
+  it('writes both a Markdown and an HTML report when --report is repeated', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const md = path.join(tmpdir(), `findable-report-${Date.now()}.md`);
+    const html = path.join(tmpdir(), `findable-report-${Date.now()}.html`);
+    try {
+      const { code } = await runCli([srv.url, '--report', md, '--report', html, '--indexnow-key', 'testkey123']);
+      expect(code).toBe(0);
+      expect(readFileSync(md, 'utf8')).toContain('# findable-audit — ');
+      const h = readFileSync(html, 'utf8');
+      expect(h.trimStart()).toMatch(/^<!doctype html/i);
+      expect(h).toContain('Score: 100/100');
+    } finally {
+      rmSync(md, { force: true });
+      rmSync(html, { force: true });
+    }
+  }, 30_000);
+
   it('exits 2 when the --report path is not writable', async () => {
     const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
     closers.push(srv.close);

@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 
-const FAMILY_LABELS: Record<Family, string> = {
+export const FAMILY_LABELS: Record<Family, string> = {
   'ai-access': 'AI crawler access',
   'llm-content': 'Content for LLMs',
   'structured-data': 'Structured data',

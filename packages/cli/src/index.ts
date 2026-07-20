@@ -7,12 +7,15 @@ import { runAudit, UnreachableSiteError } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
+import { renderHtml } from './report/html.js';
 
 const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
---report writes a Markdown report to the given file, in addition to the terminal/JSON output.
+--report writes a report file; repeat it for several formats. The format is chosen by extension:
+  .html/.htm -> a self-contained, printable HTML report (open it and "Print to PDF"); anything else -> Markdown.
+--user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
 const parseCliArgs = () =>
@@ -25,7 +28,7 @@ const parseCliArgs = () =>
       'max-pages': { type: 'string', default: '10' },
       'user-agent': { type: 'string' },
       'indexnow-key': { type: 'string' },
-      report: { type: 'string', short: 'r' },
+      report: { type: 'string', short: 'r', multiple: true },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     } as const,
@@ -87,14 +90,16 @@ try {
     buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs, maxPages, userAgent });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
   let reportWriteFailed = false;
-  if (values.report) {
+  for (const file of values.report ?? []) {
+    const isHtml = /\.html?$/i.test(file);
+    const body = isHtml ? renderHtml(report) : renderMarkdown(report);
     try {
-      writeFileSync(values.report, renderMarkdown(report), 'utf8');
-      console.error(`report written to ${values.report}`);
+      writeFileSync(file, body, 'utf8');
+      console.error(`report written to ${file}`);
     } catch (err) {
-      // Same rule as below: never process.exit() while undici sockets may
-      // still be closing (libuv crash on Windows) — set exitCode instead.
-      console.error(`findable-audit: cannot write report to "${values.report}": ${(err as Error).message}`);
+      // Never process.exit() here (undici sockets closing → libuv crash on
+      // Windows); set the flag and let the event loop drain.
+      console.error(`findable-audit: cannot write report to "${file}": ${(err as Error).message}`);
       reportWriteFailed = true;
     }
   }
