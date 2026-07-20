@@ -65,9 +65,11 @@ Each check is explained in detail — including how to fix failures — in the [
 |---|---|
 | `--json` | Output the full report as JSON (for scripts and CI). |
 | `--min-score <n>` | Score threshold for exit code 0 (default: `60`). Below it, exit code is 1. |
+| `--timeout <ms>` | Per-request timeout in milliseconds (default: `10000`). |
 | `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
+| `--report <file>`, `-r` | Also write the report as Markdown to the given file. |
 
-Exit codes: `0` = score >= min-score, `1` = below, `2` = site unreachable / error. This makes `findable-audit` usable as a CI gate:
+Exit codes: `0` = score >= min-score, `1` = below, `2` = site unreachable / error (including a report file that cannot be written). This makes `findable-audit` usable as a CI gate:
 
 ```bash
 npx findable-audit https://your-site.com --min-score 80
