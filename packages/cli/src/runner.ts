@@ -3,12 +3,18 @@ import { samplePages } from './sampler.js';
 import type { Check, CheckResult } from './types.js';
 import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
+import { computeScore, type Grade, type FamilyScore } from './scoring.js';
 
 export class UnreachableSiteError extends Error {}
 
 export interface AuditReport {
   url: string;
+  /** Weighted overall score, 0-100. */
   score: number;
+  /** Letter grade derived from `score`. */
+  grade: Grade;
+  /** Per-family subscores (only families with >=1 non-skip check), canonical order. */
+  familyScores: FamilyScore[];
   /** Pathnames of the sampled pages (homepage first). */
   sampledPages: string[];
   results: CheckResult[];
@@ -48,9 +54,7 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
       results.push(makeResult(check, 'skip', `check crashed: ${(err as Error).message}`));
     }
   }
-  const scored = results.filter((r) => r.status !== 'skip');
-  const max = scored.reduce((s, r) => s + r.maxPoints, 0);
-  const earned = scored.reduce((s, r) => s + r.points, 0);
+  const { score, grade, familyScores } = computeScore(results);
   const sampledPages = crawler.sample.pages.map(pathOf);
-  return { url: crawler.baseUrl.toString(), score: max === 0 ? 0 : Math.round((earned / max) * 100), sampledPages, results };
+  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results };
 }

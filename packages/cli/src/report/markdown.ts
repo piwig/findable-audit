@@ -15,7 +15,7 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date()): str
   const lines: string[] = [
     `# findable-audit — ${report.url}`,
     '',
-    `**Score: ${report.score}/100** — ${now.toISOString().slice(0, 10)}`,
+    `**Score: ${report.score}/100** · **Grade ${report.grade}** — ${now.toISOString().slice(0, 10)}`,
     '',
   ];
 

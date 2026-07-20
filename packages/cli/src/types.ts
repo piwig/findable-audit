@@ -1,5 +1,13 @@
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip';
-export type Family = 'ai-access' | 'llm-content' | 'structured-data' | 'seo-fundamentals';
+export type Family =
+  | 'ai-access'
+  | 'llm-content'
+  | 'structured-data'
+  | 'technical-seo'
+  | 'on-page'
+  | 'performance'
+  | 'accessibility'
+  | 'security';
 
 export interface CheckResult {
   id: string;

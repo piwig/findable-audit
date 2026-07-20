@@ -25,7 +25,7 @@ export async function discoverSitemap(ctx: CrawlContext): Promise<{ res: Fetched
 }
 
 export const sitemapCheck: Check = {
-  id: 'sitemap', family: 'seo-fundamentals', maxPoints: 10,
+  id: 'sitemap', family: 'technical-seo', maxPoints: 10,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found) {
@@ -48,7 +48,7 @@ export const sitemapCheck: Check = {
 
 export function indexnowCheck(key?: string): Check {
   return {
-    id: 'indexnow', family: 'seo-fundamentals', maxPoints: 4,
+    id: 'indexnow', family: 'technical-seo', maxPoints: 4,
     async run(ctx) {
       if (!key) return makeResult(this, 'skip', 'no IndexNow key provided (use --indexnow-key to enable)');
       const res = await ctx.fetch(`/${key}.txt`);

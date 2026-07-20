@@ -27,7 +27,7 @@ function internalLinks(pages: FetchedResource[], baseUrl: URL): string[] {
 }
 
 export const brokenInternalLinks: Check = {
-  id: 'broken-internal-links', family: 'seo-fundamentals', maxPoints: 8,
+  id: 'broken-internal-links', family: 'technical-seo', maxPoints: 8,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -46,7 +46,7 @@ export const brokenInternalLinks: Check = {
 };
 
 export const redirectHygiene: Check = {
-  id: 'redirect-hygiene', family: 'seo-fundamentals', maxPoints: 4,
+  id: 'redirect-hygiene', family: 'security', maxPoints: 4,
   async run(ctx) {
     if (isLocalOrPrivateHost(ctx.baseUrl.hostname)) {
       return makeResult(this, 'skip', 'local host — redirect check skipped');
@@ -105,7 +105,7 @@ function stripHash(url: string): string {
 }
 
 export const hreflang: Check = {
-  id: 'hreflang', family: 'seo-fundamentals', maxPoints: 3,
+  id: 'hreflang', family: 'technical-seo', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');

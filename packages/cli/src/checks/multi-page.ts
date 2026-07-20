@@ -11,7 +11,7 @@ function hasNoindex(res: FetchedResource): boolean {
 }
 
 export const metaRobotsNoindex: Check = {
-  id: 'meta-robots-noindex', family: 'seo-fundamentals', maxPoints: 6,
+  id: 'meta-robots-noindex', family: 'ai-access', maxPoints: 6,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -26,7 +26,7 @@ export const metaRobotsNoindex: Check = {
 };
 
 export const uniqueTitles: Check = {
-  id: 'unique-titles', family: 'seo-fundamentals', maxPoints: 5,
+  id: 'unique-titles', family: 'on-page', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < 2) return makeResult(this, 'skip', 'fewer than 2 sampled pages');
@@ -54,7 +54,7 @@ export const uniqueTitles: Check = {
 };
 
 export const imagesAlt: Check = {
-  id: 'images-alt', family: 'llm-content', maxPoints: 4,
+  id: 'images-alt', family: 'accessibility', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');

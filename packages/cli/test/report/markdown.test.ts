@@ -10,25 +10,30 @@ const r = (over: Partial<CheckResult>): CheckResult => ({
 const report: AuditReport = {
   url: 'https://example.com/',
   score: 72,
+  grade: 'C',
+  familyScores: [],
+  sampledPages: ['/'],
   results: [
     r({ id: 'robots-exists', message: 'robots.txt found' }),
     r({ id: 'ai-crawlers-allowed', status: 'fail', points: 0, maxPoints: 12, message: 'AI crawlers blocked: GPTBot', fix: 'Remove the Disallow rules.' }),
-    r({ id: 'meta-description', family: 'seo-fundamentals', status: 'warn', points: 2, message: 'description | too short', fix: 'Write 150 chars.' }),
-    r({ id: 'sitemap-ok', family: 'seo-fundamentals', status: 'skip', points: 0, message: 'skipped' }),
+    r({ id: 'meta-description', family: 'on-page', status: 'warn', points: 2, message: 'description | too short', fix: 'Write 150 chars.' }),
+    r({ id: 'sitemap-ok', family: 'on-page', status: 'skip', points: 0, message: 'skipped' }),
   ],
 };
 
 describe('renderMarkdown', () => {
   const md = renderMarkdown(report, new Date('2026-07-20T12:00:00Z'));
 
-  it('includes title, score and date', () => {
+  it('includes title, score, grade and date', () => {
     expect(md).toContain('# findable-audit — https://example.com/');
-    expect(md).toContain('**Score: 72/100** — 2026-07-20');
+    expect(md).toContain('**Score: 72/100**');
+    expect(md).toContain('**Grade C**');
+    expect(md).toContain('2026-07-20');
   });
 
   it('renders one section per family with earned/max (skips excluded)', () => {
     expect(md).toContain('## AI crawler access (4/16)');
-    expect(md).toContain('## SEO fundamentals (2/4)');
+    expect(md).toContain('## On-page & content (2/4)');
   });
 
   it('escapes pipes in table cells', () => {

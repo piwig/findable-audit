@@ -19,8 +19,16 @@ describe('perfect site e2e', () => {
     const failing = report.results.filter((r) => r.status === 'fail' || r.status === 'warn');
     expect(failing).toEqual([]); // every non-skip check passes
     expect(report.score).toBe(100);
+    expect(report.grade).toBe('A'); // perfect-100 invariant: weighted score 100 -> grade A
+    // familyScores present and non-empty: only included families (>=1 non-skip check).
+    expect(report.familyScores.length).toBeGreaterThan(0);
+    expect(report.familyScores.every((f) => f.score === 100)).toBe(true);
     expect(report.sampledPages).toEqual(['/', '/about.html']);
     expect(renderTerminal(report)).toContain('100/100');
-    expect(JSON.parse(renderJson(report)).score).toBe(100);
+    expect(renderTerminal(report)).toContain('Grade: A');
+    const json = JSON.parse(renderJson(report));
+    expect(json.score).toBe(100);
+    expect(json.grade).toBe('A');
+    expect(Array.isArray(json.familyScores)).toBe(true);
   });
 });
