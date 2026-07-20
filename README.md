@@ -48,14 +48,14 @@ More real-site case studies (before/after scores) will be published in `examples
 
 ## What it checks
 
-Score /100, 15 checks in 4 families:
+Score /100, 23 checks in 4 families:
 
-| Family | Checks |
-|---|---|
-| AI crawler access | robots.txt present; GPTBot, ClaudeBot, PerplexityBot, Google-Extended not blocked; homepage responds 200 without a JS wall |
-| Content for LLMs | `llms.txt` present and structured; `llms-full.txt` present; main content readable without JavaScript |
-| Structured data | JSON-LD present and parsable; relevant type (LocalBusiness / Organization / Article); NAP consistency; valid sitemap XML referenced in robots.txt; IndexNow key file |
-| SEO fundamentals | title/meta description lengths; canonical; Open Graph tags; HTTPS; mobile viewport |
+| Family | Count | Checks |
+|---|---|---|
+| AI crawler access | 4 | robots.txt present; GPTBot, ClaudeBot, PerplexityBot, Google-Extended not blocked; homepage responds 200 without a JS wall; no blocking robots directives (`X-Robots-Tag` / meta robots) |
+| Content for LLMs | 4 | `llms.txt` present and structured; `llms-full.txt` present; main content readable without JavaScript; images have alt text |
+| Structured data | 3 | JSON-LD present and parsable; relevant type (LocalBusiness / Organization / Article) with NAP consistency; JSON-LD coverage across sampled pages |
+| SEO fundamentals | 12 | valid sitemap XML referenced in robots.txt; IndexNow key file; title/meta description lengths; canonical; Open Graph tags; HTTPS; mobile viewport; no noindexed sampled pages; unique titles/descriptions across sampled pages; no broken internal links; HTTP→HTTPS redirect hygiene; reciprocal hreflang alternates |
 
 Each check is explained in detail — including how to fix failures — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
 

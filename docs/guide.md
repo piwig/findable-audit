@@ -1,6 +1,6 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across 15 checks in 4 families. This guide explains, for each check: what it verifies, why it matters for AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across 22 checks in 4 families. This guide explains, for each check: what it verifies, why it matters for AI answer engines, and how to fix a failure.
 
 Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 points), `--` (skip, not counted against you but no points earned).
 
@@ -56,6 +56,14 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 
 **How to fix:** Server-render your main content. Use static generation (Astro, Hugo, Next static export) or SSR so the meaningful text is present in the initial HTML response.
 
+### `images-alt` (4 pts)
+
+**What it verifies:** The proportion of images across the sampled pages that carry an `alt` attribute. Pass at 90% coverage or above, warn at 70% or above, fail below that; pages with no images pass. A decorative `alt=""` counts as present.
+
+**Why it matters:** Alt text is how LLMs and screen readers understand images; missing alt text means that content is simply lost to them.
+
+**How to fix:** Add descriptive `alt` text on informative images, and `alt=""` on purely decorative ones.
+
 ## Structured data
 
 ### `json-ld` (10 pts)
@@ -73,6 +81,14 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 **Why it matters:** A generic or missing `@type` tells assistants nothing usable. For local businesses, consistent NAP data is what allows an assistant to recommend you with correct, verifiable contact details.
 
 **How to fix:** Declare a relevant `@type` (LocalBusiness subtype, Organization, or Article). If you are a business, add `name`, `address` and `telephone` so AI assistants can cite your business consistently.
+
+### `schema-coverage` (5 pts)
+
+**What it verifies:** How many of the sampled pages carry at least one valid JSON-LD block. Pass at 50% or more of sampled pages, warn above 0%, fail at 0%. Skipped when fewer than 2 pages are sampled (the homepage case is already covered by the `json-ld` check).
+
+**Why it matters:** Structured data on inner pages — not just the homepage — helps AI assistants understand and cite the whole site, not only its front door.
+
+**How to fix:** Add page-appropriate JSON-LD across the site: Article for posts, Product for product pages, BreadcrumbList for sections.
 
 ### `sitemap` (10 pts)
 
@@ -132,6 +148,22 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 
 **How to fix:** Add `<meta name="viewport" content="width=device-width, initial-scale=1">` to the `<head>` of every page.
 
+### `meta-robots-noindex` (6 pts)
+
+**What it verifies:** No sampled page carries a `noindex` (or `none`) directive, in either a `<meta name="robots">` tag or the `X-Robots-Tag` HTTP header. Any noindexed sampled page fails the check.
+
+**Why it matters:** A noindexed page is invisible to search engines and AI crawlers alike — content you meant to be found silently isn't.
+
+**How to fix:** Remove `noindex`/`none` from pages that should rank; keep it only on genuinely private pages, and exclude those pages from the sitemap.
+
+### `unique-titles` (5 pts)
+
+**What it verifies:** Each sampled page has a unique `<title>` and meta description. Skipped when fewer than 2 pages are sampled. Duplicates across the sample lower the score, by proportion (warn/fail).
+
+**Why it matters:** Duplicate titles and descriptions make search results and AI citations indistinguishable from one another, and dilute the perceived relevance of every page involved.
+
+**How to fix:** Give every page a distinct, descriptive title (10-70 chars) and meta description (50-160 chars).
+
 ### `broken-internal-links` (8 pts)
 
 **What it verifies:** Every same-origin `<a href>` link on the sampled pages resolves with a status below 400. Infrastructure endpoints under `/cdn-cgi/` (injected by Cloudflare, e.g. email protection) are ignored — they are not content pages.
@@ -139,3 +171,19 @@ Statuses: `OK` (pass, full points), `!!` (warn, partial points), `XX` (fail, 0 p
 **Why it matters:** Broken internal links waste crawl budget and break the trail an assistant follows to verify or expand on a citation.
 
 **How to fix:** Fix or remove links returning 400+ so crawlers do not hit dead ends.
+
+### `redirect-hygiene` (4 pts)
+
+**What it verifies:** The `http://` version of the site redirects to `https://`. Skipped on local/private hosts (loopback), where it cannot be tested.
+
+**Why it matters:** Without a clean HTTP→HTTPS redirect, legacy links and some crawlers land on a non-canonical or insecure URL.
+
+**How to fix:** Serve a single 301 redirect from `http://` to `https://` (no redirect chains).
+
+### `hreflang` (3 pts)
+
+**What it verifies:** If the sampled pages declare `hreflang` alternates, each alternate returns 200 and declares a reciprocal `hreflang` link back to the referring page. Skipped when no hreflang annotations exist (single-language site).
+
+**Why it matters:** Search and AI systems only trust hreflang when the alternates are reachable and mutually reference each other.
+
+**How to fix:** Ensure every language variant returns 200 and declares reciprocal `<link rel="alternate" hreflang="...">` tags, itself included.

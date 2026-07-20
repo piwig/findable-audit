@@ -1,6 +1,6 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers 15 checks répartis en 4 familles. Ce guide explique, pour chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers 22 checks répartis en 4 familles. Ce guide explique, pour chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de réponse IA, et comment corriger un échec.
 
 Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels), `XX` (échec, 0 point), `--` (ignoré, non comptabilisé mais aucun point gagné).
 
@@ -56,6 +56,14 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 
 **Comment corriger :** Rendez votre contenu principal côté serveur. Utilisez la génération statique (Astro, Hugo, export statique Next) ou le SSR pour que le texte significatif soit présent dans la réponse HTML initiale.
 
+### `images-alt` (4 pts)
+
+**Ce qu'il vérifie :** La proportion d'images, sur les pages échantillonnées, qui possèdent un attribut `alt`. Réussite à 90 % de couverture ou plus, avertissement à partir de 70 %, échec en dessous ; les pages sans image réussissent d'office. Un `alt=""` décoratif compte comme présent.
+
+**Pourquoi c'est important :** Le texte alternatif est ce qui permet aux LLM et aux lecteurs d'écran de comprendre les images ; sans lui, ce contenu leur est tout simplement perdu.
+
+**Comment corriger :** Ajoutez un `alt` descriptif sur les images informatives, et `alt=""` sur les images purement décoratives.
+
 ## Données structurées
 
 ### `json-ld` (10 pts)
@@ -73,6 +81,14 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 **Pourquoi c'est important :** Un `@type` générique ou absent ne dit rien d'exploitable aux assistants. Pour un commerce local, un NAP cohérent est ce qui permet à un assistant de vous recommander avec des coordonnées correctes et vérifiables.
 
 **Comment corriger :** Déclarez un `@type` pertinent (sous-type de LocalBusiness, Organization ou Article). Si vous êtes un commerce, ajoutez `name`, `address` et `telephone` pour que les assistants IA citent votre établissement de façon cohérente.
+
+### `schema-coverage` (5 pts)
+
+**Ce qu'il vérifie :** Combien de pages échantillonnées portent au moins un bloc JSON-LD valide. Réussite à partir de 50 % des pages échantillonnées, avertissement au-dessus de 0 %, échec à 0 %. Ignoré si moins de 2 pages sont échantillonnées (le cas de la page d'accueil est déjà couvert par le check `json-ld`).
+
+**Pourquoi c'est important :** Les données structurées sur les pages internes — pas seulement l'accueil — aident les assistants IA à comprendre et à citer l'ensemble du site, pas seulement sa vitrine.
+
+**Comment corriger :** Ajoutez du JSON-LD adapté à chaque page sur tout le site : Article pour les articles, Product pour les pages produit, BreadcrumbList pour les rubriques.
 
 ### `sitemap` (10 pts)
 
@@ -132,6 +148,22 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 
 **Comment corriger :** Ajoutez `<meta name="viewport" content="width=device-width, initial-scale=1">` dans le `<head>` de chaque page.
 
+### `meta-robots-noindex` (6 pts)
+
+**Ce qu'il vérifie :** Qu'aucune page échantillonnée ne porte de directive `noindex` (ou `none`), que ce soit dans une balise `<meta name="robots">` ou dans l'en-tête HTTP `X-Robots-Tag`. Toute page échantillonnée en noindex fait échouer le check.
+
+**Pourquoi c'est important :** Une page en noindex est invisible pour les moteurs de recherche comme pour les crawlers IA — le contenu que vous vouliez voir trouvé disparaît silencieusement.
+
+**Comment corriger :** Retirez `noindex`/`none` des pages qui doivent être référencées ; ne le gardez que sur les pages réellement privées, et excluez-les du sitemap.
+
+### `unique-titles` (5 pts)
+
+**Ce qu'il vérifie :** Que chaque page échantillonnée a un `<title>` et une meta description uniques. Ignoré si moins de 2 pages sont échantillonnées. Les doublons dans l'échantillon font baisser le score, proportionnellement (avertissement/échec).
+
+**Pourquoi c'est important :** Des titres et descriptions dupliqués rendent les résultats de recherche et les citations IA indistinguables les uns des autres, et diluent la pertinence perçue de chaque page concernée.
+
+**Comment corriger :** Donnez à chaque page un titre distinct et descriptif (10-70 caractères) et une meta description propre (50-160 caractères).
+
 ### `broken-internal-links` (8 pts)
 
 **Ce qu'il vérifie :** Chaque lien `<a href>` de même origine sur les pages échantillonnées répond avec un statut inférieur à 400. Les points d'accès d'infrastructure sous `/cdn-cgi/` (injectés par Cloudflare, ex. protection email) sont ignorés — ce ne sont pas des pages de contenu.
@@ -139,3 +171,19 @@ Statuts : `OK` (réussi, tous les points), `!!` (avertissement, points partiels)
 **Pourquoi c'est important :** Des liens internes cassés gaspillent le budget de crawl et brisent le chemin qu'un assistant suit pour vérifier ou approfondir une citation.
 
 **Comment corriger :** Corrigez ou supprimez les liens renvoyant 400 ou plus, pour que les crawlers n'atterrissent pas sur des impasses.
+
+### `redirect-hygiene` (4 pts)
+
+**Ce qu'il vérifie :** Que la version `http://` du site redirige vers `https://`. Ignoré sur les hôtes locaux/privés (loopback), où le test est impossible.
+
+**Pourquoi c'est important :** Sans redirection HTTP→HTTPS propre, les liens historiques et certains crawlers atterrissent sur une URL non canonique ou non sécurisée.
+
+**Comment corriger :** Servez une unique redirection 301 de `http://` vers `https://` (sans chaîne de redirections).
+
+### `hreflang` (3 pts)
+
+**Ce qu'il vérifie :** Si les pages échantillonnées déclarent des alternates `hreflang`, chaque alternate répond en 200 ET déclare un lien `hreflang` réciproque vers la page qui le référence. Ignoré en l'absence de toute annotation hreflang (site monolingue).
+
+**Pourquoi c'est important :** Les moteurs de recherche et les systèmes IA n'accordent leur confiance au hreflang que si les alternates sont accessibles et se référencent mutuellement.
+
+**Comment corriger :** Assurez-vous que chaque variante de langue répond en 200 et déclare des balises `<link rel="alternate" hreflang="...">` réciproques, elle-même incluse.
