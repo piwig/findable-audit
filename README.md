@@ -81,7 +81,7 @@ npx findable-audit https://your-site.com
 # and    ./your-site.com-2026-07-20.html
 ```
 
-The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
+`<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
 
 Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
 
