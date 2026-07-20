@@ -16,6 +16,10 @@ npx findable-audit <url> --json
 - If the user provides an IndexNow key, add `--indexnow-key <key>` so the IndexNow check can verify the key file.
 - The URL scheme is optional; bare domains are assumed `https://`.
 - Options: `--min-score <n>` (default `60`) only affects the exit code, not the report.
+- `--max-pages <n>` (default `10`, `1` = homepage only): the audit samples the
+  homepage plus up to `n-1` same-origin pages discovered from the sitemap
+  (falling back to homepage links). The multi-page checks (below) evaluate this
+  sample, and the report lists the audited paths in `sampledPages`.
 
 **Exit codes:**
 
@@ -35,6 +39,7 @@ The `--json` output is an `AuditReport`:
 {
   "url": "https://example.com/",
   "score": 72,
+  "sampledPages": ["/", "/about.html"],
   "results": [
     {
       "id": "llms-txt",
@@ -50,8 +55,14 @@ The `--json` output is an `AuditReport`:
 ```
 
 - `score`: 0–100, normalized (`skip` results are excluded from scoring).
+- `sampledPages`: the paths actually audited (homepage first) — cite these when a
+  multi-page check reports offenders so the user knows the scope.
 - `results[]`: one entry per check with `id`, `family`, `status` (`pass` | `warn` | `fail` | `skip`), `points`, `maxPoints`, `message`, and an optional `fix` suggestion.
 - Families: `ai-access`, `llm-content`, `structured-data`, `seo-fundamentals`.
+- **Multi-page checks** (evaluated across `sampledPages`): `meta-robots-noindex`,
+  `unique-titles`, `images-alt`, `schema-coverage`, `broken-internal-links`,
+  `redirect-hygiene`, `hreflang`. `redirect-hygiene` and `hreflang` report
+  `skip` when not applicable (local host, or no hreflang declared).
 
 ## Step 3: Present the results
 
@@ -64,6 +75,12 @@ The `--json` output is an `AuditReport`:
 
 Turn the failures into a prioritized fix plan: biggest point recovery first, quick wins highlighted (e.g. a missing `robots.txt` or `llms.txt` is usually a single generated file).
 
-If the project's source code is available locally, offer to apply the fixes directly using the **`geo-implement`** skill, which generates `robots.txt`, `llms.txt`, JSON-LD, sitemap wiring and IndexNow for the user's framework.
+If the project's source code is available locally, offer to apply the fixes directly:
+
+- **`geo-implement`** — GEO / AI-visibility artifacts: `robots.txt`, `llms.txt`,
+  `llms-full.txt`, JSON-LD, sitemap wiring and IndexNow, for the user's framework.
+- **`fix-technical-seo`** — technical-SEO findings: canonical, meta robots
+  (`noindex`), redirect hygiene, broken internal links, duplicate titles,
+  Open Graph, viewport, hreflang.
 
 After fixes are deployed, re-run `npx findable-audit <url> --json` to confirm the score improved.

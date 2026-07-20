@@ -1,12 +1,14 @@
 ---
 name: fix-technical-seo
-description: Fix technical SEO findings from findable-audit - titles and meta descriptions, canonical, Open Graph, viewport, noindex, redirect hygiene, broken internal links, duplicate titles, hreflang. Use when the user wants to fix SEO errors or improve their audit score.
+description: Fix technical SEO findings from findable-audit - titles and meta descriptions, canonical, Open Graph, viewport, noindex, redirect hygiene, broken internal links, duplicate titles, hreflang. Use when the user wants to fix technical SEO errors (not GEO/AI-visibility artifacts — that is the geo-implement skill) or improve their audit score.
 ---
 
 # Fix technical SEO
 
-Work from the audit report (run the `audit-site` skill first). Fix `fail`s
-before `warn`s.
+This skill covers the technical-SEO findings; for GEO/AI-visibility artifacts
+(robots.txt, llms.txt, JSON-LD, sitemap, IndexNow) use the `geo-implement`
+skill instead. Work from the audit report (run the `geo-audit` skill first).
+Fix `fail`s before `warn`s.
 
 ## Per-check fixes
 

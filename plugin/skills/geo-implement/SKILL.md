@@ -5,7 +5,11 @@ description: "Use when implementing GEO + SEO on a static site (Astro, Next, Hug
 
 # geo-implement
 
-Implement GEO (AI-search visibility) + technical SEO on a static site. Generate every artifact below, adapted to the user's framework, then verify with `findable-audit`.
+Implement GEO (AI-search visibility) artifacts on a static site: generate every
+artifact below, adapted to the user's framework, then verify with
+`findable-audit`. For purely technical-SEO findings (canonical, `noindex`,
+redirect hygiene, broken internal links, duplicate titles, hreflang), use the
+`fix-technical-seo` skill instead.
 
 ## 1. Gather inputs
 
