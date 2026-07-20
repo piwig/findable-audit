@@ -8,8 +8,8 @@ import { llmsTxt, llmsFullTxt, contentWithoutJs } from '../../src/checks/llm-con
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
 afterAll(async () => { for (const c of closers) await c(); });
-async function ctx(name: string) {
-  const srv = await serveFixture(path.join(fixtures, name));
+async function ctx(name: string, opts: { spaFallback?: boolean } = {}) {
+  const srv = await serveFixture(path.join(fixtures, name), opts);
   closers.push(srv.close);
   return new Crawler(srv.url);
 }
@@ -26,6 +26,13 @@ describe('llm-content checks', () => {
   it('llms-full-txt passes when present', async () => {
     const c = await ctx('llm-good');
     expect((await llmsFullTxt.run(c)).status).toBe('pass');
+  });
+  it('llms-txt and llms-full-txt fail on a 200 text/html SPA fallback', async () => {
+    const c = await ctx('spa-fallback', { spaFallback: true });
+    const full = await llmsFullTxt.run(c);
+    expect(full.status).toBe('fail');
+    expect(full.message).toContain('text/html');
+    expect((await llmsTxt.run(c)).status).toBe('fail');
   });
   it('content-without-js passes on text-rich page', async () => {
     const c = await ctx('llm-good');

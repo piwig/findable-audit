@@ -49,12 +49,27 @@ export const openGraph: Check = {
   },
 };
 
+/** localhost, *.localhost, loopback (127.0.0.0/8, ::1) and private IPv4 ranges. */
+export function isLocalOrPrivateHost(hostname: string): boolean {
+  const h = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (h === 'localhost' || h.endsWith('.localhost') || h === '::1') return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  if (a === 127 || a === 10) return true; // 127.0.0.0/8, 10.0.0.0/8
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  return false;
+}
+
 export const httpsCheck: Check = {
   id: 'https', family: 'seo-fundamentals', maxPoints: 5,
   async run(ctx) {
-    const h = ctx.baseUrl.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') return makeResult(this, 'skip', 'local host — HTTPS check skipped');
-    if (ctx.baseUrl.protocol === 'https:') return makeResult(this, 'pass', 'served over HTTPS');
+    const res = await ctx.fetch('/');
+    const final = new URL(res?.finalUrl || ctx.baseUrl.toString());
+    if (isLocalOrPrivateHost(final.hostname)) return makeResult(this, 'skip', 'local host — HTTPS check skipped');
+    if (final.protocol === 'https:') return makeResult(this, 'pass', 'served over HTTPS');
     return makeResult(this, 'fail', 'not served over HTTPS', 'Serve the site over HTTPS.');
   },
 };

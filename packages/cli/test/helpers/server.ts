@@ -6,14 +6,35 @@ const MIME: Record<string, string> = {
   '.html': 'text/html', '.txt': 'text/plain', '.xml': 'application/xml', '.json': 'application/json',
 };
 
-export async function serveFixture(dir: string): Promise<{ url: string; close(): Promise<void> }> {
+export interface ServeOptions {
+  /** Serve index.html (200 text/html) for any missing path, like a SPA host fallback. */
+  spaFallback?: boolean;
+}
+
+export async function serveFixture(
+  dir: string,
+  opts: ServeOptions = {},
+): Promise<{ url: string; close(): Promise<void> }> {
+  let origin = '';
   const server = http.createServer(async (req, res) => {
     const urlPath = (req.url ?? '/').split('?')[0];
     const rel = urlPath === '/' ? 'index.html' : urlPath.slice(1);
-    const file = path.join(dir, rel);
+    let file = path.join(dir, rel);
     try {
-      const body = await fs.readFile(file);
-      res.writeHead(200, { 'content-type': MIME[path.extname(file)] ?? 'application/octet-stream' });
+      let body: Buffer;
+      try {
+        body = await fs.readFile(file);
+      } catch (err) {
+        if (!opts.spaFallback) throw err;
+        file = path.join(dir, 'index.html');
+        body = await fs.readFile(file);
+      }
+      const type = MIME[path.extname(file)] ?? 'application/octet-stream';
+      if (type.startsWith('text/') || type.includes('xml')) {
+        // Allow fixtures to reference the (dynamic) test server origin.
+        body = Buffer.from(body.toString('utf8').replaceAll('{{ORIGIN}}', origin));
+      }
+      res.writeHead(200, { 'content-type': type });
       res.end(body);
     } catch {
       res.writeHead(404, { 'content-type': 'text/plain' });
@@ -23,8 +44,9 @@ export async function serveFixture(dir: string): Promise<{ url: string; close():
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const addr = server.address();
   const port = typeof addr === 'object' && addr ? addr.port : 0;
+  origin = `http://127.0.0.1:${port}`;
   return {
-    url: `http://127.0.0.1:${port}`,
+    url: origin,
     close: () => new Promise<void>((r) => server.close(() => r())),
   };
 }

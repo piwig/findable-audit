@@ -17,6 +17,25 @@ export interface FetchedResource {
   body: string;
   contentType: string;
   finalUrl: string;
+  /** Response headers, lower-cased keys. */
+  headers: Record<string, string>;
+}
+
+/** Media type of the response, without parameters, lower-cased ('' when absent). */
+export function mediaType(res: FetchedResource): string {
+  return res.contentType.split(';')[0].trim().toLowerCase();
+}
+
+/** true when the resource is text/plain (or no content-type header at all). */
+export function isPlainText(res: FetchedResource): boolean {
+  const ct = mediaType(res);
+  return ct === '' || ct === 'text/plain';
+}
+
+/** true when the resource is an XML media type (or no content-type header at all). */
+export function isXml(res: FetchedResource): boolean {
+  const ct = mediaType(res);
+  return ct === '' || ct === 'application/xml' || ct === 'text/xml' || ct.endsWith('+xml');
 }
 
 export interface CrawlContext {

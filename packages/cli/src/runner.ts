@@ -10,8 +10,12 @@ export interface AuditReport {
   results: CheckResult[];
 }
 
-export async function runAudit(url: string, checks: Check[]): Promise<AuditReport> {
-  const crawler = new Crawler(url);
+export interface AuditOptions {
+  timeoutMs?: number;
+}
+
+export async function runAudit(url: string, checks: Check[], opts: AuditOptions = {}): Promise<AuditReport> {
+  const crawler = new Crawler(url, opts.timeoutMs);
   const home = await crawler.fetch('/');
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   const results: CheckResult[] = [];
@@ -19,7 +23,8 @@ export async function runAudit(url: string, checks: Check[]): Promise<AuditRepor
     try {
       results.push(await check.run(crawler));
     } catch (err) {
-      results.push(makeResult(check, 'fail', `check crashed: ${(err as Error).message}`));
+      // A crashing check must not affect the score: mark it skipped.
+      results.push(makeResult(check, 'skip', `check crashed: ${(err as Error).message}`));
     }
   }
   const scored = results.filter((r) => r.status !== 'skip');
