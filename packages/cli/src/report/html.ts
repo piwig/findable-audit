@@ -59,6 +59,7 @@ const STYLE = `
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; }
   .st.pass { color: #1a7f37; } .st.warn { color: #9a6700; } .st.fail { color: #b42318; } .st.skip { color: #999; }
   .fix { color: #555; font-size: .85rem; margin-top: .15rem; }
+  .fix-more { color: #1a7f37; font-size: .8rem; white-space: nowrap; }
   .msg { color: #333; font-size: .9rem; margin-top: .1rem; }
   .row { break-inside: avoid; }
   .subscores { margin: 1.25rem 0; }
@@ -118,8 +119,10 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
     const earned = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.points), 0);
     const max = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.maxPoints), 0);
     const rows = results.map((r) => {
+      const link = r.docUrl && r.status !== 'pass' && r.status !== 'skip'
+        ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">En savoir plus →</a>` : '';
       const fix = r.fix && r.status !== 'pass' && r.status !== 'skip'
-        ? `<div class="fix">${escapeHtml(r.fix)}</div>` : '';
+        ? `<div class="fix">${escapeHtml(r.fix)}${link}</div>` : '';
       return `<tr class="row">
         <td class="st ${r.status}">${STATUS_LABEL[r.status]}</td>
         <td><code>${escapeHtml(r.id)}</code><div class="msg">${escapeHtml(r.message)}</div>${fix}</td>

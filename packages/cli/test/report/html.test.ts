@@ -22,7 +22,7 @@ const report: AuditReport = {
   sampledPages: ['/', '/about'],
   results: [
     { id: 'llms-txt', family: 'llm-content', status: 'fail', points: 0, maxPoints: 10,
-      message: 'llms.txt missing', fix: 'Add a /llms.txt file.' },
+      message: 'llms.txt missing', fix: 'Add a /llms.txt file.', docUrl: 'https://llmstxt.org/' },
     { id: 'json-ld', family: 'structured-data', status: 'pass', points: 10, maxPoints: 10,
       message: '1 valid JSON-LD block(s)' },
     { id: 'evil', family: 'security', status: 'warn', points: 2, maxPoints: 4,
@@ -37,8 +37,14 @@ describe('renderHtml', () => {
     expect(html.trimStart()).toMatch(/^<!doctype html/i);
     expect(html).toContain('<style');
   });
-  it('references no external resource (fully inline)', () => {
-    expect(html).not.toMatch(/(src|href)\s*=\s*["']https?:/i);
+  it('embeds no external resource (inline only; doc <a> links allowed)', () => {
+    // Forbid external embedded resources (styles, scripts, images, iframes)…
+    expect(html).not.toMatch(/<(?:link|script|img|iframe|source)\b[^>]*\b(?:src|href)\s*=\s*["']https?:/i);
+    // …but the only external hrefs allowed are documentation anchors.
+    const externalHrefs = [...html.matchAll(/href\s*=\s*["'](https?:[^"']+)["']/gi)].map((m) => m[1]);
+    for (const href of externalHrefs) {
+      expect(href).toMatch(/^https:\/\/(web\.dev|developers\.google\.com|schema\.org|llmstxt\.org|developer\.mozilla\.org|www\.w3\.org|github\.com)/);
+    }
   });
   it('has no inline event handlers (CSP-friendly)', () => {
     expect(html).not.toMatch(/\son[a-z]+\s*=/i);
@@ -92,6 +98,10 @@ describe('renderHtml', () => {
     expect(html).toMatch(/À corriger en priorité/);   // fails group (llms-txt)
     expect(html).toContain('Add a /llms.txt file.');    // the fix text
     expect(html).toMatch(/\+\d+ pts/);                  // impact badge
+  });
+  it('adds a doc link next to the fix in the per-family check table', () => {
+    // llms-txt is a failing llm-content check -> family fallback docUrl (llmstxt.org)
+    expect(html).toMatch(/class="fix">Add a \/llms\.txt file\.[\s\S]*?href="https:\/\/llmstxt\.org\/"/);
   });
 });
 
