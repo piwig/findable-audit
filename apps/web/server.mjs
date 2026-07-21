@@ -197,12 +197,14 @@ async function auditUrl(url) {
   // abort it, which cancels every in-flight crawler fetch, lets runAudit settle
   // promptly and frees the concurrency slot instead of leaking it for ~10s.
   const ac = new AbortController();
-  const auditPromise = runAudit(key, checks, {
+  const opts = {
     timeoutMs: FETCH_TIMEOUT_MS,
     maxPages: MAX_PAGES,
     blockPrivateHosts: true, // fetch-layer SSRF guard: every hop is revalidated.
     signal: ac.signal,
-  });
+  };
+  if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
+  const auditPromise = runAudit(key, checks, opts);
   // Free the slot when the real audit settles, even if the HTTP response has
   // already timed out below; swallow a late rejection so it is never unhandled.
   auditPromise.then(
@@ -212,7 +214,7 @@ async function auditUrl(url) {
 
   let report;
   try {
-    report = await withTimeout(auditPromise, AUDIT_TIMEOUT_MS);
+    report = await withTimeout(auditPromise, auditTimeout());
   } catch (err) {
     ac.abort(); // on timeout (or any race failure) cancel in-flight fetches.
     throw err;
@@ -633,4 +635,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs };
+export { server, jobs, cwvActive, auditTimeout };

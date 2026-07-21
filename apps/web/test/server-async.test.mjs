@@ -148,3 +148,20 @@ test('GET /audit/export with unknown job returns 404', async () => {
   const res = await fetch(`${BASE}/audit/export?job=nope&format=md`);
   assert.equal(res.status, 404);
 });
+
+test('CWV decision follows PSI_KEY presence', async () => {
+  const prev = process.env.PSI_KEY;
+  try {
+    delete process.env.PSI_KEY;
+    // A blocked URL never runs the audit, so no PSI call; we assert the helper.
+    // (Export cwvActive/auditTimeout for testability.)
+    const mod = await import('../server.mjs');
+    assert.equal(mod.cwvActive(), false);
+    assert.equal(mod.auditTimeout(), 45000);
+    process.env.PSI_KEY = 'test-key';
+    assert.equal(mod.cwvActive(), true);
+    assert.equal(mod.auditTimeout(), 90000);
+  } finally {
+    if (prev === undefined) delete process.env.PSI_KEY; else process.env.PSI_KEY = prev;
+  }
+});
