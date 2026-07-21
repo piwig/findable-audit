@@ -1,6 +1,7 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { FAMILY_LABELS } from './terminal.js';
+import { verdictOf } from './verdict.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -41,6 +42,14 @@ const STYLE = `
     border-radius: 6px; color: #fff; }
   .grade.good { background: #1a7f37; } .grade.ok { background: #9a6700; } .grade.bad { background: #b42318; }
   .pages { color: #444; font-size: .85rem; margin: .5rem 0 0; }
+  .hero { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 .75rem;
+    padding: 1rem; border: 1px solid #ececec; border-radius: 12px; background: #fbfbfb; }
+  .hero-score { font-weight: 800; font-size: 2rem; line-height: 1; color: #fff;
+    border-radius: 12px; padding: .6rem .8rem; min-width: 3.4rem; text-align: center; }
+  .hero-score span { display: block; font-size: .7rem; font-weight: 600; opacity: .85; }
+  .hero-score.good { background: #1a7f37; } .hero-score.ok { background: #9a6700; } .hero-score.bad { background: #b42318; }
+  .hero-meta .verdict { color: #555; font-size: .95rem; margin-top: .3rem; }
+  .stats { color: #666; font-size: .85rem; margin: 0 0 .25rem; }
   table { width: 100%; border-collapse: collapse; margin: .25rem 0; }
   td { padding: .4rem .5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
   td.st { white-space: nowrap; font-weight: 700; font-size: .8rem; width: 3.5rem; }
@@ -64,7 +73,7 @@ const STYLE = `
   @media print {
     body { padding: 0; max-width: none; }
     h2, tr, .subscore-table tr { break-inside: avoid; }
-    .bar-fill, .score, .grade, .fam-score { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bar-fill, .score, .grade, .fam-score, .hero-score { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
 
@@ -112,6 +121,10 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
 </section>`
     : '';
 
+  const passed = report.results.filter((r) => r.status === 'pass').length;
+  const failCount = report.results.filter((r) => r.status === 'fail').length;
+  const toFix = report.results.filter((r) => r.status === 'fail' || r.status === 'warn').length;
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -123,10 +136,14 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
 <body>
 <h1>findable-audit report</h1>
 <div class="meta">${escapeHtml(report.url)} · ${date}</div>
-<p class="badges">
-  <span class="score ${scoreClass(report.score)}">Score: ${report.score}/100</span>
-  <span class="grade ${gradeClass(report.grade)}">Grade ${escapeHtml(report.grade)}</span>
-</p>
+<header class="hero">
+  <div class="hero-score ${scoreClass(report.score)}">${report.score}<span>/100</span></div>
+  <div class="hero-meta">
+    <span class="grade ${gradeClass(report.grade)}">Grade ${escapeHtml(report.grade)}</span>
+    <div class="verdict">${escapeHtml(verdictOf(report.grade, failCount))}</div>
+  </div>
+</header>
+<p class="stats">${passed} réussis · ${toFix} à corriger · ${report.sampledPages.length} pages</p>
 <p class="pages">Pages audited: ${pages}</p>
 ${subscoreSection}
 ${sections.join('\n')}
