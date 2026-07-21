@@ -99,6 +99,24 @@ const PAGE_STYLE = `
   .lang-switch a { color: #1a7f37; text-decoration: none; }
   .lang-switch a:hover { text-decoration: underline; }
   .lang-switch [aria-current] { font-weight: 600; color: #1a1a1a; }
+  .ld-eyebrow { font: 600 .72rem/1 system-ui; letter-spacing: .14em; text-transform: uppercase; color: #7a8290; display: flex; align-items: center; gap: 10px; margin: 0 0 .9rem; }
+  .ld-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-h1 { font-weight: 800; letter-spacing: -.02em; line-height: 1.06; color: #1c2230; font-size: clamp(1.9rem, 1rem + 2.8vw, 2.9rem); margin: 0 0 .7rem; max-width: 20ch; }
+  .ld-h1 .g { background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ld-cta { position: relative; overflow: hidden; background: #1c2230; }
+  .ld-cta::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-cta:hover::before { opacity: 1; }
+  .ld-cta > span { position: relative; }
+  .ld-sec { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eef1f3; }
+  .ld-chips { display: flex; flex-wrap: wrap; gap: .55rem; }
+  .ld-chip { font-size: .85rem; font-weight: 600; color: #2b3240; background: #fff; border: 1px solid #e2e7ea; border-radius: 999px; padding: .42rem .8rem; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 1px 2px rgb(20 60 40 / .05), 0 10px 26px -14px rgb(20 60 40 / .16); }
+  .ld-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 560px) { .ld-steps { grid-template-columns: 1fr; } }
+  .ld-step { display: flex; gap: .7rem; align-items: flex-start; font-size: .88rem; color: #5b6472; }
+  .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-step b { color: #1c2230; display: block; font-size: .92rem; }
+  .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
 `;
 
 function shell(title, bodyHtml, { lang = 'en', alternates } = {}) {
@@ -127,31 +145,34 @@ ${bodyHtml}
 `;
 }
 
-// The landing page's final visual design (pb-ot.fr-inspired restyle) is
-// DEFERRED to a separate visual-companion mockup + user-validation pass (see
-// spec addendum §7.1 and §8, sub-phase 2C). This function delivers the
-// functional bilingual structure — i18n wiring, hreflang, selector, form —
-// using the existing minimal PAGE_STYLE; a future pass restyles it without
-// changing this DOM contract (form action, input name, selector markup).
-// Note: Task 4's routing block already calls this as `landingPage(split.lang)`
-// (the pre-2C zero-arg signature simply ignored the extra argument until now),
-// so no call-site change is needed here — only this definition.
+// Redesigned landing page: ports pb-ot.fr's "Aube" design system to a green
+// accent, self-contained (no external fonts/resources), CSP-safe (no inline
+// script — the landing keeps `script-src 'none'`). Preserves the DOM
+// contract: form action, input name, selector markup, hreflang.
 function landingPage(lang = 'en') {
   const s = t(lang).landing;
+  const chips = s.families.map((f) => `<span class="ld-chip">${escapeHtml(f)}</span>`).join('');
+  const steps = s.steps.map((st, i) =>
+    `<div class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></div>`).join('');
   return shell(s.title, `
-<h1>${escapeHtml(s.h1)}</h1>
+<p class="ld-eyebrow">${escapeHtml(s.eyebrow)}</p>
+<h1 class="ld-h1">${escapeHtml(s.h1Lead)}<span class="g">${escapeHtml(s.h1Accent)}</span>${escapeHtml(s.h1Tail)}</h1>
 <p class="lead">${escapeHtml(s.lead)}</p>
-<ul class="features">
-  <li>${escapeHtml(s.feature1)}</li>
-  <li>${escapeHtml(s.feature2)}</li>
-  <li>${escapeHtml(s.feature3)}</li>
-</ul>
 <form method="get" action="/${lang}/audit">
   <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
     autocomplete="off" autocapitalize="off" spellcheck="false" required>
-  <button type="submit">${escapeHtml(s.cta)}</button>
+  <button type="submit" class="ld-cta"><span>${escapeHtml(s.cta)}</span></button>
 </form>
 <p class="hint">${escapeHtml(s.hint)}</p>
+<section class="ld-sec">
+  <p class="ld-eyebrow">${escapeHtml(s.familiesTitle)}</p>
+  <div class="ld-chips">${chips}</div>
+</section>
+<section class="ld-sec">
+  <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
+  <div class="ld-steps">${steps}</div>
+</section>
+<hr class="ld-rule">
 `, { lang, alternates: { en: '/en/', fr: '/fr/' } });
 }
 

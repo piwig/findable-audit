@@ -11,14 +11,19 @@ test('both languages define a complete landing catalog', () => {
   for (const lang of ['en', 'fr']) {
     const s = t(lang).landing;
     assert.equal(typeof s.title, 'string');
-    assert.equal(typeof s.h1, 'string');
+    assert.equal(typeof s.eyebrow, 'string');
+    assert.equal(typeof s.h1Lead, 'string');
+    assert.equal(typeof s.h1Accent, 'string');
+    assert.equal(typeof s.h1Tail, 'string');
     assert.equal(typeof s.lead, 'string');
-    assert.equal(typeof s.feature1, 'string');
-    assert.equal(typeof s.feature2, 'string');
-    assert.equal(typeof s.feature3, 'string');
     assert.equal(typeof s.urlLabel, 'string');
     assert.equal(typeof s.cta, 'string');
     assert.equal(typeof s.hint, 'string');
+    assert.equal(typeof s.familiesTitle, 'string');
+    assert.equal(typeof s.howTitle, 'string');
+    assert.ok(Array.isArray(s.families) && s.families.length === 8 && s.families.every((f) => typeof f === 'string'));
+    assert.ok(Array.isArray(s.steps) && s.steps.length === 3
+      && s.steps.every((st) => typeof st.t === 'string' && typeof st.d === 'string'));
     assert.ok(s.title.length > 0);
   }
 });
@@ -26,6 +31,7 @@ test('both languages define a complete landing catalog', () => {
 test('landing strings actually differ between en and fr (not copy-pasted)', () => {
   assert.notEqual(WEB_MESSAGES.en.landing.lead, WEB_MESSAGES.fr.landing.lead);
   assert.notEqual(WEB_MESSAGES.en.landing.cta, WEB_MESSAGES.fr.landing.cta);
+  assert.notEqual(WEB_MESSAGES.en.landing.h1Accent, WEB_MESSAGES.fr.landing.h1Accent);
 });
 
 test('both languages define selector labels for every supported language', () => {

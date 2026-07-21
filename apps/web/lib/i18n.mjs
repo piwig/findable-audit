@@ -18,7 +18,8 @@
 //   error:    { rateLimited, busy, timeout, unreachable, notFound, missingUrl, internal },  // each {title,message}
 //             { urlNotAllowed },  // {title} only — the message is the SSRF layer's own technical BlockedUrlError.message, left untranslated
 //             { back },           // plain string — generic error-page back-link label
-//   landing:  { title, h1, lead, feature1, feature2, feature3, urlLabel, cta, hint },
+//   landing:  { title, eyebrow, h1Lead, h1Accent, h1Tail, lead, urlLabel, cta, hint,
+//               familiesTitle, families:[8 strings], howTitle, steps:[{t,d} x3] },
 //   selector: { ariaLabel, en, fr },
 // }>
 
@@ -53,14 +54,22 @@ export const WEB_MESSAGES = {
     },
     landing: {
       title: 'findable-audit — SEO & GEO audit',
-      h1: 'findable-audit',
-      lead: "Audit a website's SEO and GEO — how findable it is by AI search crawlers (GPTBot, ClaudeBot, PerplexityBot…) and classic search engines.",
-      feature1: '107 checks across 8 weighted families — AI access, structured data, technical SEO, on-page, performance, accessibility, security.',
-      feature2: 'A single score out of 100 and an A–F grade, with a prioritized action plan.',
-      feature3: 'Multi-page crawl, Core Web Vitals (when configured), and exportable Markdown / HTML / JSON reports.',
+      eyebrow: 'Classic SEO + GEO (AI findability) · open source',
+      h1Lead: 'Your ',
+      h1Accent: 'SEO and your AI findability',
+      h1Tail: ', graded A–F.',
+      lead: "Audit a website's search visibility — by classic search engines AND by AI crawlers (GPTBot, ClaudeBot, PerplexityBot…) — in a single pass, with a prioritized action plan.",
       urlLabel: 'Website URL',
       cta: 'Audit',
       hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
+      familiesTitle: '8 weighted families · 107 checks',
+      families: ['AI access', 'Answer-engine content', 'Structured data', 'Technical SEO', 'On-page', 'Performance / CWV', 'Accessibility', 'Security'],
+      howTitle: 'How it works',
+      steps: [
+        { t: 'Paste a URL', d: 'a public http(s) address.' },
+        { t: 'Live audit', d: 'multi-page crawl + checks, streamed in real time.' },
+        { t: 'Score + plan', d: 'A–F grade, prioritized fixes, Markdown / HTML / JSON export.' },
+      ],
     },
     selector: {
       ariaLabel: 'Language',
@@ -98,14 +107,22 @@ export const WEB_MESSAGES = {
     },
     landing: {
       title: 'findable-audit — audit SEO & GEO',
-      h1: 'findable-audit',
-      lead: "Auditez le SEO et le GEO d'un site — sa findabilité par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) et les moteurs de recherche classiques.",
-      feature1: '107 vérifications réparties sur 8 familles pondérées : accès IA, données structurées, SEO technique, on-page, performance, accessibilité, sécurité.',
-      feature2: "Un score sur 100 et une note A–F, avec un plan d'action priorisé.",
-      feature3: 'Crawl multi-pages, Core Web Vitals (si configurés), et rapports exportables en Markdown / HTML / JSON.',
+      eyebrow: 'SEO classique + GEO (findabilité IA) · open source',
+      h1Lead: 'Votre ',
+      h1Accent: 'SEO et votre findabilité IA',
+      h1Tail: ', notés A–F.',
+      lead: "Auditez le référencement d'un site — par les moteurs de recherche classiques ET par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) — en une passe, avec un plan d'action priorisé.",
       urlLabel: 'URL du site',
       cta: 'Auditer',
       hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
+      familiesTitle: '8 familles pondérées · 107 vérifications',
+      families: ['Accès IA', 'Contenu pour moteurs de réponse', 'Données structurées', 'SEO technique', 'On-page', 'Performance / CWV', 'Accessibilité', 'Sécurité'],
+      howTitle: 'Comment ça marche',
+      steps: [
+        { t: 'Collez une URL', d: 'publique http(s).' },
+        { t: 'Test en cours', d: 'crawl multi-pages + checks, en direct.' },
+        { t: 'Score + plan', d: 'note A–F, corrections priorisées, export Markdown / HTML / JSON.' },
+      ],
     },
     selector: {
       ariaLabel: 'Langue',
