@@ -95,3 +95,22 @@ describe('renderMarkdown', () => {
     expect(md).not.toContain('## Core Web Vitals');
   });
 });
+
+describe('renderMarkdown in French', () => {
+  const md = renderMarkdown(report, new Date('2026-07-20T12:00:00Z'), 'fr');
+  it('localizes the report chrome', () => {
+    expect(md).toContain('**Score : 72/100**');
+    expect(md).toContain('**Note C**');
+    expect(md).toMatch(/priorité/);                       // FR verdict, grade C
+    expect(md).toContain('## Sous-scores par catégorie');
+    expect(md).toContain('| Famille | Sous-score | Poids | Acquis/Max |');
+    expect(md).toContain('| Accès crawler IA | 25/100 | 16% | 4/16 |');
+    expect(md).toContain('## Accès crawler IA (4/16)');
+    expect(md).toContain('## On-page & contenu (2/4)');
+    expect(md).toContain('## Corrections recommandées');
+  });
+  it('keeps the 107-check messages/fixes in English', () => {
+    expect(md).toContain('AI crawlers blocked: GPTBot');
+    expect(md).toContain('Remove the Disallow rules.');
+  });
+});
