@@ -2,6 +2,9 @@
 
 [![CI](https://github.com/piwig/findable-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/piwig/findable-audit/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/findable-audit)](https://www.npmjs.com/package/findable-audit)
+[![Try it live](https://img.shields.io/badge/Try%20it%20live-findable-1a7f37)](https://findable.bordebat.fr)
+
+Audit any URL right in your browser — no install: **[findable.bordebat.fr](https://findable.bordebat.fr)**.
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
@@ -115,6 +118,8 @@ npx findable-audit https://your-site.com
 ```
 
 `<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
+
+Both the HTML and Markdown reports open with a one-line verdict summarizing the result, and — when run with `--cwv --psi-key <key>` — the HTML report adds a **Core Web Vitals dashboard** with radial gauges for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data (a discreet "not measured" note otherwise). Every report also includes a **prioritized action plan**, grouping the recommended fixes by severity and sorting them by the points they're worth (`+N pts`), and each fail/warn recommendation links out to a "Learn more" doc page for that check.
 
 Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
 
