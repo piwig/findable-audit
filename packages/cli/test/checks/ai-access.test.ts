@@ -92,6 +92,11 @@ describe('robotsWellformed (RFC 9309 hygiene)', () => {
     expect(r.status).toBe('fail');
     expect(r.reason).toContain('garbled');
   });
+  it('warns (not fails) on a file of only well-formed unknown directives', () => {
+    const r = robotsWellformed(asRes('Noindex: /secret\nCrawl-Budget: 100\n'));
+    expect(r.status).toBe('warn');
+    expect(r.reason).toContain('unknown directive');
+  });
   it('fails when the file exceeds 500KB', () => {
     const huge = 'User-agent: *\nDisallow:\n' + '# padding\n'.repeat(60_000);
     const r = robotsWellformed(asRes(huge));

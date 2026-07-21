@@ -229,13 +229,21 @@ function isPostalAddressObject(v: unknown): v is Record<string, unknown> {
 
 const ADDRESS_FIELDS = ['streetAddress', 'addressLocality', 'postalCode', 'addressCountry'];
 
+/** Organization-family types that describe a company shape, not a place customers visit — excluded from NAP/geo/hours evaluation. */
+const NON_LOCAL_ORG_TYPES = new Set(['Organization', 'Corporation', 'NGO', 'GovernmentOrganization', 'EducationalOrganization']);
+
+/** Broader than NAP_REQUIRED_TYPES/*Business: any organization-family type minus the non-local ones (FoodEstablishment, ProfessionalService, Hotel, etc. all count). */
+function isLocalBusinessType(t: string): boolean {
+  return isOrganizationType(t) && !NON_LOCAL_ORG_TYPES.has(t);
+}
+
 export const sdLocalBusiness: Check = {
   id: 'sd-localbusiness', family: 'structured-data', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
     const nodes = flatten(extractJsonLd(res.body));
-    const entity = nodes.find((n) => typesOf(n).some((t) => NAP_REQUIRED_TYPES.has(t) || t.endsWith('Business')));
+    const entity = nodes.find((n) => typesOf(n).some(isLocalBusinessType));
     if (!entity) return makeResult(this, 'skip', 'no LocalBusiness entity on the homepage');
     const address = entity.address;
     if (!address) {
@@ -492,6 +500,9 @@ export const sdConsistency: Check = {
     const values = [...new Set(collectConsistencyValues(nodes))];
     if (values.length === 0) return makeResult(this, 'pass', 'no name/headline/price/rating values to verify');
     const root = parse(res.body);
+    // A body-placed JSON-LD <script> block's own text must not count as "visible" —
+    // otherwise it always false-matches itself.
+    for (const el of root.querySelectorAll('script, style, noscript')) el.remove();
     const bodyText = (root.querySelector('body')?.textContent ?? root.textContent ?? '').toLowerCase();
     const unmatched = values.filter((v) => !bodyText.includes(v.toLowerCase()));
     if (unmatched.length > 0) {

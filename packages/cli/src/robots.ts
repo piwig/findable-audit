@@ -126,24 +126,26 @@ export function robotsWellformed(res: FetchedResource): RobotsWellformedResult {
   }
   const issues: RobotsWellformedIssue[] = [];
   let sawUserAgent = false;
-  let recognizedLines = 0;
+  let parsedLines = 0;
   for (const raw of res.body.split(/\r?\n/)) {
     const line = raw.replace(/#.*$/, '').trim();
     if (!line) continue;
     const m = line.match(/^([a-z-]+)\s*:\s*(.*)$/i);
     if (!m) continue; // stray text; folded into the "no recognizable directives" garbled check below
+    // Any well-formed "key: value" line counts as parsed, known directive or not —
+    // an unknown directive is a warn-worthy oddity, not garbled/unparseable content.
+    parsedLines += 1;
     const key = m[1].toLowerCase();
-    if (key === 'user-agent') { sawUserAgent = true; recognizedLines += 1; continue; }
+    if (key === 'user-agent') { sawUserAgent = true; continue; }
     if (!KNOWN_ROBOTS_DIRECTIVES.has(key)) {
       issues.push({ kind: 'unknown-directive', detail: `unknown directive "${m[1]}"` });
       continue;
     }
-    recognizedLines += 1;
     if ((key === 'allow' || key === 'disallow') && !sawUserAgent) {
       issues.push({ kind: 'orphan-directive', detail: `"${m[1]}" before the first User-agent` });
     }
   }
-  if (recognizedLines === 0 && res.body.trim() !== '') {
+  if (parsedLines === 0 && res.body.trim() !== '') {
     return { status: 'fail', issues: [], reason: 'no recognizable robots.txt directives (garbled content)' };
   }
   if (issues.length === 0) return { status: 'pass', issues };
@@ -165,7 +167,7 @@ export interface RobotsDirectiveSet {
 }
 
 function tokenize(value: string): string[] {
-  return value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return value.split(/[,\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
 /**

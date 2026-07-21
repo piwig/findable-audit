@@ -184,4 +184,32 @@ describe('nap-consistency', () => {
     ]);
     expect((await napConsistency.run(ctx)).status).toBe('fail');
   });
+  it('aggregate-warns when footer addresses mostly agree but one page diverges', async () => {
+    const head = ld({
+      '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz',
+      address: { '@type': 'PostalAddress', streetAddress: '1 Main St', addressLocality: 'Springfield' },
+    });
+    const footerGood = '<footer><p>Biz — 1 Main St, Springfield</p></footer>';
+    const footerBad = '<footer><p>Biz — 99 Other Ave, Shelbyville</p></footer>';
+    const ctx = ctxFromPages([
+      page('/', html(head, footerGood)),
+      page('/a.html', html('', footerGood)),
+      page('/b.html', html('', footerGood)),
+      page('/c.html', html('', footerGood)),
+      page('/d.html', html('', footerBad)),
+    ]);
+    expect((await napConsistency.run(ctx)).status).toBe('warn');
+  });
+  it('warns when footer addresses agree with each other but conflict with the JSON-LD address', async () => {
+    const head = ld({
+      '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz',
+      address: { '@type': 'PostalAddress', streetAddress: '1 Main St', addressLocality: 'Springfield' },
+    });
+    const footer = '<footer><p>Biz — 42 Elm Street, Shelbyville</p></footer>';
+    const ctx = ctxFromPages([
+      page('/', html(head, footer)),
+      page('/a.html', html('', footer)),
+    ]);
+    expect((await napConsistency.run(ctx)).status).toBe('warn');
+  });
 });

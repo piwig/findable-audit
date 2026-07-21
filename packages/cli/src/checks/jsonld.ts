@@ -1,5 +1,4 @@
 import { parse } from 'node-html-parser';
-import type { FetchedResource } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Extraction
@@ -59,21 +58,6 @@ export function flatten(blocks: unknown[]): Record<string, unknown>[] {
     }
   }
   return out;
-}
-
-/** Map `@type` -> nodes, across every sampled page's JSON-LD (spec §6 Batch 3). */
-export function indexByType(pages: FetchedResource[]): Map<string, Record<string, unknown>[]> {
-  const index = new Map<string, Record<string, unknown>[]>();
-  for (const page of pages) {
-    for (const node of flatten(extractJsonLd(page.body))) {
-      for (const t of typesOf(node)) {
-        const list = index.get(t) ?? [];
-        list.push(node);
-        index.set(t, list);
-      }
-    }
-  }
-  return index;
 }
 
 // ---------------------------------------------------------------------------

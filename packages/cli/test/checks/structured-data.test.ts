@@ -192,6 +192,15 @@ describe('sd-localbusiness', () => {
     })}</head></html>`);
     expect((await sdLocalBusiness.run(c)).status).toBe('pass');
   });
+  it('evaluates a FoodEstablishment (not just the NAP_REQUIRED_TYPES/*Business shortlist)', async () => {
+    const c = homeCtx(`<html><head>${ld({
+      '@context': 'https://schema.org', '@type': 'FoodEstablishment', name: 'Biz', telephone: '+1-555-0100',
+      address: { '@type': 'PostalAddress', streetAddress: '1 Main St', addressLocality: 'Town', postalCode: '12345', addressCountry: 'US' },
+    })}</head></html>`);
+    const r = await sdLocalBusiness.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/geo|hours/);
+  });
 });
 
 describe('sd-website-searchaction', () => {
@@ -319,6 +328,12 @@ describe('sd-consistency', () => {
   });
   it('warns when the JSON-LD value is not visible anywhere on the page', async () => {
     const c = homeCtx(`<html><head>${ld({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Ghost Corp' })}</head><body><h1>Something else entirely</h1></body></html>`);
+    expect((await sdConsistency.run(c)).status).toBe('warn');
+  });
+  it('warns when a body-placed JSON-LD block only matches its own script text', async () => {
+    // The <script> tag's own JSON text must not count as "visible" content —
+    // otherwise a body-placed block always false-matches itself.
+    const c = homeCtx(`<html><head></head><body><h1>Something else entirely</h1>${ld({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Ghost Corp' })}</body></html>`);
     expect((await sdConsistency.run(c)).status).toBe('warn');
   });
 });

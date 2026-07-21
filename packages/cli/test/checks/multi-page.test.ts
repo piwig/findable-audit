@@ -49,6 +49,18 @@ describe('meta-robots-noindex', () => {
     expect(r.status).toBe('warn');
     expect(r.message).toMatch(/disagree/);
   });
+  it('fails on a space-separated (no comma) X-Robots-Tag noindex', async () => {
+    const c = stubCtx({
+      '/': {
+        contentType: 'text/html',
+        body: '<html><head></head></html>',
+        headers: { 'x-robots-tag': 'noindex nofollow' },
+      },
+    });
+    const r = await metaRobotsNoindex.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('noindex');
+  });
 });
 
 describe('snippet-preview-directives', () => {

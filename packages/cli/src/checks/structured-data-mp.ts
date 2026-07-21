@@ -4,7 +4,7 @@ import { makeResult } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import {
   extractJsonLd, flatten, typesOf, byId, resolveValue, isOrganizationType,
-  NAP_REQUIRED_TYPES, rollupBySeverity, normalizePhone, str,
+  NAP_REQUIRED_TYPES, rollupBySeverity, normalizePhone, addressString, str,
   type SeverityItem,
 } from './jsonld.js';
 
@@ -289,6 +289,8 @@ export const sdBreadcrumb: Check = {
 // ---------------------------------------------------------------------------
 
 const PHONE_RE = /(\+?\d[\d\s().-]{6,}\d)/g;
+/** Segment separators seen in footer NAP strings: em/en dash, pipe, middle dot. */
+const NAP_SEGMENT_RE = /[—–|·]/;
 
 function phonesInFooter(page: FetchedResource): string[] {
   const root = parse(page.body);
@@ -298,39 +300,109 @@ function phonesInFooter(page: FetchedResource): string[] {
   return [...new Set(matches.map(normalizePhone).filter((p) => p.replace(/\D/g, '').length >= 7))];
 }
 
+/**
+ * Candidate address strings from an actual <footer> (no body/root fallback,
+ * unlike phonesInFooter: without a NAP separator to split on, an ordinary
+ * prose paragraph almost always has a digit and 6+ letters somewhere, so
+ * scanning the whole body/root would false-positive on non-address content).
+ * Splits on the same NAP separators used to join name/address/phone, then
+ * keeps segments that look like a street address (has a digit and enough
+ * letters) rather than a bare business name (no digit) or a phone number
+ * (digits, ~0 letters).
+ */
+function addressesInFooter(page: FetchedResource): string[] {
+  const footer = parse(page.body).querySelector('footer');
+  if (!footer) return [];
+  const segments = footer.textContent.split(NAP_SEGMENT_RE).map((s) => s.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const seg of segments) {
+    const hasDigit = /\d/.test(seg);
+    const letterCount = (seg.match(/[a-z]/gi) ?? []).length;
+    if (hasDigit && letterCount >= 6) out.push(addressString(seg));
+  }
+  return [...new Set(out)];
+}
+
+/** Reduces a JSON-LD PostalAddress to street+locality — the part footers reliably echo (postal code/country are often omitted on the page). */
+function addressCoreFromEntity(address: unknown): string {
+  if (typeof address === 'string') return addressString(address);
+  if (address && typeof address === 'object') {
+    const a = address as Record<string, unknown>;
+    return addressString({ streetAddress: a.streetAddress, addressLocality: a.addressLocality });
+  }
+  return '';
+}
+
+interface PerPageValues { path: string; values: string[] }
+
+/**
+ * Majority vote among footer values; ties are broken toward the JSON-LD value
+ * when it's among the tied leaders (deterministic, and JSON-LD is the
+ * authoritative source when the page itself doesn't clearly prefer either).
+ */
+function pickCanonical(jsonLdValue: string, perPage: PerPageValues[]): string {
+  const freq = new Map<string, number>();
+  for (const p of perPage) for (const v of p.values) freq.set(v, (freq.get(v) ?? 0) + 1);
+  let best = '';
+  let bestCount = -1;
+  for (const [v, count] of freq) {
+    if (count > bestCount || (count === bestCount && v === jsonLdValue)) { best = v; bestCount = count; }
+  }
+  return best || jsonLdValue;
+}
+
+interface DimensionResult { active: boolean; status: 'pass' | 'warn' | 'fail'; detail: string }
+
+/**
+ * pass: footers consistent and matching JSON-LD (or nothing to cross-check).
+ * warn: minor divergence across footers, or footers agree with each other but
+ * not with JSON-LD. fail: footers substantially conflict (spec §3.3).
+ */
+function evaluateDimension(jsonLdValue: string, perPage: PerPageValues[]): DimensionResult {
+  const anyFooterValue = perPage.some((p) => p.values.length > 0);
+  if (!jsonLdValue && !anyFooterValue) return { active: false, status: 'pass', detail: '' };
+  if (!anyFooterValue) return { active: true, status: 'pass', detail: '' };
+  const canonical = pickCanonical(jsonLdValue, perPage);
+  const pagesWithValue = perPage.filter((p) => p.values.length > 0);
+  const offenders = pagesWithValue.filter((p) => !p.values.includes(canonical)).map((p) => p.path);
+  const agg = aggregate(pagesWithValue.length, offenders);
+  const jsonLdMismatch = jsonLdValue !== '' && jsonLdValue !== canonical;
+  if (agg.status === 'pass' && jsonLdMismatch) {
+    return { active: true, status: 'warn', detail: `consistently "${canonical}", never matching JSON-LD ("${jsonLdValue}")` };
+  }
+  return { active: true, status: agg.status, detail: agg.status === 'pass' ? '' : agg.detail };
+}
+
 export const napConsistency: Check = {
   id: 'nap-consistency', family: 'structured-data', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const home = pages.find((p) => pathOf(p) === '/') ?? pages[0];
     let jsonLdPhone = '';
+    let jsonLdAddress = '';
     if (home) {
       const nodes = nodesOf(home);
-      const org = nodes.find((n) => typesOf(n).some((t) => NAP_REQUIRED_TYPES.has(t) || isOrganizationType(t)) && str(n.telephone));
-      if (org) jsonLdPhone = normalizePhone(str(org.telephone));
+      const org = nodes.find((n) => typesOf(n).some((t) => NAP_REQUIRED_TYPES.has(t) || isOrganizationType(t))
+        && (str(n.telephone) || n.address));
+      if (org) {
+        if (str(org.telephone)) jsonLdPhone = normalizePhone(str(org.telephone));
+        if (org.address) jsonLdAddress = addressCoreFromEntity(org.address);
+      }
     }
-    const perPagePhones = pages.map((p) => ({ path: pathOf(p), phones: phonesInFooter(p) }));
-    const anyFooterPhone = perPagePhones.some((p) => p.phones.length > 0);
-    if (!jsonLdPhone && !anyFooterPhone) return makeResult(this, 'skip', 'no NAP (phone) to check');
-    if (!anyFooterPhone) {
-      return makeResult(this, 'pass', 'JSON-LD NAP present, no page footer phone to cross-check');
-    }
-    let canonical = jsonLdPhone;
-    if (!canonical) {
-      const freq = new Map<string, number>();
-      for (const p of perPagePhones) for (const ph of p.phones) freq.set(ph, (freq.get(ph) ?? 0) + 1);
-      canonical = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
-    }
-    const pagesWithPhone = perPagePhones.filter((p) => p.phones.length > 0);
-    const offenders = pagesWithPhone.filter((p) => !p.phones.includes(canonical)).map((p) => p.path);
-    const jsonLdMismatch = jsonLdPhone !== '' && !perPagePhones.some((p) => p.phones.includes(jsonLdPhone));
-    const agg = aggregate(pagesWithPhone.length, offenders);
-    if (agg.status === 'pass' && jsonLdMismatch) {
-      return makeResult(this, 'warn', `inconsistent NAP across pages: footer phone(s) never match JSON-LD (${jsonLdPhone})`,
-        'Render one canonical NAP from a single source; match JSON-LD.');
-    }
-    if (agg.status === 'pass') return makeResult(this, 'pass', 'NAP phone consistent across sampled pages');
-    return makeResult(this, agg.status, `inconsistent NAP across pages: ${agg.detail}`,
+    const perPagePhones: PerPageValues[] = pages.map((p) => ({ path: pathOf(p), values: phonesInFooter(p) }));
+    const perPageAddresses: PerPageValues[] = pages.map((p) => ({ path: pathOf(p), values: addressesInFooter(p) }));
+
+    const dims = [
+      { label: 'phone', ...evaluateDimension(jsonLdPhone, perPagePhones) },
+      { label: 'address', ...evaluateDimension(jsonLdAddress, perPageAddresses) },
+    ].filter((d) => d.active);
+
+    if (dims.length === 0) return makeResult(this, 'skip', 'no NAP (phone/address) to check');
+    if (dims.every((d) => d.status === 'pass')) return makeResult(this, 'pass', 'NAP consistent across sampled pages');
+
+    const status = dims.some((d) => d.status === 'fail') ? 'fail' : 'warn';
+    const detail = dims.filter((d) => d.status !== 'pass').map((d) => `${d.label} ${d.detail}`).join('; ');
+    return makeResult(this, status, `inconsistent NAP across pages: ${detail}`,
       'Render one canonical NAP from a single source; match JSON-LD.');
   },
 };
