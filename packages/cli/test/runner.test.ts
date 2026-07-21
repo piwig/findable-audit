@@ -19,17 +19,18 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(65);
+    expect(report.results).toHaveLength(74);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'broken-internal-links', 'canonical-resolves', 'figure-caption', 'hreflang', 'hreflang-x-default',
-      'https', 'indexnow', 'internal-linking', 'nap-consistency', 'pagination-canonical',
-      'redirect-chains', 'redirect-hygiene', 'robots-wellformed', 'schema-coverage', 'sd-article', 'sd-breadcrumb',
-      'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-product', 'sd-special-types',
-      'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans',
-      'sitemap-urls-valid', 'trailing-slash', 'unique-titles', 'www-consolidation',
+      'answer-headings', 'broken-internal-links', 'canonical-resolves', 'content-author-eeat',
+      'content-freshness', 'content-uniqueness', 'extractable-structure', 'figure-caption', 'hreflang',
+      'hreflang-x-default', 'https', 'indexnow', 'internal-linking', 'nap-consistency', 'outbound-citations',
+      'pagination-canonical', 'redirect-chains', 'redirect-hygiene', 'robots-wellformed', 'schema-coverage',
+      'sd-article', 'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-product',
+      'sd-special-types', 'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod',
+      'sitemap-orphans', 'sitemap-urls-valid', 'trailing-slash', 'unique-titles', 'www-consolidation',
     ]);
   });
   it('marks a crashing check as skip and excludes it from the score', async () => {

@@ -3,7 +3,11 @@ import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
   homepageOk, robotsDirectives,
 } from './ai-access.js';
-import { llmsTxt, llmsFullTxt, contentWithoutJs } from './llm-content.js';
+import {
+  llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
+  extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
+  aboutContact,
+} from './llm-content.js';
 import {
   jsonLd, jsonLdEntity, twitterCard, jsonLdValid, sdOrganization, sdEntityGrounding,
   sdLocalBusiness, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity, sdConsistency,
@@ -28,7 +32,9 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
     homepageOk, robotsDirectives, snippetPreviewDirectives,
-    llmsTxt, llmsFullTxt, contentWithoutJs, imagesAlt,
+    llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
+    extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
+    aboutContact, imagesAlt,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,
     metaRobotsNoindex, uniqueTitles, brokenInternalLinks, redirectHygiene, hreflang,

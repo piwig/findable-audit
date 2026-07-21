@@ -1,7 +1,12 @@
 # Example Bakery
 
-> Family bakery in Springfield, open Tuesday to Sunday.
+> Family bakery in Springfield: sourdough bread, croissants and custom cakes, baked fresh every morning, open Tuesday to Sunday.
 
 ## Pages
 
-- [Home](https://example.com/): products and opening hours
+- [Home]({{ORIGIN}}/): products, opening hours and how to order
+- [About us]({{ORIGIN}}/about.html): our story since 1998
+- [Sourdough bread]({{ORIGIN}}/#sourdough): our signature slow-rise loaves
+- [Croissants and pastries]({{ORIGIN}}/#pastries): hand-rolled fresh every morning
+- [Custom cakes]({{ORIGIN}}/#cakes): birthdays and weddings, baked to order
+- [Visit and contact]({{ORIGIN}}/#visit): address, opening hours and phone number
