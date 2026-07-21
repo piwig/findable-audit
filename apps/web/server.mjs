@@ -13,26 +13,31 @@
 // sets X-Forwarded-For). Configure the port with the PORT env var (default 3021).
 
 import http from 'node:http';
+import crypto from 'node:crypto';
 
 import { runAudit, UnreachableSiteError } from '../../packages/cli/dist/runner.js';
 import { buildChecks } from '../../packages/cli/dist/checks/index.js';
 import { renderHtml } from '../../packages/cli/dist/report/html.js';
 import { renderJson } from '../../packages/cli/dist/report/json.js';
+import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
 import { createResultCache } from './lib/cache.mjs';
 import { clientIp } from './lib/client-ip.mjs';
+import { createJobStore } from './lib/jobs.mjs';
+import { t } from './lib/i18n.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
-const PORT = Number(process.env.PORT) || 3021;
+const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 3021;
 const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
 const MAX_CONCURRENT = 10; // at most N audits at once. Audits are I/O-bound (~0.6s CPU each), so this is generous without stressing CPU; memory is the real limit and each audit is only a few MB.
 const RATE_LIMIT = 20; // audits per IP...
 const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
 const AUDIT_TIMEOUT_MS = 45_000; // hard cap on a single audit (must stay < nginx proxy_read_timeout, 60s).
+const AUDIT_TIMEOUT_CWV_MS = 90_000; // raised cap when CWV (PageSpeed) is active; nginx proxy_read_timeout must be >= this.
 const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
 const MAX_PAGES = 6; // pages sampled per audit (capped for cost/speed; frees the concurrency slot sooner).
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
@@ -50,6 +55,7 @@ const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW
 
 let inFlight = 0; // current number of running audits.
 const cache = createResultCache({ ttlMs: CACHE_TTL_MS, maxEntries: CACHE_MAX_ENTRIES });
+const jobs = createJobStore({ ttlMs: 180_000, maxJobs: 500 });
 
 class AuditTimeoutError extends Error {}
 
@@ -85,11 +91,13 @@ const PAGE_STYLE = `
   .err h1 { color: #b42318; font-size: 1.2rem; }
   a { color: #1a7f37; }
   footer { margin-top: 3rem; color: #888; font-size: .85rem; border-top: 1px solid #e5e5e5; padding-top: 1rem; }
+  .progress { height: 8px; background: #eee; border-radius: 999px; overflow: hidden; margin: 0 0 1rem; }
+  .bar { height: 100%; width: 0; background: #1a7f37; transition: width .3s ease; }
 `;
 
-function shell(title, bodyHtml) {
+function shell(title, bodyHtml, { lang = 'en' } = {}) {
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -211,10 +219,104 @@ function send(res, status, contentType, body, extraHeaders = {}) {
     'x-content-type-options': 'nosniff',
     ...extraHeaders,
   };
-  // Content-Security-Policy for served HTML (landing, report, error pages).
-  if (contentType.startsWith('text/html')) headers['content-security-policy'] = CSP;
+  // Default CSP for served HTML, unless the caller already set one (progress page).
+  if (contentType.startsWith('text/html') && !('content-security-policy' in headers)) {
+    headers['content-security-policy'] = CSP;
+  }
   res.writeHead(status, headers);
   res.end(body);
+}
+
+// ---------------------------------------------------------------------------
+// Async /audit progress page (lazy execution: Tasks 5-8 add the runner + routes)
+// ---------------------------------------------------------------------------
+function normalizeLang(raw) { return raw === 'fr' ? 'fr' : 'en'; }
+
+function progressPage(jobId, lang, nonce) {
+  const m = t(lang).progress;
+  const id = encodeURIComponent(jobId);
+  // Our own controlled catalogue; JSON.stringify + escape '<' guards against a
+  // stray "</script>" ever appearing in a label.
+  const labels = JSON.stringify(m.phases).replace(/</g, '\\u003c');
+  const jobLiteral = JSON.stringify(jobId);
+  const body = `
+<h1>${escapeHtml(m.heading)}</h1>
+<p class="lead">${escapeHtml(m.lead)}</p>
+<div class="progress" role="progressbar" aria-live="polite" aria-label="${escapeHtml(m.heading)}">
+  <div id="bar" class="bar" style="width:0%"></div>
+</div>
+<p id="status" class="hint">${escapeHtml(m.phases.connect)}</p>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=/audit/result?job=${id}">
+  <p>${escapeHtml(m.noscript)} <a href="/audit/result?job=${id}">${escapeHtml(m.done)}</a></p>
+</noscript>
+<script nonce="${nonce}">
+(function () {
+  var LABELS = ${labels};
+  var status = document.getElementById('status');
+  var bar = document.getElementById('bar');
+  var job = ${jobLiteral};
+  var es = new EventSource('/audit/stream?job=' + encodeURIComponent(job));
+  es.addEventListener('progress', function (e) {
+    try {
+      var p = JSON.parse(e.data);
+      if (status && LABELS[p.phase]) status.textContent = LABELS[p.phase];
+      if (bar && p.total) bar.style.width = Math.round(p.done / p.total * 100) + '%';
+    } catch (_) {}
+  });
+  es.addEventListener('done', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job); });
+  es.addEventListener('error', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job); });
+})();
+</script>
+`;
+  return shell(m.title, body, { lang });
+}
+
+// Rate-limit + SSRF check, then create the job and return the progress page.
+// Execution is lazy: the audit itself is kicked off by /audit/stream or
+// /audit/result (added in Tasks 5-8), whichever the client hits first.
+async function handleAuditStart(req, res) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const lang = normalizeLang(parsed.searchParams.get('lang'));
+
+  const ip = clientIp(req);
+  const rl = rateLimiter.take(ip);
+  if (!rl.allowed) {
+    const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+    const e = t(lang).error.rateLimited;
+    const p = errorPage(e.title, `${e.message} (~${retryAfter}s)`, { status: 429 });
+    send(res, p.status, 'text/html; charset=utf-8', p.html, { 'retry-after': String(retryAfter) });
+    return;
+  }
+
+  const rawUrl = parsed.searchParams.get('url') ?? '';
+  const normalized = normalizeInput(rawUrl);
+  if (normalized === '') {
+    const p = errorPage('Missing URL', 'Please provide a URL to audit.');
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+
+  let url;
+  try {
+    url = await assertPublicUrl(normalized);
+  } catch (err) {
+    if (err instanceof BlockedUrlError) {
+      const p = errorPage('URL not allowed', err.message);
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+      return;
+    }
+    throw err;
+  }
+
+  // Create the job but DO NOT run the audit yet — execution is lazy, kicked off
+  // by /audit/stream or /audit/result (whichever the client hits first).
+  const job = jobs.create({ url: url.href, lang });
+  const nonce = crypto.randomBytes(16).toString('base64');
+  const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+    + `script-src 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; `
+    + "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+  send(res, 200, 'text/html; charset=utf-8', progressPage(job.id, lang, nonce), { 'content-security-policy': csp });
 }
 
 // Normalize what the user typed: allow a bare "example.com" (default https).
@@ -362,7 +464,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (pathname === '/audit') {
-    handleAudit(req, res, false).catch((err) => {
+    handleAuditStart(req, res).catch((err) => {
       console.error('unhandled /audit error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
@@ -381,10 +483,10 @@ const server = http.createServer((req, res) => {
 
 // Periodically drop stale rate-limiter buckets and cache entries; unref so it
 // never blocks exit.
-setInterval(() => { rateLimiter.sweep(); cache.sweep(); }, RATE_WINDOW_MS).unref();
+setInterval(() => { rateLimiter.sweep(); cache.sweep(); jobs.prune(); }, RATE_WINDOW_MS).unref();
 
 server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server };
+export { server, jobs };
