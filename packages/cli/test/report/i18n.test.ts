@@ -1,0 +1,62 @@
+import { describe, it, expect } from 'vitest';
+import {
+  messages, MESSAGES, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N,
+} from '../../src/report/i18n.js';
+import type { Family } from '../../src/types.js';
+
+const FAMILIES: Family[] = [
+  'ai-access', 'llm-content', 'structured-data', 'technical-seo',
+  'on-page', 'performance', 'accessibility', 'security',
+];
+
+describe('report i18n catalog', () => {
+  it('exposes en and fr message sets', () => {
+    expect(Object.keys(MESSAGES).sort()).toEqual(['en', 'fr']);
+    expect(messages('en')).toBe(MESSAGES.en);
+    expect(messages('fr')).toBe(MESSAGES.fr);
+  });
+
+  it('localizes chrome strings', () => {
+    expect(messages('en').categorySubscores).toBe('Category subscores');
+    expect(messages('fr').categorySubscores).toBe('Sous-scores par catégorie');
+    expect(messages('en').actionPlan).toBe('Action plan');
+    expect(messages('fr').actionPlan).toBe("Plan d'action");
+    expect(messages('en').gradeLabel).toBe('Grade');
+    expect(messages('fr').gradeLabel).toBe('Note');
+  });
+
+  it('builds parameterized strings per language', () => {
+    expect(messages('en').stats(1, 2, 3)).toBe('1 passed · 2 to fix · 3 pages');
+    expect(messages('fr').stats(1, 2, 3)).toBe('1 réussis · 2 à corriger · 3 pages');
+    expect(messages('en').verdict('C', 2)).toMatch(/priority/);
+    expect(messages('fr').verdict('C', 2)).toMatch(/priorité/);
+    expect(messages('en').verdict('A', 0)).toMatch(/Excellent/);
+    expect(messages('fr').verdict('A', 0)).toMatch(/Excellent/);
+    expect(messages('en').moreRecs(5)).toBe('+5 more — see the per-family detail below.');
+    expect(messages('fr').moreRecs(5)).toBe('+5 autre(s) — voir le détail par famille ci-dessous.');
+  });
+
+  it('localizes CWV labels', () => {
+    expect(messages('en').cwvBucket.ni).toBe('needs improvement');
+    expect(messages('fr').cwvBucket.ni).toBe('à améliorer');
+    expect(messages('en').cwvAssess.slow).toBe('FAILED');
+    expect(messages('fr').cwvAssess.slow).toBe('ÉCHEC');
+    expect(messages('en').cwvSrcField).toBe('CrUX field');
+    expect(messages('fr').cwvSrcField).toBe('CrUX terrain');
+  });
+
+  it('has a label + short label for every family in both languages', () => {
+    for (const lang of ['en', 'fr'] as const) {
+      for (const f of FAMILIES) {
+        expect(typeof FAMILY_LABELS_I18N[lang][f]).toBe('string');
+        expect(FAMILY_LABELS_I18N[lang][f].length).toBeGreaterThan(0);
+        expect(typeof FAMILY_SHORT_I18N[lang][f]).toBe('string');
+        expect(FAMILY_SHORT_I18N[lang][f].length).toBeGreaterThan(0);
+      }
+    }
+    expect(FAMILY_LABELS_I18N.en['ai-access']).toBe('AI crawler access');
+    expect(FAMILY_LABELS_I18N.fr['ai-access']).toBe('Accès crawler IA');
+    expect(FAMILY_SHORT_I18N.en.security).toBe('Security');
+    expect(FAMILY_SHORT_I18N.fr.security).toBe('Sécurité');
+  });
+});
