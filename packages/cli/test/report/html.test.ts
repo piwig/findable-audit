@@ -89,7 +89,7 @@ describe('renderHtml', () => {
   });
   it('shows a verdict line and a stats line in the hero', () => {
     // report has grade C and 1 failing check (llms-txt)
-    expect(html).toMatch(/priorité/i);            // verdict text for grade C
+    expect(html).toMatch(/priority/i);            // verdict text for grade C
     expect(html).toContain('class="hero"');
     expect(html).toMatch(/2 à corriger/);          // 1 fail + 1 warn ('evil') => 2
   });

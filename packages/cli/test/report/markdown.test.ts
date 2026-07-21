@@ -77,7 +77,7 @@ describe('renderMarkdown', () => {
   });
 
   it('shows a verdict line under the score', () => {
-    expect(md).toMatch(/priorité|Excellent|Bonne base|Fragile|Fondations/i);
+    expect(md).toMatch(/priority|Decent|Excellent|Solid|Fragile|Foundations/i);
   });
 
   it('renders a Core Web Vitals table when psi is present', () => {
