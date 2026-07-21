@@ -383,3 +383,22 @@ Ajoutées en cours d'exécution ; **n'affectent pas la Phase 1** (renderers CLI)
 - **Web** : ajouter un 3ᵉ bouton **⬇ JSON** sur la page de résultats, et étendre la route d'export à `format=md|html|json` → `renderJson(report)` avec `Content-Type: application/json` + `Content-Disposition: attachment; filename="<host>-<date>.json"`. (`renderJson` existe déjà.)
 - **CLI** : étendre le dispatch par extension de `--report` (`index.ts` : aujourd'hui `.html?`→`renderHtml`, sinon `renderMarkdown`) pour gérer **`.json`→`renderJson`**. Petit ajout non cassant.
 - Tests : route export json (content-type + disposition) ; dispatch CLI `--report out.json` écrit du JSON valide (`JSON.parse` ok).
+
+### 7.3 Multilingue FR + EN (site + chrome du rapport)
+Exigence utilisateur (2026-07-21) : le site doit charger plusieurs langues, **FR et EN au minimum**.
+
+**Décisions validées :**
+- **Mécanisme** : **préfixe d'URL `/fr` et `/en`** + balises **hreflang** réciproques + attribut `lang` correct par page. Meilleure pratique SEO/GEO (l'outil audite précisément ça). `/` redirige vers la langue détectée (Accept-Language) ou `/en` par défaut.
+- **Périmètre traduit** : **chrome UI uniquement** pour l'instant — landing, écran « test en cours », pages d'erreur, et **chrome du rapport** (verdict, ligne de stats, en-têtes de familles, « Category subscores », dashboard CWV labels bon/à améliorer/mauvais + PASSED/À AMÉLIORER/ÉCHEC + « non mesuré », « Plan d'action » + groupes, badge « En savoir plus », en-têtes de tables Markdown, « Recommended fixes »). Les **107 messages + fix des checks restent en anglais** (chantier de contenu séparé, différé).
+
+**Impact rétroactif Phase 1** : les libellés français que j'ai codés en dur dans les renderers (Phase 1) deviennent des **clés d'un catalogue i18n**. `renderHtml`/`renderMarkdown` (et les helpers `cwv.ts`, `verdict.ts`, `recommendations` rendering, `FAMILY_LABELS`/`FAMILY_SHORT`) prennent un paramètre **`lang: 'en' | 'fr'` (défaut `'en'`)**. CLI : défaut EN (+ éventuel flag `--lang fr`). Web : `lang` dérivé du préfixe d'URL.
+
+## 8. Découpage de la Phase 2 (sous-phases, un plan chacun)
+
+La Phase 2 couvre plusieurs sous-systèmes → un plan/livrable par sous-phase (chacun testable seul) :
+
+- **2A — Socle i18n + chrome du rapport bilingue** (`packages/cli`). Catalogue de messages `Lang='en'|'fr'` (nouveau module, ex. `report/i18n.ts`), paramètre `lang` sur les renderers, `FAMILY_LABELS`/`FAMILY_SHORT` par langue, verdict/CWV/plan d'action i18n. **Livrable seul** : la CLI émet des rapports FR ou EN. **Fondation** de 2B/2C. Nettoie au passage le « lang=en + chrome FR » de Phase 1 (+ CSS mort `.badges`/`.score`).
+- **2B — Cœur web async : « test en cours » SSE + export + CWV** (`apps/web` + `runner.onProgress`). Store de jobs, routes `/audit` (page d'attente) / `/audit/stream` (SSE) / `/audit/result` / `/audit/export?format=md|html|json`, CSP nonce sur la page d'attente + repli noscript, activation CWV via `PSI_KEY`, budget audit ~90s. Dispatch CLI `--report *.json`. Consomme le `lang` de 2A pour rendre le rapport dans la bonne langue.
+- **2C — i18n routing web (`/fr` `/en` + hreflang) + refonte landing** (`apps/web`). Routage préfixé, hreflang, sélecteur de langue ; **refonte de la landing façon pb-ot.fr** (cf. §7.1) — **nécessite une passe de design (maquettes compagnon visuel) + validation AVANT plan détaillé**. Pages d'attente/erreur/résultats bilingues.
+
+Ordre recommandé : **2A → 2B → 2C** (2C en dernier car la landing demande un design validé ; 2A d'abord car 2B/2C rendent des rapports qui doivent être traduisibles).
