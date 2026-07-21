@@ -87,7 +87,11 @@ describe('renderMarkdown', () => {
   });
 
   it('adds doc links to the recommended fixes', () => {
-    // a fail/warn check with docUrl should render a markdown link
-    expect(md).toMatch(/\[.*?\]\(https?:\/\/[^)]+\)/);
+    const fixes = md.slice(md.indexOf('## Recommended fixes'));
+    expect(fixes).toMatch(/\[doc\]\(https?:\/\/[^)]+\)/);
+  });
+
+  it('omits the Core Web Vitals section when psi is absent', () => {
+    expect(md).not.toContain('## Core Web Vitals');
   });
 });
