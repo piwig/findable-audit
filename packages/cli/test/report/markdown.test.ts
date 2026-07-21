@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderMarkdown } from '../../src/report/markdown.js';
+import { parsePsi } from '../../src/perf/psi.js';
 import type { AuditReport } from '../../src/runner.js';
 import type { CheckResult } from '../../src/types.js';
 import type { FamilyScore } from '../../src/scoring.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const sample = JSON.parse(readFileSync(path.join(here, '..', 'fixtures', 'psi-sample.json'), 'utf8'));
 
 const r = (over: Partial<CheckResult>): CheckResult => ({
   id: 'x', family: 'ai-access', status: 'pass', points: 4, maxPoints: 4, message: 'ok', ...over,
@@ -21,7 +28,7 @@ const report: AuditReport = {
   sampledPages: ['/'],
   results: [
     r({ id: 'robots-exists', message: 'robots.txt found' }),
-    r({ id: 'ai-crawlers-allowed', status: 'fail', points: 0, maxPoints: 12, message: 'AI crawlers blocked: GPTBot', fix: 'Remove the Disallow rules.' }),
+    r({ id: 'ai-crawlers-allowed', status: 'fail', points: 0, maxPoints: 12, message: 'AI crawlers blocked: GPTBot', fix: 'Remove the Disallow rules.', docUrl: 'https://example.com/docs/ai-crawlers' }),
     r({ id: 'meta-description', family: 'on-page', status: 'warn', points: 2, message: 'description | too short', fix: 'Write 150 chars.' }),
     r({ id: 'sitemap-ok', family: 'on-page', status: 'skip', points: 0, message: 'skipped' }),
   ],
@@ -67,5 +74,20 @@ describe('renderMarkdown', () => {
   it('omits the fixes section when everything passes', () => {
     const clean = renderMarkdown({ ...report, results: [r({})] });
     expect(clean).not.toContain('## Recommended fixes');
+  });
+
+  it('shows a verdict line under the score', () => {
+    expect(md).toMatch(/priorité|Excellent|Bonne base|Fragile|Fondations/i);
+  });
+
+  it('renders a Core Web Vitals table when psi is present', () => {
+    const withPsi = renderMarkdown({ ...report, psi: parsePsi(sample, 'mobile') });
+    expect(withPsi).toContain('## Core Web Vitals');
+    expect(withPsi).toMatch(/\| LCP \|/);
+  });
+
+  it('adds doc links to the recommended fixes', () => {
+    // a fail/warn check with docUrl should render a markdown link
+    expect(md).toMatch(/\[.*?\]\(https?:\/\/[^)]+\)/);
   });
 });

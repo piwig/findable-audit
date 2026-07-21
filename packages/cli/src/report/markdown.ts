@@ -1,6 +1,9 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { FAMILY_LABELS } from './terminal.js';
+import { verdictOf } from './verdict.js';
+import { renderCwvMarkdown } from './cwv.js';
+import { collectRecommendations } from './recommendations.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
   pass: '✅', warn: '⚠️', fail: '❌', skip: '⏭️',
@@ -12,10 +15,13 @@ function cell(text: string): string {
 }
 
 export function renderMarkdown(report: AuditReport, now: Date = new Date()): string {
+  const failCount = report.results.filter((r) => r.status === 'fail').length;
   const lines: string[] = [
     `# findable-audit — ${report.url}`,
     '',
     `**Score: ${report.score}/100** · **Grade ${report.grade}** — ${now.toISOString().slice(0, 10)}`,
+    '',
+    `> ${verdictOf(report.grade, failCount)}`,
     '',
   ];
 
@@ -28,6 +34,10 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date()): str
       lines.push(`| ${cell(FAMILY_LABELS[fs.family])} | ${fs.score}/100 | ${weightPct}% | ${fs.earned}/${fs.max} |`);
     }
     lines.push('');
+  }
+
+  if (report.psi) {
+    lines.push(renderCwvMarkdown(report.psi), '');
   }
 
   for (const family of Object.keys(FAMILY_LABELS) as Family[]) {
@@ -44,13 +54,12 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date()): str
     lines.push('');
   }
 
-  const fixes = report.results.filter((r) => r.fix && (r.status === 'fail' || r.status === 'warn'));
-  if (fixes.length > 0) {
+  const recs = collectRecommendations(report.results);
+  if (recs.length > 0) {
     lines.push('## Recommended fixes', '');
-    // Fails first (biggest wins), then warns.
-    fixes.sort((a, b) => (a.status === b.status ? b.maxPoints - a.maxPoints : a.status === 'fail' ? -1 : 1));
-    for (const r of fixes) {
-      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** — ${r.fix}`);
+    for (const r of recs) {
+      const link = r.docUrl ? ` — [doc](${r.docUrl})` : '';
+      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} pts) — ${r.fix}${link}`);
     }
     lines.push('');
   }
