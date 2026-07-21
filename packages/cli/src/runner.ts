@@ -4,6 +4,7 @@ import type { Check, CheckResult } from './types.js';
 import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
+import { fetchPsi } from './perf/psi.js';
 
 export class UnreachableSiteError extends Error {}
 
@@ -35,6 +36,16 @@ export interface AuditOptions {
   blockPrivateHosts?: boolean;
   /** Abort in-flight fetches (e.g. when the caller's hard timeout fires). */
   signal?: AbortSignal;
+  /**
+   * Opt into the single (slow) PageSpeed Insights call that powers the Core Web
+   * Vitals checks. Without it, `ctx.psi` stays undefined and every CWV/lab check
+   * skips. Static performance heuristics always run regardless.
+   */
+  cwv?: boolean;
+  /** Google PSI/CrUX API key. Recommended: the keyless endpoint is 429-rate-limited. */
+  psiKey?: string;
+  /** PSI strategy (default 'mobile'). */
+  psiStrategy?: 'mobile' | 'desktop';
 }
 
 export async function runAudit(url: string, checks: Check[], opts: AuditOptions = {}): Promise<AuditReport> {
@@ -45,6 +56,15 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   const home = await crawler.fetch('/');
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
+  // Core Web Vitals: at most ONE PageSpeed Insights call for the whole run, made
+  // only on opt-in. The 8 CWV/lab checks read the cached result from ctx.psi.
+  if (opts.cwv) {
+    crawler.psi = await fetchPsi(crawler.baseUrl.toString(), {
+      key: opts.psiKey,
+      strategy: opts.psiStrategy ?? 'mobile',
+      signal: opts.signal,
+    });
+  }
   const results: CheckResult[] = [];
   for (const check of checks) {
     try {

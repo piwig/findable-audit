@@ -37,6 +37,9 @@ import {
   htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
   resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
 } from './performance.js';
+import {
+  lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,
+} from './performance-cwv.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -60,5 +63,6 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
     htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
     resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
+    lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,
   ];
 }

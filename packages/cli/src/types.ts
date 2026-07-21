@@ -1,3 +1,5 @@
+import type { PsiResult } from './perf/psi.js';
+
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip';
 export type Family =
   | 'ai-access'
@@ -81,6 +83,14 @@ export interface CrawlContext {
   fetchChain?(path: string, opts?: { maxHops?: number }): Promise<FetchChainResult | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
+  /**
+   * Core Web Vitals data from the single PageSpeed Insights call. Set by the
+   * runner only when `--cwv` is given:
+   *   undefined → not requested (all CWV/lab checks skip with an opt-in hint)
+   *   null      → PSI call attempted but failed (e.g. keyless rate-limit → skip)
+   *   PsiResult → grade against the thresholds.
+   */
+  psi?: PsiResult | null;
 }
 
 export interface Check {

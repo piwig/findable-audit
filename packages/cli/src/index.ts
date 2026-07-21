@@ -9,7 +9,7 @@ import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 
-const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html>] [--no-report] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>]
+const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html>] [--no-report] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
@@ -18,6 +18,9 @@ By default, two report files are written to the current directory: <host>-<date>
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
   by extension: .html/.htm -> HTML, anything else -> Markdown.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
+--cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
+--psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
+--psi-strategy selects the PSI form factor (default mobile).
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
 /** Default report basename written when neither --report nor --no-report is given. */
@@ -38,6 +41,9 @@ const parseCliArgs = () =>
       'max-pages': { type: 'string', default: '10' },
       'user-agent': { type: 'string' },
       'indexnow-key': { type: 'string' },
+      cwv: { type: 'boolean', default: false },
+      'psi-key': { type: 'string' },
+      'psi-strategy': { type: 'string', default: 'mobile' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -90,6 +96,12 @@ if (userAgent !== undefined && userAgent.trim() === '') {
   process.exit(2);
 }
 
+const psiStrategy = values['psi-strategy'];
+if (psiStrategy !== 'mobile' && psiStrategy !== 'desktop') {
+  console.error(`findable-audit: invalid --psi-strategy value "${psiStrategy}" (expected "mobile" or "desktop")\n\n${USAGE}`);
+  process.exit(2);
+}
+
 const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
 if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) {
   console.error(`findable-audit: invalid URL "${url}"\n\n${USAGE}`);
@@ -98,7 +110,8 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
 
 try {
   const report = await runAudit(targetUrl,
-    buildChecks({ indexnowKey: values['indexnow-key'] }), { timeoutMs, maxPages, userAgent });
+    buildChecks({ indexnowKey: values['indexnow-key'] }),
+    { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey: values['psi-key'], psiStrategy });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed

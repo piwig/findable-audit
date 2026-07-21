@@ -4,6 +4,7 @@ import net from 'node:net';
 import dns from 'node:dns';
 import zlib from 'node:zlib';
 import type { CrawlContext, FetchedResource, PageSample, FetchChainResult, FetchHop } from './types.js';
+import type { PsiResult } from './perf/psi.js';
 import { isBlockedAddress } from './ssrf.js';
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -111,6 +112,8 @@ export class Crawler implements CrawlContext {
   baseUrl: URL;
   /** Sampled pages, attached by the runner after the homepage fetch. */
   sample?: PageSample;
+  /** Core Web Vitals data, attached by the runner when `--cwv` is set. */
+  psi?: PsiResult | null;
   private cache = new Map<string, FetchedResource | null>();
   private originResolved = false;
 

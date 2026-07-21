@@ -1,0 +1,100 @@
+{
+  "captchaResult": "CAPTCHA_NOT_NEEDED",
+  "id": "https://example.com/",
+  "loadingExperience": {
+    "id": "https://example.com/",
+    "metrics": {
+      "LARGEST_CONTENTFUL_PAINT_MS": {
+        "percentile": 1800,
+        "distributions": [
+          { "min": 0, "max": 2500, "proportion": 0.85 },
+          { "min": 2500, "max": 4000, "proportion": 0.1 },
+          { "min": 4000, "proportion": 0.05 }
+        ],
+        "category": "FAST"
+      },
+      "CUMULATIVE_LAYOUT_SHIFT_SCORE": {
+        "percentile": 5,
+        "distributions": [
+          { "min": 0, "max": 10, "proportion": 0.9 },
+          { "min": 10, "max": 25, "proportion": 0.07 },
+          { "min": 25, "proportion": 0.03 }
+        ],
+        "category": "FAST"
+      },
+      "INTERACTION_TO_NEXT_PAINT": {
+        "percentile": 150,
+        "distributions": [
+          { "min": 0, "max": 200, "proportion": 0.88 },
+          { "min": 200, "max": 500, "proportion": 0.09 },
+          { "min": 500, "proportion": 0.03 }
+        ],
+        "category": "FAST"
+      },
+      "EXPERIMENTAL_TIME_TO_FIRST_BYTE": {
+        "percentile": 400,
+        "distributions": [
+          { "min": 0, "max": 800, "proportion": 0.9 },
+          { "min": 800, "max": 1800, "proportion": 0.08 },
+          { "min": 1800, "proportion": 0.02 }
+        ],
+        "category": "FAST"
+      }
+    },
+    "overall_category": "FAST",
+    "initial_url": "https://example.com/"
+  },
+  "originLoadingExperience": {
+    "id": "https://example.com",
+    "metrics": {
+      "LARGEST_CONTENTFUL_PAINT_MS": { "percentile": 3200, "category": "AVERAGE" }
+    },
+    "overall_category": "AVERAGE",
+    "initial_url": "https://example.com/"
+  },
+  "lighthouseResult": {
+    "requestedUrl": "https://example.com/",
+    "finalUrl": "https://example.com/",
+    "categories": {
+      "performance": {
+        "id": "performance",
+        "title": "Performance",
+        "score": 0.98
+      }
+    },
+    "audits": {
+      "largest-contentful-paint": {
+        "id": "largest-contentful-paint",
+        "title": "Largest Contentful Paint",
+        "numericValue": 1900.42,
+        "numericUnit": "millisecond",
+        "displayValue": "1.9 s"
+      },
+      "first-contentful-paint": {
+        "id": "first-contentful-paint",
+        "numericValue": 1200.5,
+        "numericUnit": "millisecond",
+        "displayValue": "1.2 s"
+      },
+      "total-blocking-time": {
+        "id": "total-blocking-time",
+        "numericValue": 80,
+        "numericUnit": "millisecond",
+        "displayValue": "80 ms"
+      },
+      "server-response-time": {
+        "id": "server-response-time",
+        "numericValue": 300,
+        "numericUnit": "millisecond",
+        "displayValue": "Root document took 300 ms"
+      },
+      "speed-index": {
+        "id": "speed-index",
+        "numericValue": 2000,
+        "numericUnit": "millisecond",
+        "displayValue": "2.0 s"
+      }
+    }
+  },
+  "analysisUTCTimestamp": "2026-07-20T12:00:00.000Z"
+}
