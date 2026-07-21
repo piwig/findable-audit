@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Superpowers visual-companion runtime (brainstorm mockups); docs/superpowers/ stays tracked
+/.superpowers/
