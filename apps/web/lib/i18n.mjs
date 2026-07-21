@@ -15,7 +15,9 @@
 //
 // Shape: Record<Lang, {
 //   progress: { title, heading, lead, phases:{connect,sample,checks,cwv,score}, done, failed, noscript, retry },
-//   error:    { rateLimited, busy, timeout, unreachable, notFound },   // each {title,message}
+//   error:    { rateLimited, busy, timeout, unreachable, notFound, missingUrl, internal },  // each {title,message}
+//             { urlNotAllowed },  // {title} only — the message is the SSRF layer's own technical BlockedUrlError.message, left untranslated
+//             { back },           // plain string — generic error-page back-link label
 //   landing:  { title, h1, lead, feature1, feature2, feature3, urlLabel, cta, hint },
 //   selector: { ariaLabel, en, fr },
 // }>
@@ -44,6 +46,10 @@ export const WEB_MESSAGES = {
       timeout: { title: 'Audit timed out', message: 'The audit took too long and was stopped. The target site may be slow or unresponsive.' },
       unreachable: { title: 'Site unreachable', message: 'Could not reach that site — it may be down or blocking automated requests.' },
       notFound: { title: 'Not found', message: 'No such page.' },
+      missingUrl: { title: 'Missing URL', message: 'Please provide a URL to audit.' },
+      urlNotAllowed: { title: 'URL not allowed' },
+      internal: { title: 'Something went wrong', message: 'Something went wrong while auditing that site.' },
+      back: 'Audit another site',
     },
     landing: {
       title: 'findable-audit — SEO & GEO audit',
@@ -85,6 +91,10 @@ export const WEB_MESSAGES = {
       timeout: { title: "L'audit a expiré", message: "L'audit a pris trop de temps et a été arrêté. Le site cible est peut-être lent ou ne répond pas." },
       unreachable: { title: 'Site injoignable', message: "Impossible de joindre ce site — il est peut-être hors ligne ou bloque les requêtes automatisées." },
       notFound: { title: 'Introuvable', message: "Cette page n'existe pas." },
+      missingUrl: { title: 'URL manquante', message: 'Veuillez indiquer une URL à auditer.' },
+      urlNotAllowed: { title: 'URL non autorisée' },
+      internal: { title: 'Une erreur est survenue', message: "Une erreur est survenue lors de l'audit de ce site." },
+      back: 'Auditer un autre site',
     },
     landing: {
       title: 'findable-audit — audit SEO & GEO',

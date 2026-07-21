@@ -155,28 +155,29 @@ function landingPage(lang = 'en') {
 `, { lang, alternates: { en: '/en/', fr: '/fr/' } });
 }
 
-function errorPage(title, message, { status = 400 } = {}) {
+function errorPage(title, message, { status = 400, lang = 'en' } = {}) {
+  const back = escapeHtml(t(lang).error.back);
   const body = `
 <div class="err">
 <h1>${escapeHtml(title)}</h1>
 <p>${escapeHtml(message)}</p>
 </div>
-<p><a href="/">&larr; Audit another site</a></p>
+<p><a href="/">&larr; ${back}</a></p>
 `;
   return { status, html: shell(title, body) };
 }
 
-// Localized 404 for the generic catch-all route. Kept separate from the
-// pre-existing errorPage() (which sub-phase 2B also extends for job-lifecycle
-// errors) to avoid two independently-authored sub-phases racing to redefine
-// the same function signature.
+// Localized 404 (and other job-lifecycle) error page: links back to the
+// lang-prefixed landing page rather than the "/" root redirect that
+// errorPage() uses.
 function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
+  const back = escapeHtml(t(lang).error.back);
   const body = `
 <div class="err">
 <h1>${escapeHtml(title)}</h1>
 <p>${escapeHtml(message)}</p>
 </div>
-<p><a href="/${lang}/">&larr; ${lang === 'fr' ? 'Retour' : 'Back'}</a></p>
+<p><a href="/${lang}/">&larr; ${back}</a></p>
 `;
   return { status, html: shell(title, body, { lang }) };
 }
@@ -278,7 +279,7 @@ function classifyError(err, lang) {
   if (err instanceof UnreachableSiteError) return { code: 'unreachable', message: e.unreachable.message };
   if (err && err.code === 'BUSY') return { code: 'busy', message: e.busy.message };
   console.error('audit error:', err);
-  return { code: 'internal', message: 'Something went wrong while auditing that site.' };
+  return { code: 'internal', message: e.internal.message };
 }
 
 async function executeAudit(job) {
@@ -319,7 +320,14 @@ async function executeAudit(job) {
 function ensureStarted(job) {
   if (job.status !== 'running') return Promise.resolve();
   let pr = running.get(job.id);
-  if (!pr) { pr = executeAudit(job); running.set(job.id, pr); }
+  if (!pr) {
+    // Bound the map: drop the entry once the audit settles so `running` cannot
+    // grow unbounded on a long-running server. Safe because this function
+    // short-circuits above on any non-'running' (i.e. terminal) job status, so
+    // a deleted entry is never wrongly re-executed for a terminal job.
+    pr = executeAudit(job).finally(() => running.delete(job.id));
+    running.set(job.id, pr);
+  }
   return pr;
 }
 
@@ -391,7 +399,14 @@ async function handleExport(req, res, job, format) {
 async function handleResult(req, res, job) {
   await ensureStarted(job); // starts + awaits (idempotent); no-op if already terminal.
   const j = jobs.get(job.id);
-  if (!j) { const p = errorPage('Not found', 'No such page.', { status: 404 }); send(res, p.status, 'text/html; charset=utf-8', p.html); return; }
+  if (!j) {
+    // Rare race: the job existed at dispatch time but is gone now (pruned).
+    // Fall back to the lang the caller already resolved for this job.
+    const nf = t(job.lang ?? 'en').error.notFound;
+    const p = localizedErrorPage(job.lang ?? 'en', nf.title, nf.message, { status: 404 });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
 
   if (j.status === 'done' && j.html) {
     send(res, 200, 'text/html; charset=utf-8', withResultChrome(j.html, j.id, j.lang));
@@ -399,11 +414,11 @@ async function handleResult(req, res, job) {
   }
   // Error (or the rare not-yet-terminal race): render a localized error page.
   const code = j.error?.code ?? 'internal';
-  const cat = t(j.lang).error[code];
-  const title = cat && cat.title ? cat.title : 'Audit failed';
-  const message = j.error?.message ?? (cat && cat.message) ?? 'Something went wrong while auditing that site.';
+  const cat = t(j.lang).error[code] ?? t(j.lang).error.internal;
+  const title = cat.title;
+  const message = j.error?.message ?? cat.message;
   const status = statusForError(code);
-  const p = errorPage(title, message, { status });
+  const p = localizedErrorPage(j.lang, title, message, { status });
   send(res, p.status, 'text/html; charset=utf-8', p.html);
 }
 
@@ -483,7 +498,7 @@ async function handleAuditStart(req, res) {
   if (!rl.allowed) {
     const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
     const e = t(lang).error.rateLimited;
-    const p = errorPage(e.title, `${e.message} (~${retryAfter}s)`, { status: 429 });
+    const p = errorPage(e.title, `${e.message} (~${retryAfter}s)`, { status: 429, lang });
     send(res, p.status, 'text/html; charset=utf-8', p.html, { 'retry-after': String(retryAfter) });
     return;
   }
@@ -491,7 +506,8 @@ async function handleAuditStart(req, res) {
   const rawUrl = parsed.searchParams.get('url') ?? '';
   const normalized = normalizeInput(rawUrl);
   if (normalized === '') {
-    const p = errorPage('Missing URL', 'Please provide a URL to audit.');
+    const e = t(lang).error.missingUrl;
+    const p = errorPage(e.title, e.message, { lang });
     send(res, p.status, 'text/html; charset=utf-8', p.html);
     return;
   }
@@ -501,7 +517,10 @@ async function handleAuditStart(req, res) {
     url = await assertPublicUrl(normalized);
   } catch (err) {
     if (err instanceof BlockedUrlError) {
-      const p = errorPage('URL not allowed', err.message);
+      // Only the title is localized — err.message is the SSRF layer's own
+      // technical message and is kept as-is.
+      const title = t(lang).error.urlNotAllowed.title;
+      const p = errorPage(title, err.message, { lang });
       send(res, p.status, 'text/html; charset=utf-8', p.html);
       return;
     }
@@ -663,10 +682,6 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/healthz') {
     send(res, 200, 'text/plain; charset=utf-8', 'ok');
-    return;
-  }
-  if (pathname === '/') {
-    send(res, 200, 'text/html; charset=utf-8', landingPage());
     return;
   }
   if (pathname === '/audit') {
