@@ -90,10 +90,26 @@ export function renderCwvHtml(psi: PsiResult, lang: Lang = 'en'): string {
       ? `<p class="cwv-allgood">${t.cwvAllGood}</p>`
       : '';
 
+  // KPI table (#2b): the measured value beside its good/poor thresholds, so the
+  // reader sees not just where each metric lands but the target it must hit.
+  const h = t.cwvKpiHeader;
+  const kpiRows = METRICS.map((m) => {
+    const fm = psi.field[m.key];
+    if (!fm) return '';
+    const b = bucketOf(fm.p75, m.t);
+    return `<tr><td>${m.name}</td><td class="cwv-kpi-val">${m.fmt(fm.p75)}</td>`
+      + `<td class="cwv-kpi-rating ${CSSCLASS[b]}">${t.cwvBucket[b]}</td>`
+      + `<td>&le; ${m.fmt(m.t.good)}</td><td>&gt; ${m.fmt(m.t.poor)}</td></tr>`;
+  }).filter(Boolean).join('');
+  const kpiTable = kpiRows
+    ? `<div class="cwv-kpi-wrap"><table class="cwv-kpi"><thead><tr><th>${h.metric}</th><th>${h.value}</th><th>${h.rating}</th><th>${h.good}</th><th>${h.poor}</th></tr></thead><tbody>${kpiRows}</tbody></table></div>`
+    : '';
+
   return `<section class="cwv">
 <h2>${t.cwvTitle}</h2>
 <p class="cwv-assess-line"><span class="cwv-assess ${a.cls}">${t.cwvAssess[a.key]}</span> <span class="cwv-src">${src} · ${psi.strategy}</span></p>
 <div class="cwv-grid">${gauges}</div>
+${kpiTable}
 ${labLine}
 <div class="cwv-info">
 <p class="cwv-intro">${t.cwvIntro}</p>

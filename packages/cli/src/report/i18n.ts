@@ -7,8 +7,9 @@ export type Lang = 'en' | 'fr';
 type CwvBucketKey = 'good' | 'ni' | 'poor';
 type CwvAssessKey = 'passed' | 'average' | 'slow' | 'inconclusive';
 type CwvMetricKey = 'lcp' | 'inp' | 'cls' | 'ttfb';
+type EffortKey = 'quick' | 'moderate' | 'involved';
 
-/** Every report-chrome label. The 107 checks' own message/fix text is NOT here. */
+/** Every report-chrome label. The 108 checks' own message/fix text is NOT here. */
 export interface ReportMessages {
   // document chrome
   reportTitle: string;   // HTML <h1> + <title> prefix
@@ -55,6 +56,9 @@ export interface ReportMessages {
   cwvAdviceTitle: string;          // "How to improve"
   cwvAllGood: string;              // shown when every measured metric is "good"
   cwvMetricInfo: Record<CwvMetricKey, { label: string; what: string; advice: string }>;
+  cwvKpiHeader: { metric: string; value: string; rating: string; good: string; poor: string }; // KPI table (#2b)
+  // action-plan effort estimate (#18)
+  effortLabel: Record<EffortKey, string>;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -111,6 +115,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       cls: { label: 'CLS — Cumulative Layout Shift', what: 'visual stability (unexpected layout jumps)', advice: 'Set width/height on images and embeds, reserve space for ads/banners, and never inject content above existing content.' },
       ttfb: { label: 'TTFB — Time to First Byte', what: 'server response time (a diagnostic — not one of the three official Core Web Vitals)', advice: 'Speed up the backend, enable caching, use a CDN, and remove needless redirects.' },
     },
+    cwvKpiHeader: { metric: 'Metric', value: 'Value (p75)', rating: 'Rating', good: 'Good', poor: 'Poor' },
+    effortLabel: { quick: 'Quick win', moderate: 'Moderate', involved: 'Involved' },
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -165,6 +171,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       cls: { label: 'CLS — Cumulative Layout Shift', what: 'stabilité visuelle (sauts de mise en page)', advice: 'Fixez les dimensions des images/embeds, réservez l’espace des pubs/bannières et n’insérez jamais de contenu au-dessus de l’existant.' },
       ttfb: { label: 'TTFB — Time to First Byte', what: 'temps de réponse du serveur (un diagnostic — pas l’un des trois Core Web Vitals officiels)', advice: 'Accélérez le backend, activez le cache, utilisez un CDN et supprimez les redirections inutiles.' },
     },
+    cwvKpiHeader: { metric: 'Métrique', value: 'Valeur (p75)', rating: 'Évaluation', good: 'Bon', poor: 'Mauvais' },
+    effortLabel: { quick: 'Rapide', moderate: 'Modéré', involved: 'Conséquent' },
   },
 };
 

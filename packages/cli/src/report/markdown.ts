@@ -61,7 +61,7 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(`## ${m.mdRecommendedFixes}`, '');
     for (const r of recs) {
       const link = r.docUrl ? ` — [${m.mdDoc}](${r.docUrl})` : '';
-      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts}) — ${r.fix}${link}`);
+      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${r.fix}${link}`);
     }
     lines.push('');
   }

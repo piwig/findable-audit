@@ -1,6 +1,6 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **107 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **108 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -9,7 +9,7 @@ findable-audit scores a site out of 100 across **107 checks in 8 families**. Thi
 | AI crawler access | 0.16 | 8 |
 | Answer-engine content | 0.18 | 12 |
 | Structured data & metadata | 0.15 | 19 |
-| Technical SEO | 0.15 | 20 |
+| Technical SEO | 0.15 | 21 |
 | On-page & content | 0.12 | 11 |
 | Performance & Core Web Vitals | 0.10 | 19 |
 | Accessibility | 0.07 | 9 |
@@ -279,6 +279,11 @@ Crawlability and indexation hygiene.
 **Verifies:** Each sampled content page has ≥1 internal outlink, BFS click-depth from home ≤3, no sampled non-home page unreferenced (warn on isolated/deep pages).
 **Why:** Shallow, well-linked pages are crawled more fully and pass authority to one another.
 **Fix:** Add contextual internal links via hub pages; keep key pages ≤3 clicks from home.
+
+### `crawlable-nav` (4 pts)
+**Verifies:** Share of navigation anchors that need JavaScript to work — anchors with no `href`, `href="#"`, or `href="javascript:…"` — across the sampled pages. In-page `#section` fragments are ignored; a ratio guard passes the odd UI-toggle link (warn >20 %, fail >50 % JS-dependent).
+**Why:** Most AI answer-engine crawlers (GPTBot, ClaudeBot, PerplexityBot, CCBot) and Google's first crawl pass do not run JavaScript, so JS-only links are dead ends and the pages behind them go undiscovered.
+**Fix:** Use real `<a href="/path">` links for navigation so crawlers that don't execute JavaScript can reach every page.
 
 ### `broken-internal-links` (8 pts)
 **Verifies:** Up to 30 distinct same-origin `<a>` targets across the sample resolve below 400 (warn ≥80% ok; fail below). Cloudflare `/cdn-cgi/` endpoints are ignored.

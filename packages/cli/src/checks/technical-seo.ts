@@ -458,6 +458,47 @@ export const internalLinking: Check = {
   },
 };
 
+/**
+ * Navigation reachable WITHOUT JavaScript. Most AI answer-engine crawlers
+ * (GPTBot, ClaudeBot, PerplexityBot, CCBot) and Google's first crawl pass do
+ * not execute JS, so links that need JS to navigate — anchors with no href,
+ * href="#", or href="javascript:…" — are dead ends for them. A ratio guard
+ * keeps the odd UI-toggle `<a href="#">` from failing an otherwise-fine site;
+ * only pages whose navigation is largely JS-dependent are flagged.
+ */
+export const crawlableNav: Check = {
+  id: 'crawlable-nav', family: 'technical-seo', maxPoints: 4,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length === 0) return makeResult(this, 'skip', 'no pages sampled');
+    let crawlable = 0;
+    let jsOnly = 0;
+    for (const p of pages) {
+      for (const a of parsePage(p).querySelectorAll('a')) {
+        const raw = a.getAttribute('href');
+        if (raw == null) continue; // <a name>/<a id> target, not a link — needs no JS (null or undefined)
+        const href = raw.trim();
+        if (href.startsWith('#') && href !== '#') continue; // in-page anchor (#section): not navigation
+        if (href === '' || href === '#' || /^javascript:/i.test(href)) jsOnly++;
+        else crawlable++;
+      }
+    }
+    const navTotal = crawlable + jsOnly;
+    if (navTotal === 0) {
+      return makeResult(this, 'warn', 'no crawlable <a href> links found — navigation may be JS-only',
+        'Expose navigation as real <a href="/path"> links so crawlers that do not run JavaScript can reach every page.');
+    }
+    const ratio = jsOnly / navTotal;
+    if (ratio <= 0.2) {
+      return makeResult(this, 'pass', `${crawlable} crawlable link(s); navigation works without JavaScript`);
+    }
+    const status = ratio > 0.5 ? 'fail' : 'warn';
+    return makeResult(this, status,
+      `${jsOnly}/${navTotal} navigation links need JavaScript (href="#"/javascript:/no href) — non-JS crawlers (GPTBot, ClaudeBot) can't follow them`,
+      'Use real <a href="/path"> links for navigation so crawlers that do not run JavaScript (AI answer-engine bots, and Google\'s first pass) can reach every page.');
+  },
+};
+
 function safePath(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }
 }

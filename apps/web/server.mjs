@@ -123,6 +123,16 @@ const PAGE_STYLE = `
   .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
   .ld-step b { color: #1c2230; display: block; font-size: .92rem; }
   .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  /* Mobile: tighter top padding, and a full-width stacked form (input + CTA). */
+  @media (max-width: 560px) {
+    body { padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.5rem; }
+    p.lead { margin-bottom: 1.5rem; }
+    input[type=url], input[type=text] { flex-basis: 100%; }
+    button { width: 100%; }
+    .ld-h1 { max-width: none; }
+    .topbar { margin-bottom: 1.5rem; }
+  }
 `;
 
 // findable-audit logomark: "Aube verte" gradient tile + white magnifier
@@ -747,7 +757,10 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (pathname === '/favicon.svg') {
+  if (pathname === '/favicon.svg' || pathname === '/favicon.ico') {
+    // Serve the SVG for both: browsers request /favicon.ico by default when a
+    // page (e.g. the served report) declares no icon link — modern browsers
+    // accept an SVG payload regardless of the .ico extension.
     send(res, 200, 'image/svg+xml; charset=utf-8', FAVICON_SVG, { 'cache-control': 'public, max-age=86400' });
     return;
   }

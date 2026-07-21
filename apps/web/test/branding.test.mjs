@@ -27,6 +27,21 @@ test('GET /favicon.svg serves an inline SVG logomark', async () => {
   assert.match(res.headers.get('cache-control') ?? '', /max-age=86400/); // cached a day
 });
 
+test('GET /favicon.ico also serves the SVG (browsers request .ico by default)', async () => {
+  const res = await fetch(`${base}/favicon.ico`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type') ?? '', /image\/svg\+xml/);
+  const svg = await res.text();
+  assert.match(svg, /<linearGradient id="faGrad"/);
+});
+
+test('the site chrome is responsive (mobile media query: reduced padding + full-width CTA)', async () => {
+  const html = await (await fetch(`${base}/en/`)).text();
+  assert.match(html, /@media \(max-width: 560px\)/);
+  assert.match(html, /body \{ padding: 1\.5rem 1rem 3rem; \}/); // tighter top padding on phones
+  assert.match(html, /button \{ width: 100%; \}/);              // full-width stacked CTA
+});
+
 test('the landing head references the favicon and shows the inline brand logomark', async () => {
   const res = await fetch(`${base}/en/`);
   const html = await res.text();

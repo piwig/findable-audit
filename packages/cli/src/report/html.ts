@@ -97,6 +97,12 @@ const STYLE = `
   .cwv-explain li, .cwv-advice li { font-size: .85rem; color: #3a424c; margin: .18rem 0; }
   .cwv-advice { border-top: 1px solid #e6ede8; margin-top: .6rem; }
   .cwv-allgood { color: #1a7f37; font-size: .85rem; font-weight: 600; margin: .6rem 0 0; }
+  .cwv-kpi-wrap { overflow-x: auto; margin: .5rem 0 .25rem; }
+  .cwv-kpi { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 22rem; }
+  .cwv-kpi th { text-align: left; font-weight: 700; color: #6b7683; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid #dfe7e1; padding: .3rem .5rem; white-space: nowrap; }
+  .cwv-kpi td { padding: .35rem .5rem; border-bottom: 1px solid #eef2ef; color: #3a424c; white-space: nowrap; }
+  .cwv-kpi-val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cwv-kpi-rating.good { color: #1a7f37; font-weight: 700; } .cwv-kpi-rating.ok { color: #9a6700; font-weight: 700; } .cwv-kpi-rating.bad { color: #b42318; font-weight: 700; }
   .cwv-assess-line { margin: .25rem 0 .5rem; }
   .cwv-assess { display: inline-block; font-weight: 700; font-size: .78rem; padding: .15rem .55rem; border-radius: 6px; color: #fff; }
   .cwv-assess.good { background: #1a7f37; } .cwv-assess.ok { background: #9a6700; } .cwv-assess.bad { background: #b42318; }
@@ -123,6 +129,10 @@ const STYLE = `
   .ap-more { color: #1a7f37; font-size: .82rem; white-space: nowrap; }
   .ap-imp { font-size: .78rem; font-weight: 700; color: #1a7f37; background: #e7f4ec;
     padding: .1rem .45rem; border-radius: 20px; white-space: nowrap; flex: 0 0 auto; }
+  .ap-effort { font-size: .72rem; font-weight: 700; border-radius: 20px; padding: .1rem .45rem; white-space: nowrap; flex: 0 0 auto; }
+  .ap-effort.eff-quick { color: #1a7f37; background: #e7f4ec; }
+  .ap-effort.eff-moderate { color: #9a6700; background: #fbf1dd; }
+  .ap-effort.eff-involved { color: #555; background: #eef0f2; }
   .ap-more-note { color: #888; font-size: .82rem; margin: .5rem 0 0; }
   @media (max-width: 640px) {
     /* overflow-wrap inherits: breaks long space-less tokens (URLs in .meta, verdict,
@@ -218,6 +228,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date(), lang: La
         <span class="ap-sev ${r.status}"></span>
         <span class="chip">${escapeHtml(familyShort[r.family])}</span>
         <span class="ap-fix">${escapeHtml(r.fix)}${more}</span>
+        <span class="ap-effort eff-${r.effort}">${m.effortLabel[r.effort]}</span>
         <span class="ap-imp">+${r.impact} ${m.pts}</span>
       </div>`;
     }).join('\n');

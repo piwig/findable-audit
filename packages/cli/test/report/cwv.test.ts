@@ -91,6 +91,17 @@ describe('renderCwvHtml', () => {
     expect(fr).toContain('Comment améliorer');
     expect(fr).toMatch(/image principale/i);
   });
+  it('renders a KPI table with each measured metric beside its good/poor thresholds', () => {
+    expect(html).toContain('class="cwv-kpi"');
+    expect(html).toContain('&le; 2.5 s');  // LCP "good" threshold (2500 ms)
+    expect(html).toContain('&gt; 4.0 s');  // LCP "poor" threshold (4000 ms)
+    expect(html).toMatch(/<th>Metric<\/th>/); // English headers by default
+  });
+  it('localizes the KPI table headers in French', () => {
+    const fr = renderCwvHtml(psi, 'fr');
+    expect(fr).toMatch(/<th>Métrique<\/th>/);
+    expect(fr).toMatch(/<th>Évaluation<\/th>/);
+  });
 });
 
 describe('renderCwvMarkdown', () => {

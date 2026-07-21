@@ -1,6 +1,6 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **107 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **108 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -9,7 +9,7 @@ findable-audit note un site sur 100 à travers **107 checks répartis en 8 famil
 | Accès crawlers IA | 0,16 | 8 |
 | Contenu pour moteurs de réponse | 0,18 | 12 |
 | Données structurées et métadonnées | 0,15 | 19 |
-| SEO technique | 0,15 | 20 |
+| SEO technique | 0,15 | 21 |
 | On-page et contenu | 0,12 | 11 |
 | Performance et Core Web Vitals | 0,10 | 19 |
 | Accessibilité | 0,07 | 9 |
@@ -279,6 +279,11 @@ Hygiène de crawlabilité et d'indexation.
 **Vérifie :** Chaque page de contenu échantillonnée a ≥1 lien interne sortant, profondeur de clics BFS depuis l'accueil ≤3, aucune page non-accueil non référencée (avertissement sur pages isolées/profondes).
 **Pourquoi :** Des pages peu profondes et bien liées sont mieux crawlées et se transmettent de l'autorité.
 **Corriger :** Ajoutez des liens internes contextuels via des pages pivots ; gardez les pages clés à ≤3 clics.
+
+### `crawlable-nav` (4 pts)
+**Vérifie :** La part des ancres de navigation qui nécessitent JavaScript — ancres sans `href`, `href="#"` ou `href="javascript:…"` — sur les pages échantillonnées. Les fragments internes `#section` et les ancres-cibles sans `href` sont ignorés ; garde-fou par ratio (avertissement >20 %, échec >50 % de liens dépendant du JS).
+**Pourquoi :** La plupart des crawlers de moteurs de réponse IA (GPTBot, ClaudeBot, PerplexityBot, CCBot) et le premier passage de Google n'exécutent pas JavaScript : les liens en JS-only sont des impasses et les pages derrière restent introuvables.
+**Corriger :** Utilisez de vrais liens `<a href="/chemin">` pour la navigation, afin que les crawlers sans JavaScript atteignent chaque page.
 
 ### `broken-internal-links` (8 pts)
 **Vérifie :** Jusqu'à 30 cibles `<a>` distinctes de même origine sur l'échantillon résolvent en dessous de 400 (avertissement ≥80 % ok ; échec en dessous). Les points `/cdn-cgi/` de Cloudflare sont ignorés.

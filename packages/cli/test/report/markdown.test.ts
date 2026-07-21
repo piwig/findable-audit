@@ -109,7 +109,7 @@ describe('renderMarkdown in French', () => {
     expect(md).toContain('## On-page & contenu (2/4)');
     expect(md).toContain('## Corrections recommandées');
   });
-  it('keeps the 107-check messages/fixes in English', () => {
+  it('keeps the 108-check messages/fixes in English', () => {
     expect(md).toContain('AI crawlers blocked: GPTBot');
     expect(md).toContain('Remove the Disallow rules.');
   });

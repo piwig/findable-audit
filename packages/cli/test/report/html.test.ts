@@ -111,6 +111,10 @@ describe('renderHtml', () => {
     expect(html).toContain('class="hero"');
     expect(html).toMatch(/2 to fix/);          // 1 fail + 1 warn ('evil') => 2
   });
+  it('shows an effort estimate on each action-plan item', () => {
+    expect(html).toContain('class="ap-effort');
+    expect(html).toMatch(/Quick win|Moderate|Involved/); // llms-txt=Moderate, evil=Quick win
+  });
   it('renders a prioritized action plan with severity groups and impact', () => {
     expect(html).toContain('Action plan');
     expect(html).toMatch(/Fix first/);   // fails group (llms-txt)
@@ -163,7 +167,7 @@ describe('renderHtml in French', () => {
     expect(html).toContain('Pages auditées :');
     expect(html).toContain('En savoir plus →');
   });
-  it('keeps the 107-check messages/fixes in English', () => {
+  it('keeps the 108-check messages/fixes in English', () => {
     expect(html).toContain('llms.txt missing');
     expect(html).toContain('Add a /llms.txt file.');
   });

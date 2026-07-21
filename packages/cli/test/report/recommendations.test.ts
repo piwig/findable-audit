@@ -25,4 +25,9 @@ describe('collectRecommendations', () => {
     expect(recs[0].impact).toBe(6);
     expect(recs.find((r) => r.id === 'warn-sec')!.impact).toBe(2);
   });
+  it('assigns an effort estimate to each recommendation (family default here)', () => {
+    expect(recs.find((r) => r.id === 'fail-perf')!.effort).toBe('involved'); // performance
+    expect(recs.find((r) => r.id === 'fail-onpage')!.effort).toBe('quick');  // on-page
+    expect(recs.find((r) => r.id === 'warn-sec')!.effort).toBe('quick');     // security
+  });
 });

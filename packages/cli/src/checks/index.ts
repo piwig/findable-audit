@@ -21,7 +21,7 @@ import { metaRobotsNoindex, snippetPreviewDirectives, uniqueTitles, imagesAlt, s
 import { brokenInternalLinks, redirectHygiene, hreflang } from './links.js';
 import {
   canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
-  urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking,
+  urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
 } from './technical-seo.js';
 import {
   metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
@@ -57,7 +57,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,
     sdConsistency, napConsistency,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
-    urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking,
+    urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,

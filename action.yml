@@ -1,0 +1,65 @@
+name: 'findable-audit'
+description: 'Audit a URL for SEO + GEO (AI findability), Core Web Vitals, accessibility and security. Emits SARIF for code-scanning and can gate on a minimum score.'
+branding:
+  icon: 'search'
+  color: 'green'
+
+inputs:
+  url:
+    description: 'The public http(s) URL to audit.'
+    required: true
+  min-score:
+    description: 'Fail the job if the overall score is below this (0-100). Default 0 = never fail on score.'
+    required: false
+    default: '0'
+  max-pages:
+    description: 'Maximum number of same-origin pages to crawl.'
+    required: false
+    default: '5'
+  sarif-file:
+    description: 'Path (relative to the workspace) to write the SARIF report to.'
+    required: false
+    default: 'findable-audit.sarif'
+  args:
+    description: 'Extra CLI arguments, e.g. "--cwv --psi-key ${{ secrets.PSI_KEY }}".'
+    required: false
+    default: ''
+
+outputs:
+  score:
+    description: 'Overall score, 0-100.'
+    value: ${{ steps.audit.outputs.score }}
+  grade:
+    description: 'Letter grade, A-F.'
+    value: ${{ steps.audit.outputs.grade }}
+  sarif-file:
+    description: 'Path to the written SARIF report.'
+    value: ${{ inputs.sarif-file }}
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Build findable-audit
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH"
+        npm ci --workspaces --include-workspace-root
+        npm run build --workspace packages/cli
+    - name: Run audit
+      id: audit
+      shell: bash
+      run: |
+        set +e
+        node "$GITHUB_ACTION_PATH/packages/cli/dist/index.js" "${{ inputs.url }}" \
+          --json \
+          --report "$GITHUB_WORKSPACE/${{ inputs.sarif-file }}" \
+          --min-score "${{ inputs.min-score }}" \
+          --max-pages "${{ inputs.max-pages }}" \
+          ${{ inputs.args }} > "$RUNNER_TEMP/findable.json"
+        code=$?
+        node -e "const r=require('$RUNNER_TEMP/findable.json'); console.log('score='+r.score); console.log('grade='+r.grade)" >> "$GITHUB_OUTPUT" || true
+        node -e "const r=require('$RUNNER_TEMP/findable.json'); console.log('findable-audit: '+r.score+'/100 (grade '+r.grade+')')" || true
+        exit $code

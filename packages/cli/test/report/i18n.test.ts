@@ -45,6 +45,20 @@ describe('report i18n catalog', () => {
     expect(messages('fr').cwvSrcField).toBe('CrUX terrain');
   });
 
+  it('localizes the CWV KPI table headers', () => {
+    expect(messages('en').cwvKpiHeader.metric).toBe('Metric');
+    expect(messages('fr').cwvKpiHeader.metric).toBe('Métrique');
+    expect(messages('en').cwvKpiHeader.rating).not.toBe(messages('fr').cwvKpiHeader.rating);
+  });
+
+  it('localizes the action-plan effort labels', () => {
+    expect(messages('en').effortLabel.quick).toBe('Quick win');
+    expect(messages('en').effortLabel.involved).toBe('Involved');
+    expect(messages('fr').effortLabel.quick).toBe('Rapide');
+    expect(messages('fr').effortLabel.involved).toBe('Conséquent');
+    expect(messages('en').effortLabel).not.toEqual(messages('fr').effortLabel);
+  });
+
   it('provides a bilingual CWV explainer + per-metric advice', () => {
     for (const lang of ['en', 'fr'] as const) {
       const m = messages(lang);

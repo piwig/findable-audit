@@ -8,17 +8,18 @@ import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
+import { renderSarif } from './report/sarif.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html|file.json>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
+const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
 By default, two report files are written to the current directory: <host>-<date>.md and <host>-<date>.html
   (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
-  by extension: .html/.htm -> HTML, .json -> JSON, anything else -> Markdown.
---lang selects the report chrome language (en or fr; default en). The 107 checks stay in English.
+  by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), anything else -> Markdown.
+--lang selects the report chrome language (en or fr; default en). The 108 checks stay in English.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
 --cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
 --psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
@@ -147,7 +148,8 @@ try {
   let reportWriteFailed = false;
   for (const file of targets) {
     let body: string;
-    if (/\.json$/i.test(file)) body = renderJson(report);
+    if (/\.sarif$/i.test(file)) body = renderSarif(report);
+    else if (/\.json$/i.test(file)) body = renderJson(report);
     else if (/\.html?$/i.test(file)) body = renderHtml(report, now, langTyped);
     else body = renderMarkdown(report, now, langTyped);
     try {
