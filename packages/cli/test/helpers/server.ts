@@ -22,19 +22,29 @@ export async function serveFixture(
     let file = path.join(dir, rel);
     try {
       let body: Buffer;
+      let status = 200;
       try {
         body = await fs.readFile(file);
       } catch (err) {
-        if (!opts.spaFallback) throw err;
-        file = path.join(dir, 'index.html');
-        body = await fs.readFile(file);
+        if (opts.spaFallback) {
+          file = path.join(dir, 'index.html');
+          body = await fs.readFile(file);
+        } else {
+          // If the fixture ships a 404.html, serve it WITH a real 404 status
+          // (so soft-404 sees the right status and custom-404 sees a real body).
+          // Otherwise fall through to the bare text/plain 404 below.
+          const custom = path.join(dir, '404.html');
+          body = await fs.readFile(custom); // throws -> bare 404 in the catch
+          file = custom;
+          status = 404;
+        }
       }
       const type = MIME[path.extname(file)] ?? 'application/octet-stream';
       if (type.startsWith('text/') || type.includes('xml')) {
         // Allow fixtures to reference the (dynamic) test server origin.
         body = Buffer.from(body.toString('utf8').replaceAll('{{ORIGIN}}', origin));
       }
-      res.writeHead(200, { 'content-type': type });
+      res.writeHead(status, { 'content-type': type });
       res.end(body);
     } catch {
       res.writeHead(404, { 'content-type': 'text/plain' });

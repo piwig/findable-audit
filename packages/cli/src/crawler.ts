@@ -3,11 +3,12 @@ import https from 'node:https';
 import net from 'node:net';
 import dns from 'node:dns';
 import zlib from 'node:zlib';
-import type { CrawlContext, FetchedResource, PageSample } from './types.js';
+import type { CrawlContext, FetchedResource, PageSample, FetchChainResult, FetchHop } from './types.js';
 import { isBlockedAddress } from './ssrf.js';
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_REDIRECT_HOPS = 5; // guarded mode: bound manual redirect following
+const MAX_CHAIN_HOPS = 5; // fetchChain: bound the no-follow hop list
 
 function charsetFrom(contentType: string): string {
   const m = /charset=["']?([\w-]+)/i.exec(contentType);
@@ -163,6 +164,108 @@ export class Crawler implements CrawlContext {
     }
     this.cache.set(target, out);
     return out;
+  }
+
+  // -------------------------------------------------------------------------
+  // Manual, no-follow fetch chain (shared by crawl-hygiene checks)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Fetch `path` WITHOUT following redirects, returning every hop's
+   * status + Location so callers can distinguish 301 from 302, detect chains
+   * and loops, and see whether a missing route 200s or redirects home.
+   *
+   * SECURITY: when `blockPrivateHosts` is on, EVERY hop (the initial URL and
+   * each redirect target) is re-validated through the same SSRF guard the
+   * follow-mode `guardedFetch` uses — host+port allowlist, `isBlockedAddress`,
+   * and a socket pinned to the validated IP (DNS-rebinding-safe). A hop whose
+   * target is blocked aborts the whole chain (returns null) BEFORE any request
+   * is sent to it. It never consults or populates the follow-mode cache.
+   */
+  async fetchChain(path: string, opts: { maxHops?: number } = {}): Promise<FetchChainResult | null> {
+    const maxHops = opts.maxHops ?? MAX_CHAIN_HOPS;
+    const signal = this.buildSignal();
+    let currentUrl: string;
+    try {
+      currentUrl = new URL(path, this.baseUrl).toString();
+    } catch {
+      return null;
+    }
+    const hops: FetchHop[] = [];
+    const visited = new Set<string>();
+    for (let hop = 0; hop <= maxHops; hop++) {
+      let url: URL;
+      try {
+        url = new URL(currentUrl);
+      } catch {
+        return null;
+      }
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+      const key = url.toString();
+      if (visited.has(key)) {
+        // Redirect loop: the previous hop already pointed back here. Report the
+        // chain so far with its still-redirecting terminal status.
+        const last = hops[hops.length - 1];
+        return { hops, finalStatus: last?.status ?? 0, finalUrl: key };
+      }
+      visited.add(key);
+
+      let res: http.IncomingMessage;
+      try {
+        if (this.opts.blockPrivateHosts) {
+          const guard = await this.resolveGuard(url);
+          if (!guard.ok) return null; // blocked host/port -> refuse the whole chain
+          res = await this.nodeRequest(url, guard.address, guard.family, signal);
+        } else {
+          res = await this.nodeRequestPlain(url, signal);
+        }
+      } catch {
+        return null;
+      }
+      const status = res.statusCode ?? 0;
+      const loc = res.headers.location;
+      const location = typeof loc === 'string' && loc !== '' ? loc : undefined;
+      res.resume(); // drain and discard the body (checks only need status/Location)
+      hops.push({ url: key, status, location });
+
+      if (status >= 300 && status < 400 && location) {
+        let next: URL;
+        try {
+          next = new URL(location, url);
+        } catch {
+          return null;
+        }
+        currentUrl = next.toString();
+        continue;
+      }
+      return { hops, finalStatus: status, finalUrl: key };
+    }
+    // Exceeded maxHops without reaching a terminal status: report the chain,
+    // finalStatus stays the last (redirecting) status so callers flag a chain.
+    const last = hops[hops.length - 1];
+    return { hops, finalStatus: last?.status ?? 0, finalUrl: last?.url ?? currentUrl };
+  }
+
+  /** One no-follow node GET, no SSRF guard/pinning (blockPrivateHosts off). */
+  private nodeRequestPlain(url: URL, signal: AbortSignal): Promise<http.IncomingMessage> {
+    const mod = url.protocol === 'https:' ? https : http;
+    return new Promise((resolve, reject) => {
+      const req = mod.request(
+        url,
+        {
+          method: 'GET',
+          signal,
+          headers: {
+            'user-agent': this.userAgent,
+            'accept-encoding': 'gzip, deflate, br',
+            accept: '*/*',
+          },
+        },
+        resolve,
+      );
+      req.on('error', reject);
+      req.end();
+    });
   }
 
   // -------------------------------------------------------------------------

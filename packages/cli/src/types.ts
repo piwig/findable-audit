@@ -52,9 +52,33 @@ export interface PageSample {
   source: 'sitemap' | 'links' | 'homepage-only';
 }
 
+/** One hop of a manual (no-follow) fetch chain. */
+export interface FetchHop {
+  /** The absolute URL fetched on this hop. */
+  url: string;
+  /** HTTP status returned by this hop (0 on transport-less loop sentinel). */
+  status: number;
+  /** The `Location` header when this hop is a redirect (absent on the terminal hop). */
+  location?: string;
+}
+
+/** Result of a manual, no-follow fetch: the whole hop list plus the terminal status/URL. */
+export interface FetchChainResult {
+  hops: FetchHop[];
+  finalStatus: number;
+  finalUrl: string;
+}
+
 export interface CrawlContext {
   baseUrl: URL;
   fetch(path: string): Promise<FetchedResource | null>;
+  /**
+   * Manual, NO-FOLLOW fetch returning every redirect hop (used by
+   * www-consolidation, trailing-slash, redirect-chains, soft-404). Optional so
+   * lightweight in-memory contexts need not implement it; the real Crawler
+   * always does. When the SSRF guard is on it re-validates EVERY hop.
+   */
+  fetchChain?(path: string, opts?: { maxHops?: number }): Promise<FetchChainResult | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
 }

@@ -1,6 +1,8 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import type { Check, CrawlContext } from '../types.js';
 import { makeResult } from '../types.js';
+import { pagesOf, pathOf, aggregate } from './aggregate.js';
+import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
 
 async function home(ctx: CrawlContext): Promise<HTMLElement | null> {
   const res = await ctx.fetch('/');
@@ -29,11 +31,34 @@ export const titleDescription: Check = {
 export const canonical: Check = {
   id: 'canonical', family: 'technical-seo', maxPoints: 5,
   async run(ctx) {
-    const root = await home(ctx);
-    if (!root) return makeResult(this, 'fail', 'homepage not reachable');
-    const href = root.querySelector('link[rel="canonical"]')?.getAttribute('href');
-    if (href) return makeResult(this, 'pass', `canonical set: ${href}`);
-    return makeResult(this, 'fail', 'no canonical link', 'Add <link rel="canonical" href="..."> to every page.');
+    const pages = await pagesOf(ctx);
+    if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
+    const local = isLocalOrPrivateHost(ctx.baseUrl.hostname);
+    const homeId = canonicalIdentity(new URL('/', ctx.baseUrl).toString());
+    const offenders: string[] = [];
+    let allToHome = true; // every page canonicalizes to the homepage (only meaningful with >=2 pages)
+    for (const page of pages) {
+      const label = pathOf(page);
+      const canonicals = extractCanonicals(page);
+      if (canonicals.length === 0) { offenders.push(`${label} (missing)`); allToHome = false; continue; }
+      if (canonicals.length > 1) { offenders.push(`${label} (multiple)`); allToHome = false; continue; }
+      const c = canonicals[0];
+      let u: URL;
+      try { u = new URL(c); } catch { offenders.push(`${label} (invalid)`); allToHome = false; continue; }
+      if (u.origin !== ctx.baseUrl.origin) { offenders.push(`${label} (cross-origin)`); allToHome = false; continue; }
+      if (!local && u.protocol !== 'https:') { offenders.push(`${label} (not https)`); allToHome = false; continue; }
+      if (canonicalIdentity(c) !== homeId) allToHome = false;
+      if (!isSelfReferential(c, page.finalUrl)) offenders.push(`${label} (non-self)`);
+    }
+    // Every sampled page pointing its canonical at `/` (with >1 page) collapses the site to one URL.
+    if (pages.length >= 2 && allToHome && pages.some((p) => pathOf(p) !== '/')) {
+      return makeResult(this, 'fail', 'every sampled page canonicalizes to the homepage',
+        'Give each page a self-referential canonical, not a blanket canonical to /.');
+    }
+    if (offenders.length === 0) return makeResult(this, 'pass', `self-referential canonical on ${pages.length} sampled page(s)`);
+    const agg = aggregate(pages.length, offenders);
+    return makeResult(this, agg.status, `canonical missing or non-self on: ${agg.detail}`,
+      'One absolute, self-referential canonical per page (tag or HTTP Link header).');
   },
 };
 
