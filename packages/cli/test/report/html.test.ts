@@ -87,6 +87,12 @@ describe('renderHtml', () => {
     expect(html).toContain('class="hero"');
     expect(html).toMatch(/2 à corriger/);          // 1 fail + 1 warn ('evil') => 2
   });
+  it('renders a prioritized action plan with severity groups and impact', () => {
+    expect(html).toContain('Plan d\'action');
+    expect(html).toMatch(/À corriger en priorité/);   // fails group (llms-txt)
+    expect(html).toContain('Add a /llms.txt file.');    // the fix text
+    expect(html).toMatch(/\+\d+ pts/);                  // impact badge
+  });
 });
 
 describe('renderHtml with no familyScores (edge case, e.g. every check skipped)', () => {

@@ -14,6 +14,18 @@ export const FAMILY_LABELS: Record<Family, string> = {
   security: 'Security & trust',
 };
 
+/** Short family chips for the action plan / compact UI. */
+export const FAMILY_SHORT: Record<Family, string> = {
+  'ai-access': 'Accès IA',
+  'llm-content': 'Contenu IA',
+  'structured-data': 'Données',
+  'technical-seo': 'SEO',
+  'on-page': 'On-page',
+  performance: 'Perf',
+  accessibility: 'A11y',
+  security: 'Sécurité',
+};
+
 const ICONS: Record<CheckResult['status'], string> = {
   pass: pc.green('OK '), warn: pc.yellow('!! '), fail: pc.red('XX '), skip: pc.dim('-- '),
 };
