@@ -96,6 +96,12 @@ if (userAgent !== undefined && userAgent.trim() === '') {
   process.exit(2);
 }
 
+const psiKey = values['psi-key'];
+if (psiKey !== undefined && psiKey.trim() === '') {
+  console.error(`findable-audit: --psi-key must not be empty\n\n${USAGE}`);
+  process.exit(2);
+}
+
 const psiStrategy = values['psi-strategy'];
 if (psiStrategy !== 'mobile' && psiStrategy !== 'desktop') {
   console.error(`findable-audit: invalid --psi-strategy value "${psiStrategy}" (expected "mobile" or "desktop")\n\n${USAGE}`);
@@ -111,7 +117,7 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
 try {
   const report = await runAudit(targetUrl,
     buildChecks({ indexnowKey: values['indexnow-key'] }),
-    { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey: values['psi-key'], psiStrategy });
+    { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy });
   console.log(values.json ? renderJson(report) : renderTerminal(report));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed

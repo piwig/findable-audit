@@ -136,4 +136,34 @@ describe('fetchPsi (globalThis.fetch stubbed, never the real API)', () => {
     globalThis.fetch = (async () => { throw new Error('network down'); }) as typeof fetch;
     expect(await fetchPsi('https://example.com/')).toBeNull();
   });
+
+  it('bounds a hanging PSI response with its own timeout, resolving to null instead of hanging forever', async () => {
+    // Simulate real fetch semantics: the returned promise never resolves on its
+    // own, but rejects once the request's AbortSignal fires.
+    globalThis.fetch = ((_input: string | URL, init?: RequestInit) => {
+      if (init?.signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'));
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      });
+    }) as typeof fetch;
+
+    const start = Date.now();
+    const r = await fetchPsi('https://example.com/', { timeoutMs: 50 });
+    expect(r).toBeNull();
+    expect(Date.now() - start).toBeLessThan(2000); // bounded by the 50ms timeout, not left hanging
+  });
+
+  it('still returns null promptly when the caller passes its own already-aborted signal', async () => {
+    globalThis.fetch = ((_input: string | URL, init?: RequestInit) => {
+      if (init?.signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'));
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      });
+    }) as typeof fetch;
+
+    const controller = new AbortController();
+    controller.abort();
+    const r = await fetchPsi('https://example.com/', { signal: controller.signal, timeoutMs: 5000 });
+    expect(r).toBeNull();
+  });
 });

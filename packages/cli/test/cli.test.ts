@@ -72,6 +72,13 @@ describe('findable CLI binary', () => {
     expect(stderr).toContain('--timeout');
   });
 
+  it('exits 2 on an empty --psi-key', async () => {
+    const { code, stderr } = await runCli(['http://127.0.0.1:1', '--psi-key', '   ']);
+    expect(code).toBe(2);
+    expect(stderr).toContain('--psi-key');
+    expect(stderr).toContain('Usage:');
+  });
+
   it('writes a Markdown report with --report', async () => {
     const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
     closers.push(srv.close);

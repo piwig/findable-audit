@@ -47,20 +47,23 @@ export interface PsiResult {
   lab: PsiLab;
 }
 
+/** LCP threshold: shared by the CrUX field metric (`lcp`) and the Lighthouse lab fallback (`labLcp`) — both are 2500/4000ms per spec §5. */
+const LCP_THRESHOLDS = { good: 2500, poor: 4000 } as const; // ms
+
 /**
  * Authoritative Core Web Vitals thresholds (spec §5). Lower is better for every
  * metric except `lighthouse` (a 0..1 score, higher is better). `tbt` uses a
  * strict `<good` boundary for "pass"; the others treat `good`/`poor` inclusively.
  */
 export const CWV_THRESHOLDS = {
-  lcp: { good: 2500, poor: 4000 }, // ms
+  lcp: LCP_THRESHOLDS,
   cls: { good: 0.1, poor: 0.25 }, // unitless
   inp: { good: 200, poor: 500 }, // ms
   ttfb: { good: 800, poor: 1800 }, // ms
   lighthouse: { good: 0.9, poor: 0.5 }, // score 0..1, higher better
   tbt: { good: 200, poor: 600 }, // ms, strict-less "good"
   fcp: { good: 1800, poor: 3000 }, // ms
-  labLcp: { good: 2500, poor: 4000 }, // ms
+  labLcp: LCP_THRESHOLDS,
 } as const;
 
 const PSI_ENDPOINT = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
@@ -133,26 +136,36 @@ export function parsePsi(json: any, strategy: 'mobile' | 'desktop'): PsiResult {
 
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** PSI is documented at ~15-30s per call; give it headroom before we give up. */
+const DEFAULT_PSI_TIMEOUT_MS = 45_000;
+
 export interface FetchPsiOptions {
   /** Google PSI/CrUX API key. Strongly recommended: the keyless endpoint is 429-rate-limited. */
   key?: string;
   strategy?: 'mobile' | 'desktop';
-  /** Abort signal (honours the audit run's timeout / caller abort). */
+  /** Abort signal (honours the audit run's timeout / caller abort), combined with fetchPsi's own timeout below. */
   signal?: AbortSignal;
+  /** This call's own timeout in ms (independent of any caller signal). Default 45000. */
+  timeoutMs?: number;
 }
 
 /**
  * Make the ONE PageSpeed Insights call for the run and parse it. Returns `null`
- * on any transport error or non-200 response (e.g. a keyless 429), which the
- * checks treat as "no PSI data" and `skip`. Never throws.
+ * on any transport error, timeout, or non-200 response (e.g. a keyless 429),
+ * which the checks treat as "no PSI data" and `skip`. Never throws.
+ *
+ * fetchPsi owns its own bounded timeout (default 45s) independent of any
+ * caller-supplied `signal` — like `Crawler`, it never hangs forever waiting on
+ * a server that accepts the connection and never responds.
  */
 export async function fetchPsi(url: string, opts: FetchPsiOptions = {}): Promise<PsiResult | null> {
   const strategy = opts.strategy ?? 'mobile';
   const params = new URLSearchParams({ url, strategy, category: 'performance' });
   if (opts.key) params.set('key', opts.key);
+  const signals = [AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_PSI_TIMEOUT_MS), opts.signal].filter(Boolean) as AbortSignal[];
   try {
     const res = await fetch(`${PSI_ENDPOINT}?${params.toString()}`, {
-      signal: opts.signal,
+      signal: AbortSignal.any(signals),
       headers: { accept: 'application/json' },
     });
     if (!res.ok) return null;
