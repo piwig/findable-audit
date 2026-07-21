@@ -106,7 +106,8 @@ describe('findable CLI binary', () => {
       expect(readFileSync(md, 'utf8')).toContain('# findable-audit — ');
       const h = readFileSync(html, 'utf8');
       expect(h.trimStart()).toMatch(/^<!doctype html/i);
-      expect(h).toContain('Score: 100/100');
+      expect(h).toMatch(/class="hero-score[^"]*">100</);
+      expect(h).toContain('Grade A');
     } finally {
       rmSync(md, { force: true });
       rmSync(html, { force: true });
