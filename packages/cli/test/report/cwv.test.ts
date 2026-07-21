@@ -35,6 +35,16 @@ describe('renderCwvHtml', () => {
     const noInp = { ...psi, field: { ...psi.field, inp: undefined } };
     expect(renderCwvHtml(noInp)).not.toContain('>INP<');
   });
+
+  it('derives the assessment from present metrics when overallCategory is absent (correct threshold per metric)', () => {
+    const psiNoOverall = {
+      strategy: 'mobile' as const,
+      field: { ttfb: { p75: 2000, category: '' }, overallCategory: 'NONE', origin: false },
+      lab: {},
+    };
+    // TTFB 2000ms > poor(1800) -> ÉCHEC ; and no crash from a missing LCP/INP/CLS
+    expect(renderCwvHtml(psiNoOverall)).toContain('ÉCHEC');
+  });
 });
 
 describe('renderCwvMarkdown', () => {

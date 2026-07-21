@@ -36,9 +36,10 @@ function assessment(psi: PsiResult): { cls: string; label: string } {
   if (oc === 'FAST') return { cls: 'good', label: 'PASSED' };
   if (oc === 'AVERAGE') return { cls: 'ok', label: 'À AMÉLIORER' };
   if (oc === 'SLOW') return { cls: 'bad', label: 'ÉCHEC' };
-  // fallback: worst present bucket
-  const buckets = METRICS.map((m) => psi.field[m.key]).filter(Boolean)
-    .map((fm, i) => bucketOf((fm as { p75: number }).p75, METRICS[i].t));
+  // fallback: worst present bucket — keep each metric bound to its own threshold
+  const buckets = METRICS
+    .filter((m) => psi.field[m.key])
+    .map((m) => bucketOf(psi.field[m.key]!.p75, m.t));
   if (buckets.includes('poor')) return { cls: 'bad', label: 'ÉCHEC' };
   if (buckets.includes('ni')) return { cls: 'ok', label: 'À AMÉLIORER' };
   if (buckets.length) return { cls: 'good', label: 'PASSED' };
