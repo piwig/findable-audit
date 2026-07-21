@@ -2,16 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { renderMarkdown } from '../../src/report/markdown.js';
 import type { AuditReport } from '../../src/runner.js';
 import type { CheckResult } from '../../src/types.js';
+import type { FamilyScore } from '../../src/scoring.js';
 
 const r = (over: Partial<CheckResult>): CheckResult => ({
   id: 'x', family: 'ai-access', status: 'pass', points: 4, maxPoints: 4, message: 'ok', ...over,
 });
 
+const familyScores: FamilyScore[] = [
+  { family: 'ai-access', score: 25, weight: 0.16, earned: 4, max: 16 },
+  { family: 'on-page', score: 50, weight: 0.12, earned: 2, max: 4 },
+];
+
 const report: AuditReport = {
   url: 'https://example.com/',
   score: 72,
   grade: 'C',
-  familyScores: [],
+  familyScores,
   sampledPages: ['/'],
   results: [
     r({ id: 'robots-exists', message: 'robots.txt found' }),
@@ -34,6 +40,18 @@ describe('renderMarkdown', () => {
   it('renders one section per family with earned/max (skips excluded)', () => {
     expect(md).toContain('## AI crawler access (4/16)');
     expect(md).toContain('## On-page & content (2/4)');
+  });
+
+  it('renders a per-family subscore table with score, weight and earned/max', () => {
+    expect(md).toContain('## Category subscores');
+    expect(md).toContain('| Family | Subscore | Weight | Earned/Max |');
+    expect(md).toContain('| AI crawler access | 25/100 | 16% | 4/16 |');
+    expect(md).toContain('| On-page & content | 50/100 | 12% | 2/4 |');
+  });
+
+  it('omits the subscore table when familyScores is empty', () => {
+    const noScores = renderMarkdown({ ...report, familyScores: [] });
+    expect(noScores).not.toContain('## Category subscores');
   });
 
   it('escapes pipes in table cells', () => {

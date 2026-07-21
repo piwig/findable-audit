@@ -1,12 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { renderHtml } from '../../src/report/html.js';
+import { FAMILY_LABELS } from '../../src/report/terminal.js';
 import type { AuditReport } from '../../src/runner.js';
+import type { FamilyScore } from '../../src/scoring.js';
+
+const familyScores: FamilyScore[] = [
+  { family: 'llm-content', score: 0, weight: 0.18, earned: 0, max: 10 },
+  { family: 'structured-data', score: 100, weight: 0.15, earned: 10, max: 10 },
+  { family: 'security', score: 50, weight: 0.07, earned: 2, max: 4 },
+];
 
 const report: AuditReport = {
   url: 'https://example.com/',
   score: 72,
   grade: 'C',
-  familyScores: [],
+  familyScores,
   sampledPages: ['/', '/about'],
   results: [
     { id: 'llms-txt', family: 'llm-content', status: 'fail', points: 0, maxPoints: 10,
@@ -28,15 +36,39 @@ describe('renderHtml', () => {
   it('references no external resource (fully inline)', () => {
     expect(html).not.toMatch(/(src|href)\s*=\s*["']https?:/i);
   });
+  it('has no inline event handlers (CSP-friendly)', () => {
+    expect(html).not.toMatch(/\son[a-z]+\s*=/i);
+  });
   it('shows the score, grade and audited URL', () => {
     expect(html).toContain('72');
     expect(html).toContain('Grade C');
     expect(html).toContain('https://example.com/');
   });
+  it('shows the grade as a prominent badge colored by band (C -> amber/"ok")', () => {
+    expect(html).toContain('<span class="grade ok">Grade C</span>');
+  });
   it('lists every family that has results', () => {
     expect(html).toContain('Answer-engine content');
     expect(html).toContain('Structured data &amp; metadata');
     expect(html).toContain('Security &amp; trust');
+  });
+  it('shows a per-family subscore row (label, score, weight, bar) for every entry in familyScores', () => {
+    for (const fs of familyScores) {
+      // Mirror the HTML-escaping renderHtml applies to the (constant) label — these
+      // labels only ever contain '&', so a literal replace is sufficient here.
+      const escapedLabel = FAMILY_LABELS[fs.family].replace(/&/g, '&amp;');
+      const weightPct = Math.round(fs.weight * 100);
+      // Label and numeric subscore appear together within a table row.
+      const rowMatch = new RegExp(
+        `<tr>\\s*<td class="fam-label">${escapedLabel}</td>\\s*<td class="fam-score[^"]*">${fs.score}</td>\\s*<td class="fam-weight">${weightPct}%</td>`,
+      );
+      expect(html).toMatch(rowMatch);
+      // The bar's width encodes the subscore, inline (no external assets/JS needed).
+      expect(html).toContain(`style="width:${fs.score}%"`);
+    }
+  });
+  it('titles the subscore summary section', () => {
+    expect(html).toContain('Category subscores');
   });
   it('shows a fix for a failing check', () => {
     expect(html).toContain('Add a /llms.txt file.');
@@ -44,5 +76,14 @@ describe('renderHtml', () => {
   it('escapes site-derived text', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  });
+});
+
+describe('renderHtml with no familyScores (edge case, e.g. every check skipped)', () => {
+  const html = renderHtml({ ...report, familyScores: [] }, new Date('2026-07-20T00:00:00Z'));
+
+  it('omits the subscore section entirely rather than rendering an empty table', () => {
+    expect(html).not.toContain('Category subscores');
+    expect(html).not.toContain('class="subscore-table"');
   });
 });

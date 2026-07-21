@@ -19,6 +19,17 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date()): str
     '',
   ];
 
+  if (report.familyScores.length > 0) {
+    lines.push('## Category subscores', '');
+    lines.push('| Family | Subscore | Weight | Earned/Max |');
+    lines.push('|---|---|---|---|');
+    for (const fs of report.familyScores) {
+      const weightPct = Math.round(fs.weight * 100);
+      lines.push(`| ${cell(FAMILY_LABELS[fs.family])} | ${fs.score}/100 | ${weightPct}% | ${fs.earned}/${fs.max} |`);
+    }
+    lines.push('');
+  }
+
   for (const family of Object.keys(FAMILY_LABELS) as Family[]) {
     const results = report.results.filter((r) => r.family === family);
     if (results.length === 0) continue;
