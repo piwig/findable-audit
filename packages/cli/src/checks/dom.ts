@@ -125,3 +125,43 @@ export function formControlHasName(el: HTMLElement, labelForIds: Set<string>): b
   if (id && labelForIds.has(id)) return true;
   return el.closest('label') !== null;
 }
+
+// ---------------------------------------------------------------------------
+// Performance helpers (spec §3.6) — shared by the performance family.
+// ---------------------------------------------------------------------------
+
+export interface HeadResources {
+  /** External <script src> in <head> lacking async/defer/type=module. */
+  blockingScripts: number;
+  /** External <link rel=stylesheet> in <head> not deferred via a non-screen media query. */
+  blockingStylesheets: number;
+  /** Total UTF-8 byte size of inline <style> and inline (no-src) <script> content in <head>. */
+  inlineBytes: number;
+}
+
+/** Classifies <head> render-blocking resources and inline volume (spec §3.6). Shared by
+ *  render-blocking-js, render-blocking-css and inline-head-volume so head parsing lives in one place. */
+export function classifyHeadResources(root: HTMLElement): HeadResources {
+  const head = headOf(root);
+  if (!head) return { blockingScripts: 0, blockingStylesheets: 0, inlineBytes: 0 };
+
+  let blockingScripts = 0;
+  for (const s of head.querySelectorAll('script[src]')) {
+    const type = (s.getAttribute('type') ?? '').trim().toLowerCase();
+    if (!s.hasAttribute('async') && !s.hasAttribute('defer') && type !== 'module') blockingScripts += 1;
+  }
+
+  let blockingStylesheets = 0;
+  for (const l of head.querySelectorAll('link[rel="stylesheet"]')) {
+    const media = (l.getAttribute('media') ?? '').trim().toLowerCase();
+    const deferredByMedia = media !== '' && media !== 'all' && media !== 'screen';
+    if (!deferredByMedia) blockingStylesheets += 1;
+  }
+
+  let inlineBytes = 0;
+  for (const el of head.querySelectorAll('style, script:not([src])')) {
+    inlineBytes += Buffer.byteLength(el.textContent ?? '', 'utf8');
+  }
+
+  return { blockingScripts, blockingStylesheets, inlineBytes };
+}

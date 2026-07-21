@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html', '.txt': 'text/plain', '.xml': 'application/xml', '.json': 'application/json',
@@ -53,11 +54,19 @@ export async function serveFixture(
         }
       }
       const type = MIME[path.extname(file)] ?? 'application/octet-stream';
-      if (type.startsWith('text/') || type.includes('xml')) {
+      const isText = type.startsWith('text/') || type.includes('xml');
+      if (isText) {
         // Allow fixtures to reference the (dynamic) test server origin.
         body = Buffer.from(body.toString('utf8').replaceAll('{{ORIGIN}}', origin));
       }
-      res.writeHead(status, { ...SECURITY_HEADERS, 'content-type': type });
+      const headers: Record<string, string> = { ...SECURITY_HEADERS, 'content-type': type };
+      // Compress text responses (spec §3.6 text-compression) so real fixtures exercise the
+      // crawler/native-fetch's transparent gzip decoding, same as a well-configured server.
+      if (isText) {
+        body = zlib.gzipSync(body);
+        headers['content-encoding'] = 'gzip';
+      }
+      res.writeHead(status, headers);
       res.end(body);
     } catch {
       res.writeHead(404, { ...SECURITY_HEADERS, 'content-type': 'text/plain' });

@@ -19,12 +19,12 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(88);
+    expect(report.results).toHaveLength(99);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'broken-internal-links', 'canonical-resolves', 'content-author-eeat',
+      'alt-descriptive', 'answer-headings', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'extractable-structure', 'figure-caption', 'form-labels', 'hreflang',
       'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexnow', 'internal-linking', 'mixed-content',
       'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',

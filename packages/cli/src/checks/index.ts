@@ -33,6 +33,10 @@ import {
 import {
   mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
 } from './security.js';
+import {
+  htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
+  resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
+} from './performance.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -54,5 +58,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
+    htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
+    resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
   ];
 }
