@@ -19,7 +19,7 @@ findable-audit note un site sur 100 à travers **107 checks répartis en 8 famil
 
 **Statuts :** `OK` (réussi, tous les points), `!!` (avertissement, demi-points), `XX` (échec, 0 point), `--` (ignoré). **Les checks ignorés sont exclus du score** — un site n'est jamais pénalisé pour un check qui ne le concerne pas (pas de page produit, site monolingue, pas de `--cwv`, etc.). Les entrées marquées *(ignoré si …)* ne s'exécutent que si leur condition est remplie.
 
-Les rapports HTML et Markdown s'ouvrent sur un verdict en une ligne, ajoutent un dashboard Core Web Vitals (jauges radiales, terrain vs labo) quand ils sont lancés avec `--cwv --psi-key`, et se terminent par un plan d'action priorisé — chaque recommandation en échec/avertissement ci-dessous pointe vers son entrée « En savoir plus ».
+Les rapports HTML et Markdown s'ouvrent sur un verdict en une ligne et se terminent par un plan d'action priorisé (gains les plus importants d'abord, avec des liens « En savoir plus »). Avec `--cwv --psi-key <clé>`, les Core Web Vitals s'ajoutent : un dashboard à jauges radiales dans le rapport HTML et un tableau de métriques en Markdown (terrain/CrUX vs labo/Lighthouse).
 
 ---
 
