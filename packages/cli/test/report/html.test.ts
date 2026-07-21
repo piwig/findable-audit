@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderHtml } from '../../src/report/html.js';
 import { FAMILY_LABELS } from '../../src/report/terminal.js';
+import { parsePsi } from '../../src/perf/psi.js';
 import type { AuditReport } from '../../src/runner.js';
 import type { FamilyScore } from '../../src/scoring.js';
 
@@ -91,5 +95,21 @@ describe('renderHtml with no familyScores (edge case, e.g. every check skipped)'
   it('omits the subscore section entirely rather than rendering an empty table', () => {
     expect(html).not.toContain('Category subscores');
     expect(html).not.toContain('class="subscore-table"');
+  });
+});
+
+describe('renderHtml Core Web Vitals section', () => {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const sample = JSON.parse(readFileSync(path.join(here, '..', 'fixtures', 'psi-sample.json'), 'utf8'));
+  it('renders the CWV dashboard when psi is present', () => {
+    const html = renderHtml({ ...report, psi: parsePsi(sample, 'mobile') });
+    expect(html).toContain('Core Web Vitals');
+    expect(html).toContain('conic-gradient');
+    expect(html).toContain('LCP');
+  });
+  it('shows a discreet "non mesuré" note when psi is absent', () => {
+    const html = renderHtml(report); // no psi
+    expect(html).toMatch(/non mesur/i);
+    expect(html).not.toContain('conic-gradient');
   });
 });
