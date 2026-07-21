@@ -28,6 +28,7 @@ import { clientIp } from './lib/client-ip.mjs';
 import { createJobStore } from './lib/jobs.mjs';
 import { t } from './lib/i18n.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
+import { renderLangSelector } from './lib/lang-selector.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -94,20 +95,30 @@ const PAGE_STYLE = `
   footer { margin-top: 3rem; color: #888; font-size: .85rem; border-top: 1px solid #e5e5e5; padding-top: 1rem; }
   .progress { height: 8px; background: #eee; border-radius: 999px; overflow: hidden; margin: 0 0 1rem; }
   .bar { height: 100%; width: 0; background: #1a7f37; transition: width .3s ease; }
+  .lang-switch { font-size: .85rem; color: #777; margin: 0 0 1.5rem; }
+  .lang-switch a { color: #1a7f37; text-decoration: none; }
+  .lang-switch a:hover { text-decoration: underline; }
+  .lang-switch [aria-current] { font-weight: 600; color: #1a1a1a; }
 `;
 
-function shell(title, bodyHtml, { lang = 'en' } = {}) {
+function shell(title, bodyHtml, { lang = 'en', alternates } = {}) {
+  const hreflangLinks = alternates
+    ? `\n<link rel="alternate" hreflang="en" href="${escapeHtml(alternates.en)}">`
+      + `\n<link rel="alternate" hreflang="fr" href="${escapeHtml(alternates.fr)}">`
+      + `\n<link rel="alternate" hreflang="x-default" href="${escapeHtml(alternates.en)}">`
+    : '';
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>${escapeHtml(title)}</title>
+<title>${escapeHtml(title)}</title>${hreflangLinks}
 <style>${PAGE_STYLE}</style>
 </head>
 <body>
 <main>
+${renderLangSelector(lang)}
 ${bodyHtml}
 <footer>findable-audit · <a href="${REPO_URL}">source on GitHub</a></footer>
 </main>
@@ -116,18 +127,32 @@ ${bodyHtml}
 `;
 }
 
-function landingPage() {
-  return shell('findable-audit', `
-<h1>findable-audit</h1>
-<p class="lead">Audit a website's SEO and GEO &mdash; how findable it is by AI search crawlers
-  (GPTBot, ClaudeBot, PerplexityBot&hellip;) and classic search engines.</p>
-<form method="get" action="/audit">
-  <input type="url" name="url" placeholder="https://example.com" aria-label="Website URL"
+// The landing page's final visual design (pb-ot.fr-inspired restyle) is
+// DEFERRED to a separate visual-companion mockup + user-validation pass (see
+// spec addendum §7.1 and §8, sub-phase 2C). This function delivers the
+// functional bilingual structure — i18n wiring, hreflang, selector, form —
+// using the existing minimal PAGE_STYLE; a future pass restyles it without
+// changing this DOM contract (form action, input name, selector markup).
+// Note: Task 4's routing block already calls this as `landingPage(split.lang)`
+// (the pre-2C zero-arg signature simply ignored the extra argument until now),
+// so no call-site change is needed here — only this definition.
+function landingPage(lang = 'en') {
+  const s = t(lang).landing;
+  return shell(s.title, `
+<h1>${escapeHtml(s.h1)}</h1>
+<p class="lead">${escapeHtml(s.lead)}</p>
+<ul class="features">
+  <li>${escapeHtml(s.feature1)}</li>
+  <li>${escapeHtml(s.feature2)}</li>
+  <li>${escapeHtml(s.feature3)}</li>
+</ul>
+<form method="get" action="/${lang}/audit">
+  <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
     autocomplete="off" autocapitalize="off" spellcheck="false" required>
-  <button type="submit">Audit</button>
+  <button type="submit">${escapeHtml(s.cta)}</button>
 </form>
-<p class="hint">Enter a public http(s) URL. Internal, private and reserved addresses are refused.</p>
-`);
+<p class="hint">${escapeHtml(s.hint)}</p>
+`, { lang, alternates: { en: '/en/', fr: '/fr/' } });
 }
 
 function errorPage(title, message, { status = 400 } = {}) {
@@ -139,6 +164,21 @@ function errorPage(title, message, { status = 400 } = {}) {
 <p><a href="/">&larr; Audit another site</a></p>
 `;
   return { status, html: shell(title, body) };
+}
+
+// Localized 404 for the generic catch-all route. Kept separate from the
+// pre-existing errorPage() (which sub-phase 2B also extends for job-lifecycle
+// errors) to avoid two independently-authored sub-phases racing to redefine
+// the same function signature.
+function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
+  const body = `
+<div class="err">
+<h1>${escapeHtml(title)}</h1>
+<p>${escapeHtml(message)}</p>
+</div>
+<p><a href="/${lang}/">&larr; ${lang === 'fr' ? 'Retour' : 'Back'}</a></p>
+`;
+  return { status, html: shell(title, body, { lang }) };
 }
 
 // Wrap the stored report HTML with a download bar + back link (job-scoped).
@@ -674,7 +714,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  send(res, 404, 'text/html; charset=utf-8', errorPage('Not found', 'No such page.', { status: 404 }).html);
+  {
+    const lang = req.__lang ?? negotiateLang(req.headers['accept-language']);
+    const notFound = t(lang).error.notFound;
+    const page = localizedErrorPage(lang, notFound.title, notFound.message, { status: 404 });
+    send(res, page.status, 'text/html; charset=utf-8', page.html);
+  }
 });
 
 // Periodically drop stale rate-limiter buckets and cache entries; unref so it

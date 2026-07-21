@@ -54,6 +54,19 @@ headers and spoof the rate-limit key.
 
 A bare host such as `example.com` is accepted and treated as `https://example.com`.
 
+## Languages
+
+The site is served under two path prefixes: `/en` and `/fr`. Visiting `/`
+redirects (302) to whichever the browser's `Accept-Language` header prefers,
+defaulting to `/en/` otherwise. Every page carries reciprocal `hreflang`
+`<link>` tags between the two landing pages and the correct `lang` attribute.
+The legacy unprefixed `/audit` page redirects (301) to its `/en` form, since
+it is the only human-navigable (typed/bookmarked) route. `/audit/stream`,
+`/audit/result`, `/audit/export`, `/healthz`, and `/audit.json` are global,
+unprefixed routes left untouched by language routing — they are never
+navigated to directly, and redirecting them would add a wasteful extra hop
+to every progress/result/export request.
+
 ## Security & abuse protection
 
 ### SSRF (`lib/ssrf.mjs`)
