@@ -47,7 +47,7 @@ headers and spoof the rate-limit key.
 | Method | Path                 | Response                                             |
 | ------ | -------------------- | --------------------------------------------------- |
 | GET    | `/`                  | Landing page with the audit form.                   |
-| GET    | `/audit?url=<url>`   | HTML audit report (200), or a safe HTML error page. |
+| GET    | `/audit?url=<url>`   | Progress page (HTML); see [Async audit flow](#async-audit-flow-sse-and-export) below for the full `/audit/*` route set. |
 | GET    | `/audit.json?url=<url>` | JSON audit report (200), or a JSON error.        |
 | GET    | `/healthz`           | `200 ok` (for systemd / nginx health checks).       |
 | *      | anything else        | `404`.                                              |
@@ -130,3 +130,88 @@ node --test apps/web/test/
 The SSRF tests are hermetic: `isBlockedAddress()` is pure and tested directly,
 and `assertPublicUrl()` is tested with an injected DNS resolver, so no real
 network access is required.
+
+## Async audit flow, SSE, and export
+
+`/audit` no longer blocks the request on the crawl. Instead:
+
+| Method | Path                              | Response                                                        |
+| ------ | --------------------------------- | ---------------------------------------------------------------- |
+| GET    | `/audit?url=<url>`                | Progress page (HTML). Creates a job and returns immediately; a `<noscript>` meta-refresh sends non-JS clients straight to `/audit/result`. |
+| GET    | `/audit/stream?job=<id>`          | `text/event-stream` (SSE): `progress` events while the job runs, then one `done` or `error` event. Lazily starts the job on first read (idempotent — a second reader/refresh reuses the same in-flight run). |
+| GET    | `/audit/result?job=<id>`          | Final HTML report (200), or a safe HTML error page. Starts+awaits the job if it hasn't run yet, so this route alone is a working no-JS path. |
+| GET    | `/audit/export?job=<id>&format=md\|html\|json` | Downloads the finished report as `.md`, `.html`, or `.json` with `Content-Disposition: attachment` (filename derived from the audited host). 404 if the job is unknown/expired, 409 if it hasn't finished yet. |
+| GET    | `/audit.json?url=<url>`           | Unchanged: synchronous JSON audit report (200), or a JSON error. |
+
+Jobs live in an in-memory, bounded, TTL-evicted store (`apps/web/lib/jobs.mjs`) —
+there is no external queue or database. A job's progress/report is only
+reachable via its `job` id, and ids are unguessable enough that this needs no
+extra auth for a public audit tool.
+
+### Core Web Vitals (`PSI_KEY`)
+
+Set the `PSI_KEY` environment variable to a Google PageSpeed Insights API key
+to turn on live Core Web Vitals in the report. This is optional:
+
+- **Unset (default):** CWV is skipped cleanly; the static performance
+  heuristics still run. Per-audit hard timeout stays ~25s (`AUDIT_TIMEOUT_MS`).
+- **Set:** CWV data is fetched from PSI for the audited URL, and the per-audit
+  hard timeout rises to ~90s (`AUDIT_TIMEOUT_CWV_MS`) to give the PSI round
+  trip room to complete. **Any reverse proxy in front of this app must raise
+  its read timeout to match** (see the nginx snippet below) or it will cut the
+  request before the audit finishes.
+
+### Deployment: nginx must not buffer `/audit/stream` and needs a longer timeout
+
+`/audit/stream` is a long-lived SSE connection; nginx buffers responses by
+default, which would delay or coalesce the `progress` events until the stream
+closes. The app already sends `X-Accel-Buffering: no` as belt-and-braces, but
+nginx should also get a dedicated, unbuffered `location` block. `/audit` (the
+progress page) and `/audit/result` (the no-JS path) need a read timeout at
+least as long as `AUDIT_TIMEOUT_CWV_MS` when `PSI_KEY` is set.
+
+Add to the site's nginx config (e.g. `findable.conf`) — **this repo does not
+apply this to the live VPS**; an operator edits nginx there and reloads:
+
+```nginx
+# findable.conf — add a dedicated location for the SSE stream so nginx does not
+# buffer it. The app also sends X-Accel-Buffering: no as a belt-and-braces.
+location /audit/stream {
+    proxy_pass http://127.0.0.1:3021;
+    proxy_http_version 1.1;
+    proxy_set_header Connection '';
+    proxy_buffering off;
+    proxy_cache off;
+    chunked_transfer_encoding off;
+    proxy_read_timeout 120s;   # >= AUDIT_TIMEOUT_CWV_MS (90s) with headroom.
+}
+
+# Raise the general audit timeout too (CWV audits can take ~90s):
+location /audit {
+    proxy_pass http://127.0.0.1:3021;
+    proxy_read_timeout 120s;
+}
+```
+
+And, to enable CWV, add the key to the service's environment (e.g. via the
+`EnvironmentFile` used by `findable-web.service`):
+
+```
+# /etc/systemd/system/findable-web.service (or its EnvironmentFile)
+Environment=PSI_KEY=<google-pagespeed-api-key>
+```
+
+Leaving `PSI_KEY` unset keeps the current keyless behaviour (CWV skipped,
+static perf heuristics still run) — no nginx or systemd changes are required
+in that case beyond what already runs `/audit/stream` through the same
+`proxy_pass`.
+
+See memory `[[findable-audit-web-deploiement]]` for the full redeploy
+procedure (`git pull` + `npm ci`/`build` + service restart) on top of this.
+
+### Known follow-ups
+
+- `errorPage()` (plain HTML error page, used by the async 2B routes) and
+  `localizedErrorPage()` (introduced in the 2C i18n landing work) are
+  intentionally kept as two separate functions for now. Unify them once 2C
+  lands so every error path is localized through one code path.
