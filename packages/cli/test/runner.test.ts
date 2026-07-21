@@ -52,4 +52,11 @@ describe('runAudit', () => {
     // The 50 maxPoints of the crashed check must not dilute the score.
     expect(report.score).toBe(100);
   });
+  it('carries psi through to the report (undefined without --cwv, no PSI call)', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const report = await runAudit(srv.url, buildChecks({ indexnowKey: 'testkey123' }));
+    expect('psi' in report).toBe(true);
+    expect(report.psi).toBeUndefined();
+  });
 });

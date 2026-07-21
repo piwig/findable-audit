@@ -4,7 +4,7 @@ import type { Check, CheckResult } from './types.js';
 import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
-import { fetchPsi } from './perf/psi.js';
+import { fetchPsi, type PsiResult } from './perf/psi.js';
 
 export class UnreachableSiteError extends Error {}
 
@@ -19,6 +19,8 @@ export interface AuditReport {
   /** Pathnames of the sampled pages (homepage first). */
   sampledPages: string[];
   results: CheckResult[];
+  /** Raw PageSpeed data: PsiResult when --cwv succeeded, null when it failed, undefined when not requested. */
+  psi?: PsiResult | null;
 }
 
 export interface AuditOptions {
@@ -76,5 +78,5 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   }
   const { score, grade, familyScores } = computeScore(results);
   const sampledPages = crawler.sample.pages.map(pathOf);
-  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results };
+  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results, psi: crawler.psi };
 }
