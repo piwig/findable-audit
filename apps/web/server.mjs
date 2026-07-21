@@ -321,6 +321,30 @@ function handleStream(req, res, job) {
   req.on('close', () => clearInterval(tick));
 }
 
+function safeHost(urlHref) {
+  try { return (new URL(urlHref).hostname || 'report').replace(/[^a-z0-9.-]/gi, '-'); }
+  catch { return 'report'; }
+}
+
+async function handleExport(req, res, job, format) {
+  await ensureStarted(job);
+  const j = jobs.get(job.id);
+  if (!j) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+  if (j.status !== 'done' || !j.report) {
+    const p = errorPage('Report not ready', 'That report is not available for download.', { status: 409 });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+
+  let body, contentType, ext;
+  if (format === 'json') { body = renderJson(j.report); contentType = 'application/json; charset=utf-8'; ext = 'json'; }
+  else if (format === 'md') { body = renderMarkdown(j.report, undefined, j.lang); contentType = 'text/markdown; charset=utf-8'; ext = 'md'; }
+  else { body = renderHtml(j.report, undefined, j.lang); contentType = 'text/html; charset=utf-8'; ext = 'html'; }
+
+  const filename = `${safeHost(j.url)}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+  send(res, 200, contentType, body, { 'content-disposition': `attachment; filename="${filename}"` });
+}
+
 async function handleResult(req, res, job) {
   await ensureStarted(job); // starts + awaits (idempotent); no-op if already terminal.
   const j = jobs.get(job.id);
@@ -578,6 +602,21 @@ const server = http.createServer((req, res) => {
     if (!job) { const p = errorPage('Not found', 'No such page.', { status: 404 }); send(res, p.status, 'text/html; charset=utf-8', p.html); return; }
     handleResult(req, res, job).catch((err) => {
       console.error('unhandled /audit/result error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/audit/export') {
+    const parsed = new URL(req.url, 'http://localhost');
+    const format = parsed.searchParams.get('format') ?? '';
+    if (format !== 'md' && format !== 'html' && format !== 'json') {
+      send(res, 400, 'text/plain; charset=utf-8', 'format must be one of: md, html, json');
+      return;
+    }
+    const job = jobFromQuery(req);
+    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    handleExport(req, res, job, format).catch((err) => {
+      console.error('unhandled /audit/export error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
     return;

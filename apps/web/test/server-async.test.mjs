@@ -110,3 +110,41 @@ test('GET /audit/result with unknown job returns 404', async () => {
   const res = await fetch(`${BASE}/audit/result?job=nope`);
   assert.equal(res.status, 404);
 });
+
+function seedDone(lang = 'en') {
+  const job = jobs.create({ url: 'https://example.com/', lang });
+  // Minimal-but-valid AuditReport (shape from runner.ts). Empty arrays render
+  // cleanly and touch no network. Extend minimally only if a renderer needs more.
+  const report = { url: 'https://example.com/', score: 100, grade: 'A', familyScores: [], sampledPages: ['/'], results: [], psi: undefined };
+  jobs.finish(job.id, { report, html: '<!doctype html><html><body>x</body></html>' });
+  return job;
+}
+
+test('GET /audit/export?format=json returns JSON with an attachment filename', async () => {
+  const job = seedDone();
+  const res = await fetch(`${BASE}/audit/export?job=${job.id}&format=json`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /application\/json/);
+  assert.match(res.headers.get('content-disposition'), /attachment; filename="example\.com-\d{4}-\d{2}-\d{2}\.json"/);
+  const parsed = JSON.parse(await res.text());
+  assert.equal(parsed.url, 'https://example.com/');
+});
+
+test('GET /audit/export?format=md returns markdown', async () => {
+  const job = seedDone();
+  const res = await fetch(`${BASE}/audit/export?job=${job.id}&format=md`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/markdown/);
+  assert.match(res.headers.get('content-disposition'), /\.md"/);
+});
+
+test('GET /audit/export rejects an unknown format with 400', async () => {
+  const job = seedDone();
+  const res = await fetch(`${BASE}/audit/export?job=${job.id}&format=pdf`);
+  assert.equal(res.status, 400);
+});
+
+test('GET /audit/export with unknown job returns 404', async () => {
+  const res = await fetch(`${BASE}/audit/export?job=nope&format=md`);
+  assert.equal(res.status, 404);
+});
