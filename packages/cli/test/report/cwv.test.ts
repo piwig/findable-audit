@@ -31,9 +31,12 @@ describe('renderCwvHtml', () => {
   it('shows the compact Lighthouse lab line', () => {
     expect(html).toContain('98'); // perfScore 0.98 -> 98/100
   });
-  it('does not render a metric absent from the field data', () => {
+  it('does not render a gauge for a metric absent from the field data', () => {
     const noInp = { ...psi, field: { ...psi.field, inp: undefined } };
-    expect(renderCwvHtml(noInp)).not.toContain('>INP<');
+    const out = renderCwvHtml(noInp);
+    expect(out).not.toContain('<div class="cwv-name">INP</div>'); // no fabricated INP gauge
+    expect(out).toContain('<div class="cwv-name">LCP</div>');     // a measured metric keeps its gauge
+    // (the educational explainer glossary still lists INP by design — not a measurement)
   });
 
   it('derives the assessment from present metrics when overallCategory is absent (correct threshold per metric)', () => {
@@ -52,8 +55,41 @@ describe('renderCwvHtml', () => {
   });
   it('renders French labels when asked', () => {
     const htmlFr = renderCwvHtml(psi, 'fr');
-    expect(htmlFr).toMatch(/PASSED|À AMÉLIORER|ÉCHEC|NON CONCLUANT/);
+    expect(htmlFr).toMatch(/RÉUSSI|À AMÉLIORER|ÉCHEC|NON CONCLUANT/); // success badge is localized too
+    expect(htmlFr).not.toContain('PASSED');                          // no leftover English state
     expect(htmlFr).toMatch(/CrUX (origine|terrain)/);
+  });
+  it('emits neither advice nor an all-good note when no field metric was measured (lab-only PSI)', () => {
+    const labOnly = { ...psi, field: { origin: false } };
+    const out = renderCwvHtml(labOnly);
+    expect(out).not.toContain('cwv-allgood');   // an all-good note would contradict…
+    expect(out).toMatch(/INCONCLUSIVE/);        // …the inconclusive assessment badge
+    expect(out).not.toContain('How to improve');
+    const md = renderCwvMarkdown(labOnly);
+    expect(md).not.toMatch(/good.*range|nice work/i);
+    expect(md).not.toContain('How to improve');
+  });
+  it('includes an explainer (what each metric means) + intro, and an all-good note when everything passes', () => {
+    expect(html).toContain('What these metrics mean');
+    expect(html).toMatch(/Core Web Vitals are Google/); // intro
+    expect(html).toContain('Largest Contentful Paint');
+    expect(html).toMatch(/good.*range|nice work/i);     // cwvAllGood (sample is all-FAST)
+    expect(html).not.toContain('How to improve');       // no advice list when all good
+  });
+  it('shows targeted advice ONLY for metrics that are not good', () => {
+    const slowLcp = { ...psi, field: { ...psi.field, lcp: { ...psi.field.lcp, p75: 5000 } } };
+    const out = renderCwvHtml(slowLcp);
+    expect(out).toContain('How to improve');
+    expect(out).toMatch(/<b>LCP<\/b>/);   // advice item keyed by the metric code
+    expect(out).toMatch(/hero image/i);
+    expect(out).not.toContain('good range'); // the all-good note is gone
+  });
+  it('localizes the explainer + advice in French', () => {
+    const slowLcp = { ...psi, field: { ...psi.field, lcp: { ...psi.field.lcp, p75: 5000 } } };
+    const fr = renderCwvHtml(slowLcp, 'fr');
+    expect(fr).toContain('Ce que mesurent ces indicateurs');
+    expect(fr).toContain('Comment améliorer');
+    expect(fr).toMatch(/image principale/i);
   });
 });
 
@@ -73,5 +109,22 @@ describe('renderCwvMarkdown', () => {
     const md = renderCwvMarkdown(psi, 'fr');
     expect(md).toContain('| Métrique | p75 | Statut | Source |');
     expect(md).toMatch(/✅ Bon|⚠️ À améliorer|❌ Mauvais/);
+  });
+  it('appends the intro, explainer and (result-based) advice, mutually exclusive', () => {
+    const md = renderCwvMarkdown(psi);
+    expect(md).toMatch(/Core Web Vitals are Google/);   // intro
+    expect(md).toContain('What these metrics mean');     // explainer
+    expect(md).toMatch(/good.*range|nice work/i);        // all-good note (sample all FAST)
+    expect(md).not.toContain('How to improve');          // all-good ⇒ no advice list
+    const slow = { ...psi, field: { ...psi.field, cls: { ...psi.field.cls, p75: 0.4 } } };
+    const md2 = renderCwvMarkdown(slow);
+    expect(md2).toContain('How to improve');
+    expect(md2).toMatch(/\*\*CLS\*\*/);
+    expect(md2).not.toMatch(/good.*range|nice work/i);   // advice present ⇒ no all-good note
+    // French markdown localizes intro + explainer title + advice title
+    const frMd = renderCwvMarkdown(slow, 'fr');
+    expect(frMd).toMatch(/Core Web Vitals sont les signaux/); // fr intro
+    expect(frMd).toContain('Ce que mesurent ces indicateurs');
+    expect(frMd).toContain('Comment améliorer');
   });
 });

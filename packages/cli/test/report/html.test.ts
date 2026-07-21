@@ -39,6 +39,22 @@ describe('renderHtml', () => {
     expect(html).not.toContain('.badges {');
     expect(html).not.toContain('.score.good {');
   });
+  it('shows an inline (self-contained) logomark in the report title', () => {
+    // the logomark is an inline SVG next to the title — no external asset, no data URI
+    expect(html).toMatch(/<h1 class="report-h1"><svg[^>]*viewBox="0 0 32 32"/);
+    expect(html).toContain('linearGradient');
+    expect(html).not.toMatch(/<img\b/i); // logo must not be a raster/external image
+  });
+  it('is responsive (viewport meta + a mobile media query that stacks the hero)', () => {
+    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1">');
+    expect(html).toMatch(/@media\s*\(max-width:\s*640px\)/);
+    // the mobile block stacks the hero vertically — `flex-direction: column`
+    // appears only inside that block (the base .hero defaults to row).
+    expect(html).toMatch(/flex-direction:\s*column/);
+    // and it breaks long space-less tokens (e.g. the audited URL) so they don't
+    // force horizontal scroll on phones — `overflow-wrap: anywhere` on body.
+    expect(html).toMatch(/body\s*\{[^}]*overflow-wrap:\s*anywhere/);
+  });
   it('embeds no external resource (inline only; doc <a> links allowed)', () => {
     // Forbid external embedded resources (styles, scripts, images, iframes)…
     expect(html).not.toMatch(/<(?:link|script|img|iframe|source)\b[^>]*\b(?:src|href)\s*=\s*["']https?:/i);

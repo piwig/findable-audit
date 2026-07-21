@@ -9,6 +9,23 @@ const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
 };
 
+/**
+ * findable-audit logomark: an "Aube verte" gradient tile with a white magnifier
+ * (search / audit). Inline SVG so the report stays fully self-contained (no
+ * external asset, no data URI). One instance per document → the gradient id is
+ * safe. `aria-hidden` because the adjacent title already names the product.
+ */
+function logoMark(size = 24): string {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`
+    + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
+    + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+    + '</linearGradient></defs>'
+    + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
+    + '<circle cx="13.5" cy="13.5" r="6.3" fill="none" stroke="#fff" stroke-width="2.5"/>'
+    + '<line x1="18.3" y1="18.3" x2="24" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
 /** Escape text for safe inclusion in HTML (the report contains site-derived strings). */
 function escapeHtml(text: string): string {
   return text
@@ -34,6 +51,8 @@ const STYLE = `
   body { font: 15px/1.5 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     color: #1a1a1a; background: #fff; margin: 0; padding: 2rem; max-width: 860px; }
   h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  .report-h1 { display: flex; align-items: center; gap: .55rem; }
+  .report-h1 svg { display: block; flex: 0 0 auto; }
   h2 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; border-bottom: 1px solid #e5e5e5; padding-bottom: .25rem; }
   .meta { color: #666; font-size: .9rem; margin-bottom: 1rem; }
   .grade { display: inline-block; font-weight: 700; font-size: 1.4rem; line-height: 1; padding: .3rem .9rem;
@@ -69,7 +88,15 @@ const STYLE = `
   .bar-fill { height: 100%; border-radius: 4px; }
   .bar-fill.good { background: #1a7f37; } .bar-fill.ok { background: #9a6700; } .bar-fill.bad { background: #b42318; }
   footer { margin-top: 2rem; color: #888; font-size: .8rem; border-top: 1px solid #e5e5e5; padding-top: .75rem; }
-  .cwv { margin: 1.25rem 0; }
+  .cwv { margin: 1.5rem 0; border: 1px solid #dfe7e1; background: #f6faf7; border-radius: 12px; padding: 1rem 1.15rem 1.15rem; }
+  .cwv > h2 { margin-top: .1rem; border-bottom: none; }
+  .cwv-info { margin-top: .25rem; }
+  .cwv-intro { color: #4a5560; font-size: .85rem; margin: .5rem 0 .5rem; }
+  .cwv-explain h3, .cwv-advice h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: #6b7683; margin: .75rem 0 .3rem; }
+  .cwv-explain ul, .cwv-advice ul { margin: .2rem 0; padding-left: 1.1rem; }
+  .cwv-explain li, .cwv-advice li { font-size: .85rem; color: #3a424c; margin: .18rem 0; }
+  .cwv-advice { border-top: 1px solid #e6ede8; margin-top: .6rem; }
+  .cwv-allgood { color: #1a7f37; font-size: .85rem; font-weight: 600; margin: .6rem 0 0; }
   .cwv-assess-line { margin: .25rem 0 .5rem; }
   .cwv-assess { display: inline-block; font-weight: 700; font-size: .78rem; padding: .15rem .55rem; border-radius: 6px; color: #fff; }
   .cwv-assess.good { background: #1a7f37; } .cwv-assess.ok { background: #9a6700; } .cwv-assess.bad { background: #b42318; }
@@ -97,6 +124,24 @@ const STYLE = `
   .ap-imp { font-size: .78rem; font-weight: 700; color: #1a7f37; background: #e7f4ec;
     padding: .1rem .45rem; border-radius: 20px; white-space: nowrap; flex: 0 0 auto; }
   .ap-more-note { color: #888; font-size: .82rem; margin: .5rem 0 0; }
+  @media (max-width: 640px) {
+    /* overflow-wrap inherits: breaks long space-less tokens (URLs in .meta, verdict,
+       action-plan fixes) that would otherwise force horizontal scroll on phones. */
+    body { padding: 1.1rem; overflow-wrap: anywhere; }
+    h1 { font-size: 1.3rem; }
+    h2 { font-size: 1.05rem; }
+    .hero { flex-direction: column; align-items: flex-start; gap: .6rem; }
+    .hero-score { font-size: 1.7rem; }
+    .subscore-table td { padding: .3rem .25rem; }
+    .fam-label { width: auto; }
+    .fam-weight { width: 3rem; }
+    td { padding: .4rem .3rem; overflow-wrap: anywhere; }
+    td.pts { width: auto; }
+    code { overflow-wrap: anywhere; }
+    .cwv-grid { gap: .7rem; justify-content: center; }
+    .ap-item { flex-wrap: wrap; }
+    .ap-fix { flex-basis: 100%; }
+  }
   @media print {
     body { padding: 0; max-width: none; }
     h2, tr, .subscore-table tr { break-inside: avoid; }
@@ -196,7 +241,7 @@ ${recs.length > CAP ? `<p class="ap-more-note">${m.moreRecs(recs.length - CAP)}<
 <style>${STYLE}</style>
 </head>
 <body>
-<h1>${m.reportTitle}</h1>
+<h1 class="report-h1">${logoMark(26)}<span>${m.reportTitle}</span></h1>
 <div class="meta">${escapeHtml(report.url)} · ${date}</div>
 <header class="hero">
   <div class="hero-score ${scoreClass(report.score)}">${report.score}<span>${m.outOf100}</span></div>

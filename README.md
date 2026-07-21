@@ -117,9 +117,9 @@ npx findable-audit https://your-site.com
 # and    ./your-site.com-2026-07-20.html
 ```
 
-`<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
+`<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets — the findable-audit logomark is an inline SVG), **responsive** (mobile-first, adapts to any screen), and printable — open it in a browser and use **Print to PDF** to get a PDF.
 
-Both the HTML and Markdown reports open with a one-line verdict summarizing the result, and — when run with `--cwv --psi-key <key>` — the HTML report adds a **Core Web Vitals dashboard** with radial gauges for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data (a discreet "not measured" note otherwise). When issues are found, the report also includes a **prioritized action plan** — recommended fixes grouped by severity and ordered by weighted impact (recoverable points × family weight); each item shows the raw recoverable points as a `+N pts` badge and a "Learn more" link.
+Both the HTML and Markdown reports open with a one-line verdict summarizing the result, and — when run with `--cwv --psi-key <key>` — add a **Core Web Vitals dashboard** in its own distinct card: radial gauges (HTML) or a table (Markdown) for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data, plus a **plain-language explainer** of what each metric means and **targeted advice** for the ones that aren't in the "good" range (a discreet "not measured" note otherwise). When issues are found, the report also includes a **prioritized action plan** — recommended fixes grouped by severity and ordered by weighted impact (recoverable points × family weight); each item shows the raw recoverable points as a `+N pts` badge and a "Learn more" link. Reports are available in **English and French**.
 
 Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
 
@@ -151,7 +151,7 @@ This makes a single PageSpeed Insights call (shared across all CWV checks) that 
 
 ## Web app
 
-`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back as HTML or JSON. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies) and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
+`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site") and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies) and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
 
 ## Claude Code plugin
 

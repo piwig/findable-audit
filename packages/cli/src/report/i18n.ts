@@ -6,6 +6,7 @@ export type Lang = 'en' | 'fr';
 /** Bucket keys shared with cwv.ts (kept literal to avoid a runtime import cycle). */
 type CwvBucketKey = 'good' | 'ni' | 'poor';
 type CwvAssessKey = 'passed' | 'average' | 'slow' | 'inconclusive';
+type CwvMetricKey = 'lcp' | 'inp' | 'cls' | 'ttfb';
 
 /** Every report-chrome label. The 107 checks' own message/fix text is NOT here. */
 export interface ReportMessages {
@@ -48,6 +49,12 @@ export interface ReportMessages {
   cwvLabPrefix: string;            // HTML lab line prefix
   cwvLabTag: string;               // HTML lab tag text
   cwvLabMdPrefix: string;          // markdown lab line prefix
+  // CWV explainer + advice box (#5) — bilingual
+  cwvIntro: string;                // one-paragraph what/why (field vs lab)
+  cwvExplainTitle: string;         // "What these metrics mean"
+  cwvAdviceTitle: string;          // "How to improve"
+  cwvAllGood: string;              // shown when every measured metric is "good"
+  cwvMetricInfo: Record<CwvMetricKey, { label: string; what: string; advice: string }>;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -94,6 +101,16 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     cwvLabPrefix: 'Lighthouse lab: Perf',
     cwvLabTag: 'lab',
     cwvLabMdPrefix: 'Lab (Lighthouse): Perf',
+    cwvIntro: 'Core Web Vitals are Google’s user-experience signals (loading, interactivity, visual stability). They affect both search ranking and how real visitors perceive the site. Field data reflects real Chrome users (CrUX); lab data is a single controlled test.',
+    cwvExplainTitle: 'What these metrics mean',
+    cwvAdviceTitle: 'How to improve',
+    cwvAllGood: 'Every measured metric is in the “good” range — nice work.',
+    cwvMetricInfo: {
+      lcp: { label: 'LCP — Largest Contentful Paint', what: 'time until the main content is visible', advice: 'Optimize the hero image (compress, size correctly, preload), cut render-blocking CSS/JS, and serve from a CDN.' },
+      inp: { label: 'INP — Interaction to Next Paint', what: 'how quickly the page reacts to interactions', advice: 'Break up long JavaScript tasks, defer non-critical scripts, and avoid heavy work on click/input.' },
+      cls: { label: 'CLS — Cumulative Layout Shift', what: 'visual stability (unexpected layout jumps)', advice: 'Set width/height on images and embeds, reserve space for ads/banners, and never inject content above existing content.' },
+      ttfb: { label: 'TTFB — Time to First Byte', what: 'server response time (a diagnostic — not one of the three official Core Web Vitals)', advice: 'Speed up the backend, enable caching, use a CDN, and remove needless redirects.' },
+    },
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -129,7 +146,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     cwvNotMeasured: 'Core Web Vitals non mesurés — lancez avec <code>--cwv --psi-key &lt;clé&gt;</code>.',
     cwvBucket: { good: 'bon', ni: 'à améliorer', poor: 'mauvais' },
     cwvMdStatus: { good: '✅ Bon', ni: '⚠️ À améliorer', poor: '❌ Mauvais' },
-    cwvAssess: { passed: 'PASSED', average: 'À AMÉLIORER', slow: 'ÉCHEC', inconclusive: 'NON CONCLUANT' },
+    cwvAssess: { passed: 'RÉUSSI', average: 'À AMÉLIORER', slow: 'ÉCHEC', inconclusive: 'NON CONCLUANT' },
     cwvSrcOrigin: 'CrUX origine',
     cwvSrcField: 'CrUX terrain',
     cwvMdHeader: '| Métrique | p75 | Statut | Source |',
@@ -138,6 +155,16 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     cwvLabPrefix: 'Labo Lighthouse : Perf',
     cwvLabTag: 'labo',
     cwvLabMdPrefix: 'Labo (Lighthouse) : Perf',
+    cwvIntro: 'Les Core Web Vitals sont les signaux d’expérience utilisateur de Google (chargement, interactivité, stabilité visuelle). Ils influencent le référencement et la perception des vrais visiteurs. Les données terrain reflètent de vrais utilisateurs Chrome (CrUX) ; les données labo sont un test contrôlé unique.',
+    cwvExplainTitle: 'Ce que mesurent ces indicateurs',
+    cwvAdviceTitle: 'Comment améliorer',
+    cwvAllGood: 'Tous les indicateurs mesurés sont au vert — beau travail.',
+    cwvMetricInfo: {
+      lcp: { label: 'LCP — Largest Contentful Paint', what: 'temps avant l’affichage du contenu principal', advice: 'Optimisez l’image principale (compression, dimensions, préchargement), réduisez le CSS/JS bloquant et servez via un CDN.' },
+      inp: { label: 'INP — Interaction to Next Paint', what: 'rapidité de réaction de la page aux interactions', advice: 'Découpez les longues tâches JavaScript, différez les scripts non essentiels et évitez le travail lourd au clic/à la saisie.' },
+      cls: { label: 'CLS — Cumulative Layout Shift', what: 'stabilité visuelle (sauts de mise en page)', advice: 'Fixez les dimensions des images/embeds, réservez l’espace des pubs/bannières et n’insérez jamais de contenu au-dessus de l’existant.' },
+      ttfb: { label: 'TTFB — Time to First Byte', what: 'temps de réponse du serveur (un diagnostic — pas l’un des trois Core Web Vitals officiels)', advice: 'Accélérez le backend, activez le cache, utilisez un CDN et supprimez les redirections inutiles.' },
+    },
   },
 };
 

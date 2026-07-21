@@ -4,3 +4,6 @@ dist/
 
 # Superpowers visual-companion runtime (brainstorm mockups); docs/superpowers/ stays tracked
 /.superpowers/
+
+# graphify knowledge-graph output (local navigation aid, regenerated on demand)
+/graphify-out/

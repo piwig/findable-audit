@@ -99,6 +99,12 @@ const PAGE_STYLE = `
   .lang-switch a { color: #1a7f37; text-decoration: none; }
   .lang-switch a:hover { text-decoration: underline; }
   .lang-switch [aria-current] { font-weight: 600; color: #1a1a1a; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 1.75rem; }
+  .topbar .lang-switch { margin: 0; }
+  .brand { display: inline-flex; align-items: center; gap: .55rem; text-decoration: none; }
+  .brand svg { display: block; flex: 0 0 auto; }
+  .brand-name { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: #1c2230; }
+  .g-dash { background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .ld-eyebrow { font: 600 .72rem/1 system-ui; letter-spacing: .14em; text-transform: uppercase; color: #7a8290; display: flex; align-items: center; gap: 10px; margin: 0 0 .9rem; }
   .ld-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
   .ld-h1 { font-weight: 800; letter-spacing: -.02em; line-height: 1.06; color: #1c2230; font-size: clamp(1.9rem, 1rem + 2.8vw, 2.9rem); margin: 0 0 .7rem; max-width: 20ch; }
@@ -119,6 +125,40 @@ const PAGE_STYLE = `
   .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
 `;
 
+// findable-audit logomark: "Aube verte" gradient tile + white magnifier
+// (search / audit). Self-contained inline SVG — CSP-safe, no external asset.
+// One inline instance per page (the brand), so the gradient id never collides
+// with the /favicon.svg document (a separate resource).
+function logoMark(size = 26) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`
+    + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
+    + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+    + '</linearGradient></defs>'
+    + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
+    + '<circle cx="13.5" cy="13.5" r="6.3" fill="none" stroke="#fff" stroke-width="2.5"/>'
+    + '<line x1="18.3" y1="18.3" x2="24" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'
+    + '</svg>';
+}
+
+// Standalone favicon document served at /favicon.svg (32×32, no width/height so
+// it scales to whatever the browser tab needs).
+// Slightly heavier strokes than the larger brand/report marks so the magnifier
+// stays crisp when the browser scales this document down to a 16px tab icon.
+const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="findable-audit">'
+  + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
+  + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+  + '</linearGradient></defs>'
+  + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
+  + '<circle cx="13.5" cy="13.5" r="6.2" fill="none" stroke="#fff" stroke-width="3"/>'
+  + '<line x1="18.4" y1="18.4" x2="24" y2="24" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>'
+  + '</svg>';
+
+// Brand header (logomark + wordmark), links to the language-scoped home.
+function brandHeader(lang) {
+  return `<a class="brand" href="/${encodeURIComponent(lang)}/" aria-label="findable-audit">`
+    + `${logoMark(26)}<span class="brand-name">findable<span class="g-dash">-</span>audit</span></a>`;
+}
+
 function shell(title, bodyHtml, { lang = 'en', alternates } = {}) {
   const hreflangLinks = alternates
     ? `\n<link rel="alternate" hreflang="en" href="${escapeHtml(alternates.en)}">`
@@ -131,12 +171,13 @@ function shell(title, bodyHtml, { lang = 'en', alternates } = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>${escapeHtml(title)}</title>${hreflangLinks}
 <style>${PAGE_STYLE}</style>
 </head>
 <body>
 <main>
-${renderLangSelector(lang)}
+<header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
 ${bodyHtml}
 <footer>findable-audit · <a href="${REPO_URL}">source on GitHub</a></footer>
 </main>
@@ -203,19 +244,24 @@ function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
   return { status, html: shell(title, body, { lang }) };
 }
 
-// Wrap the stored report HTML with a download bar + back link (job-scoped).
+// Wrap the stored report HTML with a download bar + back link (job-scoped),
+// injected at the TOP of the report so the actions are reachable without
+// scrolling past a long report.
 function withResultChrome(reportHtml, jobId, lang) {
   const id = encodeURIComponent(jobId);
   const retry = escapeHtml(t(lang).progress.retry);
-  const bar = '<p style="max-width:860px;margin:1.5rem auto 0;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
-    + `Download: <a href="/audit/export?job=${id}&format=md" style="color:#1a7f37">Markdown</a> · `
+  const download = escapeHtml(t(lang).result.download);
+  const home = `/${encodeURIComponent(lang)}/`;
+  const bar = '<p style="max-width:860px;margin:1rem auto .5rem;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
+    + `${download} <a href="/audit/export?job=${id}&format=md" style="color:#1a7f37">Markdown</a> · `
     + `<a href="/audit/export?job=${id}&format=html" style="color:#1a7f37">HTML</a> · `
     + `<a href="/audit/export?job=${id}&format=json" style="color:#1a7f37">JSON</a>`
-    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/" style="color:#1a7f37">&larr; ${retry}</a></p>`;
-  const marker = '</body>';
-  const idx = reportHtml.lastIndexOf(marker);
-  if (idx === -1) return reportHtml + bar;
-  return reportHtml.slice(0, idx) + bar + '\n' + reportHtml.slice(idx);
+    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`;
+  const marker = '<body>';
+  const idx = reportHtml.indexOf(marker);
+  if (idx === -1) return bar + reportHtml;
+  const at = idx + marker.length;
+  return reportHtml.slice(0, at) + '\n' + bar + reportHtml.slice(at);
 }
 
 // HTTP status per error code: timeout/unreachable return 200 (so Cloudflare shows
@@ -701,6 +747,10 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (pathname === '/favicon.svg') {
+    send(res, 200, 'image/svg+xml; charset=utf-8', FAVICON_SVG, { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
   if (pathname === '/healthz') {
     send(res, 200, 'text/plain; charset=utf-8', 'ok');
     return;

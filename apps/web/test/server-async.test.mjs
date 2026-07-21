@@ -97,7 +97,27 @@ test('GET /audit/result serves the report with export + back chrome', async () =
   assert.match(html, /REPORT_BODY/);
   assert.ok(html.includes(`/audit/export?job=${job.id}&format=md`));
   assert.ok(html.includes(`/audit/export?job=${job.id}&format=json`));
-  assert.match(html, /Audit another site|href="\/"/);
+  // The i18n'd download label actually renders (Change #3: hardcoded -> t(lang).result.download).
+  assert.ok(html.includes('Download'), 'en download label rendered');
+  // The retry link targets the language-scoped home /en/ (not bare "/"), reusing progress.retry.
+  assert.ok(html.includes('href="/en/"'), 'retry link points to /en/');
+  assert.match(html, /Audit another site/);
+  // The download/retry bar sits at the TOP: the export link precedes the report body.
+  assert.ok(
+    html.indexOf('/audit/export?job=') < html.indexOf('REPORT_BODY'),
+    'download bar is injected above the report body',
+  );
+});
+
+test('GET /audit/result renders the download bar in French for a fr job', async () => {
+  const job = jobs.create({ url: 'https://example.com/', lang: 'fr' });
+  jobs.finish(job.id, { report: { url: 'https://example.com/' }, html: '<!doctype html><html><body>REPORT_BODY</body></html>' });
+  const res = await fetch(`${BASE}/audit/result?job=${job.id}`);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.ok(html.includes('Télécharger'), 'fr download label rendered');
+  assert.ok(html.includes('href="/fr/"'), 'fr retry link points to /fr/');
+  assert.match(html, /Auditer un autre site/); // t('fr').progress.retry
 });
 
 test('GET /audit/result serves a localized error page for a failed job', async () => {

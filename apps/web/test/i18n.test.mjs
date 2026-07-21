@@ -29,6 +29,15 @@ test('2B fills progress + error.{rateLimited,busy,timeout,unreachable}', () => {
   }
 });
 
+test('result.download is a non-empty label in both languages', () => {
+  for (const lang of ['en', 'fr']) {
+    const m = WEB_MESSAGES[lang];
+    assert.equal(typeof m.result.download, 'string');
+    assert.ok(m.result.download.length > 0, `result.download filled in ${lang}`);
+  }
+  assert.notEqual(WEB_MESSAGES.en.result.download, WEB_MESSAGES.fr.result.download);
+});
+
 test('t(lang) returns the catalogue, falling back to en for unknown', () => {
   assert.equal(t('fr'), WEB_MESSAGES.fr);
   assert.equal(t('en'), WEB_MESSAGES.en);

@@ -72,11 +72,34 @@ export function renderCwvHtml(psi: PsiResult, lang: Lang = 'en'): string {
         lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''} <span class="cwv-tag">${t.cwvLabTag}</span></div>`
     : '';
 
+  const info = t.cwvMetricInfo;
+  const explainItems = METRICS.map((m) => {
+    const [code, full] = info[m.key].label.split(' — ');
+    return `<li><b>${code}</b> (${full}) — ${info[m.key].what}</li>`;
+  }).join('');
+  // Advice/all-good only concern FIELD metrics that were actually measured. A
+  // lab-only PSI result (no CrUX data) has zero measured metrics → emit neither
+  // (an all-good note there would contradict the INCONCLUSIVE assessment badge).
+  const measured = METRICS.filter((m) => psi.field[m.key]);
+  const toImprove = measured.filter((m) => bucketOf(psi.field[m.key]!.p75, m.t) !== 'good');
+  const adviceBlock = toImprove.length > 0
+    ? `<div class="cwv-advice"><h3>${t.cwvAdviceTitle}</h3><ul>${
+        toImprove.map((m) => `<li><b>${info[m.key].label.split(' — ')[0]}</b> — ${info[m.key].advice}</li>`).join('')
+      }</ul></div>`
+    : measured.length > 0
+      ? `<p class="cwv-allgood">${t.cwvAllGood}</p>`
+      : '';
+
   return `<section class="cwv">
 <h2>${t.cwvTitle}</h2>
 <p class="cwv-assess-line"><span class="cwv-assess ${a.cls}">${t.cwvAssess[a.key]}</span> <span class="cwv-src">${src} · ${psi.strategy}</span></p>
 <div class="cwv-grid">${gauges}</div>
 ${labLine}
+<div class="cwv-info">
+<p class="cwv-intro">${t.cwvIntro}</p>
+<div class="cwv-explain"><h3>${t.cwvExplainTitle}</h3><ul>${explainItems}</ul></div>
+${adviceBlock}
+</div>
 </section>`;
 }
 
@@ -92,5 +115,17 @@ export function renderCwvMarkdown(psi: PsiResult, lang: Lang = 'en'): string {
   const labLine = lab.perfScore != null
     ? `\n_${t.cwvLabMdPrefix} ${Math.round(lab.perfScore * 100)}/100${lab.fcp != null ? ` · FCP ${Math.round(lab.fcp)} ms` : ''}${lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''}_\n`
     : '';
-  return `## ${t.cwvTitle}\n\n${t.cwvMdHeader}\n|---|---|---|---|\n${rows}\n${labLine}`;
+  const info = t.cwvMetricInfo;
+  const explain = METRICS.map((m) => {
+    const [code, full] = info[m.key].label.split(' — ');
+    return `- **${code}** (${full}) — ${info[m.key].what}`;
+  }).join('\n');
+  const measured = METRICS.filter((m) => psi.field[m.key]);
+  const toImprove = measured.filter((m) => bucketOf(psi.field[m.key]!.p75, m.t) !== 'good');
+  const advice = toImprove.length > 0
+    ? `\n**${t.cwvAdviceTitle}**\n\n${toImprove.map((m) => `- **${info[m.key].label.split(' — ')[0]}** — ${info[m.key].advice}`).join('\n')}\n`
+    : measured.length > 0
+      ? `\n_${t.cwvAllGood}_\n`
+      : '';
+  return `## ${t.cwvTitle}\n\n${t.cwvIntro}\n\n${t.cwvMdHeader}\n|---|---|---|---|\n${rows}\n${labLine}\n**${t.cwvExplainTitle}**\n\n${explain}\n${advice}`;
 }

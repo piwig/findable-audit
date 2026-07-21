@@ -21,6 +21,7 @@
 //   landing:  { title, eyebrow, h1Lead, h1Accent, h1Tail, lead, urlLabel, cta, hint,
 //               familiesTitle, families:[8 strings], howTitle, steps:[{t,d} x3] },
 //   selector: { ariaLabel, en, fr },
+//   result:   { download },  // label for the report's download bar; the "audit another site" link reuses progress.retry
 // }>
 
 export const WEB_MESSAGES = {
@@ -76,6 +77,10 @@ export const WEB_MESSAGES = {
       en: 'English',
       fr: 'Français',
     },
+    result: {
+      // Punctuation is baked in (locale-dependent): EN uses a plain colon…
+      download: 'Download:',
+    },
   },
   fr: {
     progress: {
@@ -128,6 +133,10 @@ export const WEB_MESSAGES = {
       ariaLabel: 'Langue',
       en: 'English',
       fr: 'Français',
+    },
+    result: {
+      // …FR puts a non-breaking space before the colon (French typography).
+      download: 'Télécharger :',
     },
   },
 };

@@ -45,6 +45,29 @@ describe('report i18n catalog', () => {
     expect(messages('fr').cwvSrcField).toBe('CrUX terrain');
   });
 
+  it('provides a bilingual CWV explainer + per-metric advice', () => {
+    for (const lang of ['en', 'fr'] as const) {
+      const m = messages(lang);
+      expect(m.cwvIntro.length).toBeGreaterThan(20);
+      expect(m.cwvExplainTitle.length).toBeGreaterThan(0);
+      expect(m.cwvAdviceTitle.length).toBeGreaterThan(0);
+      for (const k of ['lcp', 'inp', 'cls', 'ttfb'] as const) {
+        expect(m.cwvMetricInfo[k].label).toContain(k.toUpperCase());
+        expect(m.cwvMetricInfo[k].what.length).toBeGreaterThan(5);
+        expect(m.cwvMetricInfo[k].advice.length).toBeGreaterThan(10);
+      }
+    }
+    // the copy is actually translated, not shared
+    expect(messages('en').cwvIntro).not.toBe(messages('fr').cwvIntro);
+    expect(messages('en').cwvAdviceTitle).not.toBe(messages('fr').cwvAdviceTitle);
+    // every per-metric string is genuinely translated (labels are metric names, so
+    // they stay identical; `what` + `advice` must differ between locales)
+    for (const k of ['lcp', 'inp', 'cls', 'ttfb'] as const) {
+      expect(messages('en').cwvMetricInfo[k].what).not.toBe(messages('fr').cwvMetricInfo[k].what);
+      expect(messages('en').cwvMetricInfo[k].advice).not.toBe(messages('fr').cwvMetricInfo[k].advice);
+    }
+  });
+
   it('has a label + short label for every family in both languages', () => {
     for (const lang of ['en', 'fr'] as const) {
       for (const f of FAMILIES) {
