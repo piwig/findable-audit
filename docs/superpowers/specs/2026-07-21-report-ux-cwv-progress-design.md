@@ -367,3 +367,19 @@ absente → phase `cwv` « non mesuré ») :
   de signal d'effort ; les libellés « gains rapides » des maquettes deviennent
   « à corriger en priorité / à améliorer » (plus honnête). Un champ `effort?` par check
   reste possible plus tard (YAGNI pour l'instant).
+
+---
+
+## 7. Addendum 2026-07-21 — exigences supplémentaires (Phase 2)
+
+Ajoutées en cours d'exécution ; **n'affectent pas la Phase 1** (renderers CLI). À intégrer au plan Phase 2 (`apps/web`).
+
+### 7.1 Refonte de la landing page (user-friendly + design soigné)
+- Rendre la page d'accueil de `apps/web` plus accueillante et jolie (aujourd'hui : `landingPage()` minimal dans `server.mjs`, un `<form>` + hint).
+- **Source de design** : s'inspirer de **pb-ot.fr** (sources locales `C:\IA\PB OpenTech`, site Astro ; SEO/GEO/AEO très abouti — voir mémoire [[pb-opentech-site]]). Reprendre son langage visuel (hero clair, typographie, accents, sections « ce que ça fait / pourquoi », CTA) **adapté** à findable-audit (thème clair, accent vert `#1a7f37`, cohérent avec le rapport Direction A). Contraintes web conservées : zéro-dép, CSP stricte hors page d'attente, autonome.
+- À la reprise Phase 2 : proposer 1-2 maquettes (compagnon visuel) avant implémentation, puis valider.
+
+### 7.2 Export JSON (en plus de HTML et MD)
+- **Web** : ajouter un 3ᵉ bouton **⬇ JSON** sur la page de résultats, et étendre la route d'export à `format=md|html|json` → `renderJson(report)` avec `Content-Type: application/json` + `Content-Disposition: attachment; filename="<host>-<date>.json"`. (`renderJson` existe déjà.)
+- **CLI** : étendre le dispatch par extension de `--report` (`index.ts` : aujourd'hui `.html?`→`renderHtml`, sinon `renderMarkdown`) pour gérer **`.json`→`renderJson`**. Petit ajout non cassant.
+- Tests : route export json (content-type + disposition) ; dispatch CLI `--report out.json` écrit du JSON valide (`JSON.parse` ok).
