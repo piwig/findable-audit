@@ -1,30 +1,11 @@
 import pc from 'picocolors';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
+import { FAMILY_LABELS_I18N, FAMILY_SHORT_I18N } from './i18n.js';
 
-/** Family labels & display order (spec v0.2 §7). */
-export const FAMILY_LABELS: Record<Family, string> = {
-  'ai-access': 'AI crawler access',
-  'llm-content': 'Answer-engine content',
-  'structured-data': 'Structured data & metadata',
-  'technical-seo': 'Technical SEO',
-  'on-page': 'On-page & content',
-  performance: 'Performance & Core Web Vitals',
-  accessibility: 'Accessibility',
-  security: 'Security & trust',
-};
-
-/** Short family chips for the action plan / compact UI. */
-export const FAMILY_SHORT: Record<Family, string> = {
-  'ai-access': 'Accès IA',
-  'llm-content': 'Contenu IA',
-  'structured-data': 'Données',
-  'technical-seo': 'SEO',
-  'on-page': 'On-page',
-  performance: 'Perf',
-  accessibility: 'A11y',
-  security: 'Sécurité',
-};
+/** Terminal output stays English: labels & short chips derive from the EN catalog. */
+export const FAMILY_LABELS: Record<Family, string> = FAMILY_LABELS_I18N.en;
+export const FAMILY_SHORT: Record<Family, string> = FAMILY_SHORT_I18N.en;
 
 const ICONS: Record<CheckResult['status'], string> = {
   pass: pc.green('OK '), warn: pc.yellow('!! '), fail: pc.red('XX '), skip: pc.dim('-- '),
