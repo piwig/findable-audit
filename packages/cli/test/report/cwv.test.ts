@@ -42,8 +42,18 @@ describe('renderCwvHtml', () => {
       field: { ttfb: { p75: 2000, category: '' }, overallCategory: 'NONE', origin: false },
       lab: {},
     };
-    // TTFB 2000ms > poor(1800) -> ÉCHEC ; and no crash from a missing LCP/INP/CLS
-    expect(renderCwvHtml(psiNoOverall)).toContain('ÉCHEC');
+    // TTFB 2000ms > poor(1800) -> FAILED ; and no crash from a missing LCP/INP/CLS
+    expect(renderCwvHtml(psiNoOverall)).toContain('FAILED');
+  });
+
+  it('defaults to English (assessment + CrUX source)', () => {
+    expect(html).toMatch(/PASSED|NEEDS WORK|FAILED|INCONCLUSIVE/);
+    expect(html).toMatch(/CrUX (origin\b|field)/);
+  });
+  it('renders French labels when asked', () => {
+    const htmlFr = renderCwvHtml(psi, 'fr');
+    expect(htmlFr).toMatch(/PASSED|À AMÉLIORER|ÉCHEC|NON CONCLUANT/);
+    expect(htmlFr).toMatch(/CrUX (origine|terrain)/);
   });
 });
 
@@ -52,5 +62,16 @@ describe('renderCwvMarkdown', () => {
     const md = renderCwvMarkdown(psi);
     expect(md).toContain('## Core Web Vitals');
     expect(md).toMatch(/\| LCP \| 1\.8 s \|/);
+  });
+
+  it('defaults to English status + header', () => {
+    const md = renderCwvMarkdown(psi);
+    expect(md).toContain('| Metric | p75 | Status | Source |');
+    expect(md).toMatch(/✅ Good|⚠️ Needs improvement|❌ Poor/);
+  });
+  it('renders French status + header when asked', () => {
+    const md = renderCwvMarkdown(psi, 'fr');
+    expect(md).toContain('| Métrique | p75 | Statut | Source |');
+    expect(md).toMatch(/✅ Bon|⚠️ À améliorer|❌ Mauvais/);
   });
 });

@@ -1,5 +1,6 @@
 import type { PsiResult } from '../perf/psi.js';
 import { CWV_THRESHOLDS } from '../perf/psi.js';
+import { messages, type Lang } from './i18n.js';
 
 export type Bucket = 'good' | 'ni' | 'poor';
 
@@ -12,8 +13,6 @@ export function bucketOf(value: number, t: { good: number; poor: number }): Buck
 
 const CLS = { good: '#1a7f37', ni: '#9a6700', poor: '#b42318' } as const;
 const CSSCLASS: Record<Bucket, string> = { good: 'good', ni: 'ok', poor: 'bad' };
-const LABEL: Record<Bucket, string> = { good: 'bon', ni: 'à améliorer', poor: 'mauvais' };
-const MD_STATUS: Record<Bucket, string> = { good: '✅ Bon', ni: '⚠️ À améliorer', poor: '❌ Mauvais' };
 
 type FieldKey = 'lcp' | 'inp' | 'cls' | 'ttfb';
 interface Metric { key: FieldKey; name: string; t: { good: number; poor: number }; fmt: (v: number) => string; }
@@ -31,24 +30,27 @@ function arcPct(value: number, t: { good: number; poor: number }): number {
   return Math.round(frac * 100);
 }
 
-function assessment(psi: PsiResult): { cls: string; label: string } {
+type AssessKey = 'passed' | 'average' | 'slow' | 'inconclusive';
+
+function assessment(psi: PsiResult): { cls: string; key: AssessKey } {
   const oc = psi.field.overallCategory;
-  if (oc === 'FAST') return { cls: 'good', label: 'PASSED' };
-  if (oc === 'AVERAGE') return { cls: 'ok', label: 'À AMÉLIORER' };
-  if (oc === 'SLOW') return { cls: 'bad', label: 'ÉCHEC' };
+  if (oc === 'FAST') return { cls: 'good', key: 'passed' };
+  if (oc === 'AVERAGE') return { cls: 'ok', key: 'average' };
+  if (oc === 'SLOW') return { cls: 'bad', key: 'slow' };
   // fallback: worst present bucket — keep each metric bound to its own threshold
   const buckets = METRICS
     .filter((m) => psi.field[m.key])
     .map((m) => bucketOf(psi.field[m.key]!.p75, m.t));
-  if (buckets.includes('poor')) return { cls: 'bad', label: 'ÉCHEC' };
-  if (buckets.includes('ni')) return { cls: 'ok', label: 'À AMÉLIORER' };
-  if (buckets.length) return { cls: 'good', label: 'PASSED' };
-  return { cls: 'ok', label: 'NON CONCLUANT' };
+  if (buckets.includes('poor')) return { cls: 'bad', key: 'slow' };
+  if (buckets.includes('ni')) return { cls: 'ok', key: 'average' };
+  if (buckets.length) return { cls: 'good', key: 'passed' };
+  return { cls: 'ok', key: 'inconclusive' };
 }
 
-export function renderCwvHtml(psi: PsiResult): string {
+export function renderCwvHtml(psi: PsiResult, lang: Lang = 'en'): string {
+  const t = messages(lang);
   const a = assessment(psi);
-  const src = psi.field.origin ? 'CrUX origine' : 'CrUX terrain';
+  const src = psi.field.origin ? t.cwvSrcOrigin : t.cwvSrcField;
   const gauges = METRICS.map((m) => {
     const fm = psi.field[m.key];
     if (!fm) return '';
@@ -59,35 +61,36 @@ export function renderCwvHtml(psi: PsiResult): string {
         <div class="cwv-inner"><span class="cwv-val">${m.fmt(fm.p75)}</span></div>
       </div>
       <div class="cwv-name">${m.name}</div>
-      <div class="cwv-bucket ${CSSCLASS[b]}">${LABEL[b]}</div>
+      <div class="cwv-bucket ${CSSCLASS[b]}">${t.cwvBucket[b]}</div>
     </div>`;
   }).join('');
 
   const lab = psi.lab;
   const labLine = lab.perfScore != null
-    ? `<div class="cwv-lab">Labo Lighthouse : Perf ${Math.round(lab.perfScore * 100)}/100${
+    ? `<div class="cwv-lab">${t.cwvLabPrefix} ${Math.round(lab.perfScore * 100)}/100${
         lab.fcp != null ? ` · FCP ${Math.round(lab.fcp)} ms` : ''}${
-        lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''} <span class="cwv-tag">labo</span></div>`
+        lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''} <span class="cwv-tag">${t.cwvLabTag}</span></div>`
     : '';
 
   return `<section class="cwv">
-<h2>Core Web Vitals</h2>
-<p class="cwv-assess-line"><span class="cwv-assess ${a.cls}">${a.label}</span> <span class="cwv-src">${src} · ${psi.strategy}</span></p>
+<h2>${t.cwvTitle}</h2>
+<p class="cwv-assess-line"><span class="cwv-assess ${a.cls}">${t.cwvAssess[a.key]}</span> <span class="cwv-src">${src} · ${psi.strategy}</span></p>
 <div class="cwv-grid">${gauges}</div>
 ${labLine}
 </section>`;
 }
 
-export function renderCwvMarkdown(psi: PsiResult): string {
+export function renderCwvMarkdown(psi: PsiResult, lang: Lang = 'en'): string {
+  const t = messages(lang);
   const rows = METRICS.map((m) => {
     const fm = psi.field[m.key];
     if (!fm) return '';
     const b = bucketOf(fm.p75, m.t);
-    return `| ${m.name} | ${m.fmt(fm.p75)} | ${MD_STATUS[b]} | ${psi.field.origin ? 'origin' : 'field'} |`;
+    return `| ${m.name} | ${m.fmt(fm.p75)} | ${t.cwvMdStatus[b]} | ${psi.field.origin ? t.cwvMdSrcOrigin : t.cwvMdSrcField} |`;
   }).filter(Boolean).join('\n');
   const lab = psi.lab;
   const labLine = lab.perfScore != null
-    ? `\n_Lab (Lighthouse): Perf ${Math.round(lab.perfScore * 100)}/100${lab.fcp != null ? ` · FCP ${Math.round(lab.fcp)} ms` : ''}${lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''}_\n`
+    ? `\n_${t.cwvLabMdPrefix} ${Math.round(lab.perfScore * 100)}/100${lab.fcp != null ? ` · FCP ${Math.round(lab.fcp)} ms` : ''}${lab.tbt != null ? ` · TBT ${Math.round(lab.tbt)} ms` : ''}_\n`
     : '';
-  return `## Core Web Vitals\n\n| Metric | p75 | Status | Source |\n|---|---|---|---|\n${rows}\n${labLine}`;
+  return `## ${t.cwvTitle}\n\n${t.cwvMdHeader}\n|---|---|---|---|\n${rows}\n${labLine}`;
 }
