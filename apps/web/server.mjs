@@ -32,7 +32,7 @@ const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
 const MAX_CONCURRENT = 3; // at most N audits running at once.
 const RATE_LIMIT = 6; // audits per IP...
 const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
-const AUDIT_TIMEOUT_MS = 25_000; // hard cap on a single audit.
+const AUDIT_TIMEOUT_MS = 45_000; // hard cap on a single audit (must stay < nginx proxy_read_timeout, 60s).
 const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
 const MAX_PAGES = 8; // pages sampled per audit (capped for cost).
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
@@ -296,7 +296,9 @@ async function handleAudit(req, res, wantJson) {
       if (wantJson) {
         send(res, 504, 'application/json; charset=utf-8', JSON.stringify({ error: 'timeout', message: msg }));
       } else {
-        const p = errorPage('Audit timed out', msg, { status: 504 });
+        // Return 200 for the browser page so Cloudflare (which skins origin 5xx
+        // with its own error page) shows OUR friendly "timed out" message instead.
+        const p = errorPage('Audit timed out', msg, { status: 200 });
         send(res, p.status, 'text/html; charset=utf-8', p.html);
       }
       return;
@@ -306,7 +308,9 @@ async function handleAudit(req, res, wantJson) {
       if (wantJson) {
         send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'unreachable', message: msg }));
       } else {
-        const p = errorPage('Site unreachable', msg, { status: 502 });
+        // 200 for the browser page (see timeout note) so the user sees our message,
+        // not Cloudflare's branded 5xx error page.
+        const p = errorPage('Site unreachable', msg, { status: 200 });
         send(res, p.status, 'text/html; charset=utf-8', p.html);
       }
       return;
