@@ -140,14 +140,27 @@ function errorPage(title, message, { status = 400 } = {}) {
   return { status, html: shell(title, body) };
 }
 
-// The rendered report + a small footer link back to the form.
-function reportWithBackLink(reportHtml) {
-  const back = '<p style="max-width:860px;margin:1.5rem auto 0;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
-    + '<a href="/" style="color:#1a7f37">&larr; Audit another site</a></p>';
+// Wrap the stored report HTML with a download bar + back link (job-scoped).
+function withResultChrome(reportHtml, jobId, lang) {
+  const id = encodeURIComponent(jobId);
+  const retry = escapeHtml(t(lang).progress.retry);
+  const bar = '<p style="max-width:860px;margin:1.5rem auto 0;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
+    + `Download: <a href="/audit/export?job=${id}&format=md" style="color:#1a7f37">Markdown</a> · `
+    + `<a href="/audit/export?job=${id}&format=html" style="color:#1a7f37">HTML</a> · `
+    + `<a href="/audit/export?job=${id}&format=json" style="color:#1a7f37">JSON</a>`
+    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/" style="color:#1a7f37">&larr; ${retry}</a></p>`;
   const marker = '</body>';
   const idx = reportHtml.lastIndexOf(marker);
-  if (idx === -1) return reportHtml + back;
-  return reportHtml.slice(0, idx) + back + '\n' + reportHtml.slice(idx);
+  if (idx === -1) return reportHtml + bar;
+  return reportHtml.slice(0, idx) + bar + '\n' + reportHtml.slice(idx);
+}
+
+// HTTP status per error code: timeout/unreachable return 200 (so Cloudflare shows
+// OUR friendly page, not its branded 5xx); busy → 429; anything else → 502.
+function statusForError(code) {
+  if (code === 'timeout' || code === 'unreachable') return 200;
+  if (code === 'busy') return 429;
+  return 502;
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +321,25 @@ function handleStream(req, res, job) {
   req.on('close', () => clearInterval(tick));
 }
 
+async function handleResult(req, res, job) {
+  await ensureStarted(job); // starts + awaits (idempotent); no-op if already terminal.
+  const j = jobs.get(job.id);
+  if (!j) { const p = errorPage('Not found', 'No such page.', { status: 404 }); send(res, p.status, 'text/html; charset=utf-8', p.html); return; }
+
+  if (j.status === 'done' && j.html) {
+    send(res, 200, 'text/html; charset=utf-8', withResultChrome(j.html, j.id, j.lang));
+    return;
+  }
+  // Error (or the rare not-yet-terminal race): render a localized error page.
+  const code = j.error?.code ?? 'internal';
+  const cat = t(j.lang).error[code];
+  const title = cat && cat.title ? cat.title : 'Audit failed';
+  const message = j.error?.message ?? (cat && cat.message) ?? 'Something went wrong while auditing that site.';
+  const status = statusForError(code);
+  const p = errorPage(title, message, { status });
+  send(res, p.status, 'text/html; charset=utf-8', p.html);
+}
+
 // ---------------------------------------------------------------------------
 // Request helpers
 // ---------------------------------------------------------------------------
@@ -427,22 +459,18 @@ function normalizeInput(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// Route handler for /audit and /audit.json
+// Route handler for /audit.json (JSON-only). The HTML flow is now the async
+// /audit → /audit/stream → /audit/result path (handleAuditStart, handleStream,
+// handleResult, handleExport) — see Tasks 4-7.
 // ---------------------------------------------------------------------------
-async function handleAudit(req, res, wantJson) {
+async function handleAudit(req, res) {
   const ip = clientIp(req);
   const rl = rateLimiter.take(ip);
   if (!rl.allowed) {
     const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
-    const headers = { 'retry-after': String(retryAfter) };
-    if (wantJson) {
-      send(res, 429, 'application/json; charset=utf-8',
-        JSON.stringify({ error: 'rate_limited', retryAfterSeconds: retryAfter }), headers);
-    } else {
-      const p = errorPage('Too many requests',
-        `You have run too many audits in a short time. Try again in about ${retryAfter}s.`, { status: 429 });
-      send(res, p.status, 'text/html; charset=utf-8', p.html, headers);
-    }
+    send(res, 429, 'application/json; charset=utf-8',
+      JSON.stringify({ error: 'rate_limited', retryAfterSeconds: retryAfter }),
+      { 'retry-after': String(retryAfter) });
     return;
   }
 
@@ -450,12 +478,7 @@ async function handleAudit(req, res, wantJson) {
   const rawUrl = parsed.searchParams.get('url') ?? '';
   const normalized = normalizeInput(rawUrl);
   if (normalized === '') {
-    if (wantJson) {
-      send(res, 400, 'application/json; charset=utf-8', JSON.stringify({ error: 'missing url parameter' }));
-    } else {
-      const p = errorPage('Missing URL', 'Please provide a URL to audit.');
-      send(res, p.status, 'text/html; charset=utf-8', p.html);
-    }
+    send(res, 400, 'application/json; charset=utf-8', JSON.stringify({ error: 'missing url parameter' }));
     return;
   }
 
@@ -465,13 +488,8 @@ async function handleAudit(req, res, wantJson) {
     url = await assertPublicUrl(normalized);
   } catch (err) {
     if (err instanceof BlockedUrlError) {
-      if (wantJson) {
-        send(res, 400, 'application/json; charset=utf-8',
-          JSON.stringify({ error: 'blocked', reason: err.code, message: err.message }));
-      } else {
-        const p = errorPage('URL not allowed', err.message);
-        send(res, p.status, 'text/html; charset=utf-8', p.html);
-      }
+      send(res, 400, 'application/json; charset=utf-8',
+        JSON.stringify({ error: 'blocked', reason: err.code, message: err.message }));
       return;
     }
     throw err;
@@ -484,57 +502,29 @@ async function handleAudit(req, res, wantJson) {
   } catch (err) {
     if (err && err.code === 'BUSY') {
       const msg = 'The server is busy running other audits. Please try again in a few seconds.';
-      if (wantJson) {
-        send(res, 429, 'application/json; charset=utf-8', JSON.stringify({ error: 'busy', message: msg }),
-          { 'retry-after': '5' });
-      } else {
-        const p = errorPage('Server busy', msg, { status: 429 });
-        send(res, p.status, 'text/html; charset=utf-8', p.html, { 'retry-after': '5' });
-      }
+      send(res, 429, 'application/json; charset=utf-8', JSON.stringify({ error: 'busy', message: msg }),
+        { 'retry-after': '5' });
       return;
     }
     if (err instanceof AuditTimeoutError) {
       const msg = 'The audit took too long and was stopped. The target site may be slow or unresponsive.';
-      if (wantJson) {
-        send(res, 504, 'application/json; charset=utf-8', JSON.stringify({ error: 'timeout', message: msg }));
-      } else {
-        // Return 200 for the browser page so Cloudflare (which skins origin 5xx
-        // with its own error page) shows OUR friendly "timed out" message instead.
-        const p = errorPage('Audit timed out', msg, { status: 200 });
-        send(res, p.status, 'text/html; charset=utf-8', p.html);
-      }
+      send(res, 504, 'application/json; charset=utf-8', JSON.stringify({ error: 'timeout', message: msg }));
       return;
     }
     if (err instanceof UnreachableSiteError) {
       const msg = `Could not reach ${url.href} — the site may be down or blocking automated requests.`;
-      if (wantJson) {
-        send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'unreachable', message: msg }));
-      } else {
-        // 200 for the browser page (see timeout note) so the user sees our message,
-        // not Cloudflare's branded 5xx error page.
-        const p = errorPage('Site unreachable', msg, { status: 200 });
-        send(res, p.status, 'text/html; charset=utf-8', p.html);
-      }
+      send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'unreachable', message: msg }));
       return;
     }
     // Unexpected failure: log server-side, return a generic message.
     console.error('audit error:', err);
     const msg = 'Something went wrong while auditing that site.';
-    if (wantJson) {
-      send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'internal', message: msg }));
-    } else {
-      const p = errorPage('Audit failed', msg, { status: 502 });
-      send(res, p.status, 'text/html; charset=utf-8', p.html);
-    }
+    send(res, 502, 'application/json; charset=utf-8', JSON.stringify({ error: 'internal', message: msg }));
     return;
   }
 
-  // 3) Render.
-  if (wantJson) {
-    send(res, 200, 'application/json; charset=utf-8', renderJson(report));
-  } else {
-    send(res, 200, 'text/html; charset=utf-8', reportWithBackLink(renderHtml(report)));
-  }
+  // 3) Render JSON only — no reportWithBackLink, no HTML branch.
+  send(res, 200, 'application/json; charset=utf-8', renderJson(report));
 }
 
 // ---------------------------------------------------------------------------
@@ -571,7 +561,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (pathname === '/audit.json') {
-    handleAudit(req, res, true).catch((err) => {
+    handleAudit(req, res).catch((err) => {
       console.error('unhandled /audit.json error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
@@ -581,6 +571,15 @@ const server = http.createServer((req, res) => {
     const job = jobFromQuery(req);
     if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
     handleStream(req, res, job);
+    return;
+  }
+  if (pathname === '/audit/result') {
+    const job = jobFromQuery(req);
+    if (!job) { const p = errorPage('Not found', 'No such page.', { status: 404 }); send(res, p.status, 'text/html; charset=utf-8', p.html); return; }
+    handleResult(req, res, job).catch((err) => {
+      console.error('unhandled /audit/result error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
     return;
   }
 

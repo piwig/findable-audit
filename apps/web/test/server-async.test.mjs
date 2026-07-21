@@ -84,3 +84,29 @@ test('GET /audit/stream with an unknown job returns 404', async () => {
   const res = await fetch(`${BASE}/audit/stream?job=does-not-exist`);
   assert.equal(res.status, 404);
 });
+
+test('GET /audit/result serves the report with export + back chrome', async () => {
+  const job = jobs.create({ url: 'https://example.com/', lang: 'en' });
+  jobs.finish(job.id, { report: { url: 'https://example.com/' }, html: '<!doctype html><html><body>REPORT_BODY</body></html>' });
+  const res = await fetch(`${BASE}/audit/result?job=${job.id}`);
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /REPORT_BODY/);
+  assert.ok(html.includes(`/audit/export?job=${job.id}&format=md`));
+  assert.ok(html.includes(`/audit/export?job=${job.id}&format=json`));
+  assert.match(html, /Audit another site|href="\/"/);
+});
+
+test('GET /audit/result serves a localized error page for a failed job', async () => {
+  const job = jobs.create({ url: 'https://example.com/', lang: 'fr' });
+  jobs.fail(job.id, 'timeout', "L'audit a expiré (test)");
+  const res = await fetch(`${BASE}/audit/result?job=${job.id}`);
+  assert.equal(res.status, 200); // timeout returns 200 so Cloudflare shows our page
+  const html = await res.text();
+  assert.match(html, /expiré/);
+});
+
+test('GET /audit/result with unknown job returns 404', async () => {
+  const res = await fetch(`${BASE}/audit/result?job=nope`);
+  assert.equal(res.status, 404);
+});
