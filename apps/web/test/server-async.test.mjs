@@ -16,7 +16,10 @@ test.after(() => server.close());
 const PUBLIC = 'http://93.184.216.34/';
 
 test('GET /audit returns a nonce-CSP progress page (no audit run)', async () => {
-  const res = await fetch(`${BASE}/audit?url=${encodeURIComponent(PUBLIC)}&lang=fr`);
+  // /fr/audit (not /audit?lang=fr): sub-phase 2C makes the /en /fr path
+  // prefix the authoritative language selector for human-navigable paths —
+  // unprefixed /audit now 301-redirects to /en/audit (see lang-routing.test.mjs).
+  const res = await fetch(`${BASE}/fr/audit?url=${encodeURIComponent(PUBLIC)}`);
   assert.equal(res.status, 200);
   const csp = res.headers.get('content-security-policy');
   assert.match(csp, /script-src 'nonce-[^']+'/);

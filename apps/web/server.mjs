@@ -27,6 +27,7 @@ import { createResultCache } from './lib/cache.mjs';
 import { clientIp } from './lib/client-ip.mjs';
 import { createJobStore } from './lib/jobs.mjs';
 import { t } from './lib/i18n.mjs';
+import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -568,6 +569,55 @@ const server = http.createServer((req, res) => {
     pathname = new URL(req.url, 'http://localhost').pathname;
   } catch {
     send(res, 400, 'text/plain; charset=utf-8', 'Bad Request');
+    return;
+  }
+
+  // --- i18n path-prefix routing (sub-phase 2C) ------------------------------
+  // Every human-facing page lives under /en or /fr. `/` redirects to the
+  // Accept-Language match (else English). Only `/audit` is human-navigable
+  // (typed/bookmarked directly), so only it 301-redirects to its English form
+  // when requested unprefixed. `/audit/stream`, `/audit/result`, and
+  // `/audit/export` are never navigated to directly — 2B's progress page
+  // hardcodes them as unprefixed URLs (the EventSource source, the
+  // <noscript> refresh link, and the download-bar links), so redirecting
+  // them would add a wasteful extra 301 hop to every SSE/result/export
+  // request. They — like `/healthz` and `/audit.json` — stay global,
+  // unprefixed routes left untouched by this block.
+  const HUMAN_PATHS = new Set(['/audit']);
+
+  if (pathname === '/') {
+    const lang = negotiateLang(req.headers['accept-language']);
+    send(res, 302, 'text/plain; charset=utf-8', 'Found', { location: `/${lang}/` });
+    return;
+  }
+
+  const split = splitLangPrefix(pathname);
+  if (split) {
+    // Rewrite the request so the existing (2B-extended) dispatch chain below
+    // sees the unprefixed pathname, with `lang` forced onto the query string.
+    // 2B's job routes read `lang` from the query per the Phase-2 contract, so
+    // no further coupling to their internals is needed here.
+    const rewritten = new URL(req.url, 'http://localhost');
+    rewritten.pathname = split.rest;
+    rewritten.searchParams.set('lang', split.lang);
+    req.url = rewritten.pathname + rewritten.search;
+    req.__lang = split.lang;
+    pathname = split.rest;
+
+    if (pathname === '/') {
+      send(res, 200, 'text/html; charset=utf-8', landingPage(split.lang));
+      return;
+    }
+    // Any other rest path (/audit, /audit/stream, /audit/result, /audit/export,
+    // or an unknown path) falls through to the dispatch chain below.
+  } else if (HUMAN_PATHS.has(pathname)) {
+    const rewritten = new URL(req.url, 'http://localhost');
+    rewritten.pathname = `/${DEFAULT_LANG}${pathname}`;
+    // Force the query string through the URLSearchParams serializer (percent-
+    // encoding reserved characters like ":" and "/" in param values) so the
+    // Location header is well-formed regardless of how the client wrote it.
+    rewritten.searchParams.sort();
+    send(res, 301, 'text/plain; charset=utf-8', 'Moved Permanently', { location: rewritten.pathname + rewritten.search });
     return;
   }
 
