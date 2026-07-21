@@ -29,15 +29,6 @@ test('2B fills progress + error.{rateLimited,busy,timeout,unreachable}', () => {
   }
 });
 
-test('2C stubs (landing, selector, error.notFound) are left empty for 2C to fill', () => {
-  for (const lang of ['en', 'fr']) {
-    const m = WEB_MESSAGES[lang];
-    assert.deepEqual(m.landing, {});
-    assert.deepEqual(m.selector, {});
-    assert.deepEqual(m.error.notFound, {});
-  }
-});
-
 test('t(lang) returns the catalogue, falling back to en for unknown', () => {
   assert.equal(t('fr'), WEB_MESSAGES.fr);
   assert.equal(t('en'), WEB_MESSAGES.en);

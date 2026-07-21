@@ -3,15 +3,21 @@
 //
 // OWNERSHIP (contract hardening #1): 2B is the sole creator of this file and
 // delivers the COMPLETE skeleton. 2B fills `progress` and
-// `error.{rateLimited,busy,timeout,unreachable}`. It leaves `landing`,
-// `selector` and `error.notFound` as empty {} stubs that 2C fills in place —
-// 2C ADDS values, it never recreates this file.
+// `error.{rateLimited,busy,timeout,unreachable}`. 2C fills `landing`,
+// `selector` and `error.notFound` in place — 2C ADDS values, it never
+// recreates this file.
+//
+// OWNERSHIP NOTE: sub-phase 2B owns `progress` and the job-lifecycle parts
+// of `error` (rate-limited, busy, timeout, unreachable...). Sub-phase 2C
+// owns `landing`, `selector`, and `error.notFound`. Now that both have
+// landed, this file holds the union of both sets of keys under one
+// `t(lang)`.
 //
 // Shape: Record<Lang, {
 //   progress: { title, heading, lead, phases:{connect,sample,checks,cwv,score}, done, failed, noscript, retry },
-//   error:    { rateLimited, busy, timeout, unreachable, notFound },   // each {title,message}; notFound is a 2C stub
-//   landing:  {},   // 2C
-//   selector: {},   // 2C
+//   error:    { rateLimited, busy, timeout, unreachable, notFound },   // each {title,message}
+//   landing:  { title, h1, lead, feature1, feature2, feature3, urlLabel, cta, hint },
+//   selector: { ariaLabel, en, fr },
 // }>
 
 export const WEB_MESSAGES = {
@@ -37,10 +43,24 @@ export const WEB_MESSAGES = {
       busy: { title: 'Server busy', message: 'The server is busy running other audits. Please try again in a few seconds.' },
       timeout: { title: 'Audit timed out', message: 'The audit took too long and was stopped. The target site may be slow or unresponsive.' },
       unreachable: { title: 'Site unreachable', message: 'Could not reach that site — it may be down or blocking automated requests.' },
-      notFound: {}, // 2C fills { title, message }
+      notFound: { title: 'Not found', message: 'No such page.' },
     },
-    landing: {},  // 2C
-    selector: {}, // 2C
+    landing: {
+      title: 'findable-audit — SEO & GEO audit',
+      h1: 'findable-audit',
+      lead: "Audit a website's SEO and GEO — how findable it is by AI search crawlers (GPTBot, ClaudeBot, PerplexityBot…) and classic search engines.",
+      feature1: '107 checks across 8 weighted families — AI access, structured data, technical SEO, on-page, performance, accessibility, security.',
+      feature2: 'A single score out of 100 and an A–F grade, with a prioritized action plan.',
+      feature3: 'Multi-page crawl, Core Web Vitals (when configured), and exportable Markdown / HTML / JSON reports.',
+      urlLabel: 'Website URL',
+      cta: 'Audit',
+      hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
+    },
+    selector: {
+      ariaLabel: 'Language',
+      en: 'English',
+      fr: 'Français',
+    },
   },
   fr: {
     progress: {
@@ -64,10 +84,24 @@ export const WEB_MESSAGES = {
       busy: { title: 'Serveur occupé', message: "Le serveur exécute déjà d'autres audits. Réessayez dans quelques secondes." },
       timeout: { title: "L'audit a expiré", message: "L'audit a pris trop de temps et a été arrêté. Le site cible est peut-être lent ou ne répond pas." },
       unreachable: { title: 'Site injoignable', message: "Impossible de joindre ce site — il est peut-être hors ligne ou bloque les requêtes automatisées." },
-      notFound: {}, // 2C
+      notFound: { title: 'Introuvable', message: "Cette page n'existe pas." },
     },
-    landing: {},  // 2C
-    selector: {}, // 2C
+    landing: {
+      title: 'findable-audit — audit SEO & GEO',
+      h1: 'findable-audit',
+      lead: "Auditez le SEO et le GEO d'un site — sa findabilité par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) et les moteurs de recherche classiques.",
+      feature1: '107 vérifications réparties sur 8 familles pondérées : accès IA, données structurées, SEO technique, on-page, performance, accessibilité, sécurité.',
+      feature2: "Un score sur 100 et une note A–F, avec un plan d'action priorisé.",
+      feature3: 'Crawl multi-pages, Core Web Vitals (si configurés), et rapports exportables en Markdown / HTML / JSON.',
+      urlLabel: 'URL du site',
+      cta: 'Auditer',
+      hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
+    },
+    selector: {
+      ariaLabel: 'Langue',
+      en: 'English',
+      fr: 'Français',
+    },
   },
 };
 
