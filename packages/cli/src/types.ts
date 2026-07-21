@@ -1,4 +1,5 @@
 import type { PsiResult } from './perf/psi.js';
+import { FAMILY_DOC_URL } from './doc-urls.js';
 
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip';
 export type Family =
@@ -19,6 +20,8 @@ export interface CheckResult {
   maxPoints: number;
   message: string;
   fix?: string;
+  /** Resolved documentation link (check override or family fallback). Present on every result. */
+  docUrl?: string;
 }
 
 export interface FetchedResource {
@@ -97,11 +100,13 @@ export interface Check {
   id: string;
   family: Family;
   maxPoints: number;
+  /** Optional per-check documentation link; falls back to FAMILY_DOC_URL[family] in makeResult. */
+  docUrl?: string;
   run(ctx: CrawlContext): Promise<CheckResult>;
 }
 
 export function makeResult(
-  check: Pick<Check, 'id' | 'family' | 'maxPoints'>,
+  check: Pick<Check, 'id' | 'family' | 'maxPoints' | 'docUrl'>,
   status: CheckStatus,
   message: string,
   fix?: string,
@@ -109,5 +114,6 @@ export function makeResult(
   const points =
     status === 'pass' ? check.maxPoints :
     status === 'warn' ? Math.floor(check.maxPoints / 2) : 0;
-  return { id: check.id, family: check.family, status, points, maxPoints: check.maxPoints, message, fix };
+  const docUrl = check.docUrl ?? FAMILY_DOC_URL[check.family];
+  return { id: check.id, family: check.family, status, points, maxPoints: check.maxPoints, message, fix, docUrl };
 }
