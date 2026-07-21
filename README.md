@@ -119,7 +119,7 @@ npx findable-audit https://your-site.com
 
 `<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets) and printable — open it in a browser and use **Print to PDF** to get a PDF.
 
-Both the HTML and Markdown reports open with a one-line verdict summarizing the result, and — when run with `--cwv --psi-key <key>` — the HTML report adds a **Core Web Vitals dashboard** with radial gauges for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data (a discreet "not measured" note otherwise). Every report also includes a **prioritized action plan**, grouping the recommended fixes by severity and sorting them by the points they're worth (`+N pts`), and each fail/warn recommendation links out to a "Learn more" doc page for that check.
+Both the HTML and Markdown reports open with a one-line verdict summarizing the result, and — when run with `--cwv --psi-key <key>` — the HTML report adds a **Core Web Vitals dashboard** with radial gauges for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data (a discreet "not measured" note otherwise). When issues are found, the report also includes a **prioritized action plan** — recommended fixes grouped by severity and ordered by weighted impact (recoverable points × family weight); each item shows the raw recoverable points as a `+N pts` badge and a "Learn more" link.
 
 Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
 
