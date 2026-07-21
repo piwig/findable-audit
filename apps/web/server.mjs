@@ -29,12 +29,12 @@ import { clientIp } from './lib/client-ip.mjs';
 // ---------------------------------------------------------------------------
 const PORT = Number(process.env.PORT) || 3021;
 const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
-const MAX_CONCURRENT = 3; // at most N audits running at once.
-const RATE_LIMIT = 6; // audits per IP...
+const MAX_CONCURRENT = 10; // at most N audits at once. Audits are I/O-bound (~0.6s CPU each), so this is generous without stressing CPU; memory is the real limit and each audit is only a few MB.
+const RATE_LIMIT = 20; // audits per IP...
 const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
 const AUDIT_TIMEOUT_MS = 45_000; // hard cap on a single audit (must stay < nginx proxy_read_timeout, 60s).
 const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
-const MAX_PAGES = 8; // pages sampled per audit (capped for cost).
+const MAX_PAGES = 6; // pages sampled per audit (capped for cost/speed; frees the concurrency slot sooner).
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
 const CACHE_MAX_ENTRIES = 500; // bound the result cache so it can't grow unbounded.
 const REPO_URL = 'https://github.com/piwig/findable-audit';
