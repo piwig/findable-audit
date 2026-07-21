@@ -6,6 +6,19 @@ const MIME: Record<string, string> = {
   '.html': 'text/html', '.txt': 'text/plain', '.xml': 'application/xml', '.json': 'application/json',
 };
 
+/**
+ * Standard security-header set sent on EVERY response so the non-skipping
+ * security-header checks (x-content-type-options/csp/clickjacking/referrer-policy/
+ * permissions-policy) pass on well-configured fixtures (spec §3.8 / Batch 6b).
+ */
+const SECURITY_HEADERS: Record<string, string> = {
+  'x-content-type-options': 'nosniff',
+  'content-security-policy': "default-src 'self'",
+  'x-frame-options': 'SAMEORIGIN',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'geolocation=(), camera=(), microphone=()',
+};
+
 export interface ServeOptions {
   /** Serve index.html (200 text/html) for any missing path, like a SPA host fallback. */
   spaFallback?: boolean;
@@ -44,10 +57,10 @@ export async function serveFixture(
         // Allow fixtures to reference the (dynamic) test server origin.
         body = Buffer.from(body.toString('utf8').replaceAll('{{ORIGIN}}', origin));
       }
-      res.writeHead(status, { 'content-type': type });
+      res.writeHead(status, { ...SECURITY_HEADERS, 'content-type': type });
       res.end(body);
     } catch {
-      res.writeHead(404, { 'content-type': 'text/plain' });
+      res.writeHead(404, { ...SECURITY_HEADERS, 'content-type': 'text/plain' });
       res.end('not found');
     }
   });

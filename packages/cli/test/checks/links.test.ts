@@ -2,9 +2,11 @@ import { describe, it, expect, afterAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serveFixture } from '../helpers/server.js';
+import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
 import { samplePages } from '../../src/sampler.js';
 import { brokenInternalLinks, redirectHygiene, hreflang } from '../../src/checks/links.js';
+import type { FetchChainResult } from '../../src/types.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
@@ -40,6 +42,38 @@ describe('broken-internal-links', () => {
 describe('redirect-hygiene', () => {
   it('skips on local hosts (fixtures run on 127.0.0.1)', async () => {
     expect((await redirectHygiene.run(await sampled('multi-page'))).status).toBe('skip');
+  });
+
+  // Upgrade (spec §3.8): assert a *301* http->https via the no-follow chain.
+  const httpChainCtx = (chain: FetchChainResult) =>
+    stubCtx({}, 'https://example.com/', { chains: { 'http://example.com/': chain } });
+
+  it('passes when http:// 301-redirects to https://', async () => {
+    const c = httpChainCtx({
+      hops: [
+        { url: 'http://example.com/', status: 301, location: 'https://example.com/' },
+        { url: 'https://example.com/', status: 200 },
+      ],
+      finalStatus: 200, finalUrl: 'https://example.com/',
+    });
+    expect((await redirectHygiene.run(c)).status).toBe('pass');
+  });
+  it('warns when the http->https redirect is a temporary 302', async () => {
+    const c = httpChainCtx({
+      hops: [
+        { url: 'http://example.com/', status: 302, location: 'https://example.com/' },
+        { url: 'https://example.com/', status: 200 },
+      ],
+      finalStatus: 200, finalUrl: 'https://example.com/',
+    });
+    expect((await redirectHygiene.run(c)).status).toBe('warn');
+  });
+  it('fails when http:// is served without redirecting to https', async () => {
+    const c = httpChainCtx({
+      hops: [{ url: 'http://example.com/', status: 200 }],
+      finalStatus: 200, finalUrl: 'http://example.com/',
+    });
+    expect((await redirectHygiene.run(c)).status).toBe('fail');
   });
 });
 

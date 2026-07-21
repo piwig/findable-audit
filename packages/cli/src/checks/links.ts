@@ -51,14 +51,26 @@ export const redirectHygiene: Check = {
     if (isLocalOrPrivateHost(ctx.baseUrl.hostname)) {
       return makeResult(this, 'skip', 'local host — redirect check skipped');
     }
-    const res = await ctx.fetch(`http://${ctx.baseUrl.host}/`);
-    if (res === null) {
+    // Upgrade (spec §3.8): assert a *301* http->https, not merely a https final scheme.
+    // Needs the no-follow chain to see the first hop's status (ctx.fetch auto-follows).
+    if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
+    const chain = await ctx.fetchChain(`http://${ctx.baseUrl.host}/`);
+    if (!chain || chain.hops.length === 0) {
       return makeResult(this, 'warn', 'http:// version unreachable (nothing listens on port 80)',
-        'Serve a permanent redirect from http:// to https:// so legacy links land on the canonical origin.');
+        'Serve a permanent 301 redirect from http:// to https:// so legacy links land on the canonical origin.');
     }
-    const final = new URL(res.finalUrl || `http://${ctx.baseUrl.host}/`);
-    if (final.protocol === 'https:') return makeResult(this, 'pass', 'http:// redirects to https://');
-    return makeResult(this, 'fail', 'http:// does not redirect to https://',
+    const first = chain.hops[0];
+    let finalHttps = false;
+    try { finalHttps = new URL(chain.finalUrl).protocol === 'https:'; } catch { finalHttps = false; }
+    const isRedirect = first.status >= 300 && first.status < 400;
+    if ((first.status === 301 || first.status === 308) && finalHttps) {
+      return makeResult(this, 'pass', 'http:// 301-redirects to https://');
+    }
+    if (isRedirect && finalHttps) {
+      return makeResult(this, 'warn', `http:// redirects to https:// with a ${first.status} (should be 301)`,
+        'Use a permanent 301 (not 302/307) from http:// to https://.');
+    }
+    return makeResult(this, 'fail', 'http:// is not 301-redirected to https://',
       'Add a 301 redirect from HTTP to HTTPS.');
   },
 };

@@ -27,6 +27,12 @@ import {
   metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
   charset, favicon, contentReadability, figureCaption,
 } from './on-page.js';
+import {
+  htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
+} from './accessibility.js';
+import {
+  mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
+} from './security.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -46,5 +52,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
+    htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
+    mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
   ];
 }

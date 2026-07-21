@@ -63,3 +63,65 @@ export function isGenericAnchorText(text: string): boolean {
   if (/^(https?:\/\/|www\.)/i.test(t)) return true;
   return false;
 }
+
+// ---------------------------------------------------------------------------
+// Accessibility helpers (spec §3.7) — shared by the accessibility family.
+// BCP-47 is shared with hreflang's validator (technical-seo hreflang-x-default).
+// ---------------------------------------------------------------------------
+
+/** BCP-47 language-tag shape (spec §3.7 html-lang): lowercase primary subtag + optional subtags. */
+const BCP47_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+
+/** true when `code` is a well-formed BCP-47 language tag (e.g. "en", "en-US", "zh-Hant"). */
+export function isValidBcp47(code: string): boolean {
+  return BCP47_RE.test(code.trim());
+}
+
+export interface Landmarks {
+  /** A single primary content landmark: <main>/<article> or role=main/article. */
+  hasMain: boolean;
+  /** Which of the surrounding landmark regions (header/nav/footer, native or ARIA) are present. */
+  regions: Set<'header' | 'nav' | 'footer'>;
+}
+
+/** Detect semantic landmarks on a page (spec §3.7 landmarks). */
+export function detectLandmarks(root: HTMLElement): Landmarks {
+  const regions = new Set<'header' | 'nav' | 'footer'>();
+  if (root.querySelector('header, [role="banner"]')) regions.add('header');
+  if (root.querySelector('nav, [role="navigation"]')) regions.add('nav');
+  if (root.querySelector('footer, [role="contentinfo"]')) regions.add('footer');
+  const hasMain = !!root.querySelector('main, [role="main"], article, [role="article"]');
+  return { hasMain, regions };
+}
+
+/**
+ * The accessible name of a link: visible text, then aria-label / aria-labelledby /
+ * title, then a child image's alt (spec §3.7 link-text). Empty string = nameless.
+ */
+export function accessibleLinkName(a: HTMLElement): string {
+  const text = a.textContent.trim();
+  if (text) return text;
+  for (const attr of ['aria-label', 'aria-labelledby', 'title']) {
+    const v = (a.getAttribute(attr) ?? '').trim();
+    if (v) return v;
+  }
+  for (const img of a.querySelectorAll('img')) {
+    const alt = (img.getAttribute('alt') ?? '').trim();
+    if (alt) return alt;
+  }
+  return '';
+}
+
+/**
+ * true when a form control has an accessible name (spec §3.7 form-labels):
+ * aria-label / aria-labelledby / title, a wrapping <label>, or a `label[for]`
+ * matching its id (pass the page's set of `label[for]` values).
+ */
+export function formControlHasName(el: HTMLElement, labelForIds: Set<string>): boolean {
+  for (const attr of ['aria-label', 'aria-labelledby', 'title']) {
+    if ((el.getAttribute(attr) ?? '').trim()) return true;
+  }
+  const id = el.getAttribute('id');
+  if (id && labelForIds.has(id)) return true;
+  return el.closest('label') !== null;
+}
