@@ -43,3 +43,44 @@ test('landing page still served at / with the default (script-src none) CSP', as
   assert.equal(res.status, 200);
   assert.match(res.headers.get('content-security-policy'), /script-src 'none'/);
 });
+
+// Read an SSE stream until a terminal `event: done|error`, then abort.
+async function readSse(url, { timeoutMs = 5000 } = {}) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  const res = await fetch(url, { signal: ac.signal, headers: { accept: 'text/event-stream' } });
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      if (/\nevent: (done|error)\n/.test(buf) || buf.startsWith('event: done') || buf.startsWith('event: error')) break;
+    }
+  } finally { clearTimeout(timer); ac.abort(); }
+  return { contentType: res.headers.get('content-type'), text: buf };
+}
+
+test('GET /audit/stream emits done immediately for an already-finished job', async () => {
+  // Seed a completed job WITHOUT running an audit (no network).
+  const job = jobs.create({ url: 'https://example.com/', lang: 'en' });
+  jobs.finish(job.id, { report: { url: 'https://example.com/' }, html: '<html><body>ok</body></html>' });
+  const { contentType, text } = await readSse(`${BASE}/audit/stream?job=${job.id}`);
+  assert.match(contentType, /text\/event-stream/);
+  assert.match(text, /event: done/);
+});
+
+test('GET /audit/stream emits error with code for a failed job', async () => {
+  const job = jobs.create({ url: 'https://example.com/', lang: 'en' });
+  jobs.fail(job.id, 'timeout', 'too slow');
+  const { text } = await readSse(`${BASE}/audit/stream?job=${job.id}`);
+  assert.match(text, /event: error/);
+  assert.match(text, /"code":"timeout"/);
+});
+
+test('GET /audit/stream with an unknown job returns 404', async () => {
+  const res = await fetch(`${BASE}/audit/stream?job=does-not-exist`);
+  assert.equal(res.status, 404);
+});

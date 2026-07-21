@@ -209,6 +209,106 @@ async function auditUrl(url) {
 }
 
 // ---------------------------------------------------------------------------
+// Async audit execution (lazy, idempotent per job) + SSE stream
+// ---------------------------------------------------------------------------
+const cwvActive = () => Boolean(process.env.PSI_KEY && process.env.PSI_KEY.trim());
+const auditTimeout = () => (cwvActive() ? AUDIT_TIMEOUT_CWV_MS : AUDIT_TIMEOUT_MS);
+
+const running = new Map(); // jobId -> Promise, so an audit runs at most once per job.
+
+function classifyError(err, lang) {
+  const e = t(lang).error;
+  if (err instanceof AuditTimeoutError) return { code: 'timeout', message: e.timeout.message };
+  if (err instanceof UnreachableSiteError) return { code: 'unreachable', message: e.unreachable.message };
+  if (err && err.code === 'BUSY') return { code: 'busy', message: e.busy.message };
+  console.error('audit error:', err);
+  return { code: 'internal', message: 'Something went wrong while auditing that site.' };
+}
+
+async function executeAudit(job) {
+  const key = job.url;
+  const cached = cache.get(key);
+  if (cached !== undefined) {
+    jobs.finish(job.id, { report: cached, html: renderHtml(cached, undefined, job.lang) });
+    return;
+  }
+  if (inFlight >= MAX_CONCURRENT) {
+    jobs.fail(job.id, 'busy', t(job.lang).error.busy.message);
+    return;
+  }
+  inFlight++;
+  const ac = new AbortController();
+  const opts = {
+    timeoutMs: FETCH_TIMEOUT_MS,
+    maxPages: MAX_PAGES,
+    blockPrivateHosts: true,          // fetch-layer SSRF guard, unchanged.
+    signal: ac.signal,
+    onProgress: (ev) => jobs.setProgress(job.id, ev),
+  };
+  if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
+  try {
+    const report = await withTimeout(runAudit(key, checks, opts), auditTimeout());
+    cache.set(key, report);
+    jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang) });
+  } catch (err) {
+    ac.abort();
+    const { code, message } = classifyError(err, job.lang);
+    jobs.fail(job.id, code, message);
+  } finally {
+    inFlight--;
+  }
+}
+
+/** Start a job at most once. No-op (resolved) if it is already terminal. */
+function ensureStarted(job) {
+  if (job.status !== 'running') return Promise.resolve();
+  let pr = running.get(job.id);
+  if (!pr) { pr = executeAudit(job); running.set(job.id, pr); }
+  return pr;
+}
+
+function jobFromQuery(req) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const id = parsed.searchParams.get('job') ?? '';
+  return jobs.get(id);
+}
+
+function handleStream(req, res, job) {
+  res.writeHead(200, {
+    'content-type': 'text/event-stream; charset=utf-8',
+    'cache-control': 'no-cache, no-transform',
+    connection: 'keep-alive',
+    'x-accel-buffering': 'no',          // ask nginx not to buffer the stream.
+    'referrer-policy': 'no-referrer',
+    'x-content-type-options': 'nosniff',
+  });
+  res.write(': connected\n\n'); // open the stream immediately.
+  ensureStarted(job);
+
+  let lastSig = '';
+  let quiet = 0;
+  const tick = setInterval(() => {
+    const j = jobs.get(job.id);
+    if (!j) { clearInterval(tick); res.end(); return; }
+    const p = j.progress;
+    if (p) {
+      const sig = `${p.phase}:${p.done}:${p.total}`;
+      if (sig !== lastSig) {
+        lastSig = sig; quiet = 0;
+        res.write(`event: progress\ndata: ${JSON.stringify(p)}\n\n`);
+      }
+    }
+    if (j.status === 'done') { res.write('event: done\ndata: {}\n\n'); clearInterval(tick); res.end(); return; }
+    if (j.status === 'error') {
+      res.write(`event: error\ndata: ${JSON.stringify(j.error ?? { code: 'internal', message: '' })}\n\n`);
+      clearInterval(tick); res.end(); return;
+    }
+    if (++quiet >= 50) { quiet = 0; res.write(': ping\n\n'); } // ~10s heartbeat keeps proxies open.
+  }, 200);
+  req.on('close', () => clearInterval(tick));
+}
+
+// ---------------------------------------------------------------------------
 // Request helpers
 // ---------------------------------------------------------------------------
 function send(res, status, contentType, body, extraHeaders = {}) {
@@ -475,6 +575,12 @@ const server = http.createServer((req, res) => {
       console.error('unhandled /audit.json error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
+    return;
+  }
+  if (pathname === '/audit/stream') {
+    const job = jobFromQuery(req);
+    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    handleStream(req, res, job);
     return;
   }
 
