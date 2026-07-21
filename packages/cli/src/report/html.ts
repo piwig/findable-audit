@@ -1,9 +1,9 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
-import { FAMILY_LABELS, FAMILY_SHORT } from './terminal.js';
 import { verdictOf } from './verdict.js';
 import { renderCwvHtml } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
+import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -36,10 +36,6 @@ const STYLE = `
   h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
   h2 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; border-bottom: 1px solid #e5e5e5; padding-bottom: .25rem; }
   .meta { color: #666; font-size: .9rem; margin-bottom: 1rem; }
-  .badges { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: 0 0 .25rem; }
-  .score { display: inline-block; font-weight: 700; font-size: 1.1rem; padding: .35rem .8rem;
-    border-radius: 6px; color: #fff; }
-  .score.good { background: #1a7f37; } .score.ok { background: #9a6700; } .score.bad { background: #b42318; }
   .grade { display: inline-block; font-weight: 700; font-size: 1.4rem; line-height: 1; padding: .3rem .9rem;
     border-radius: 6px; color: #fff; }
   .grade.good { background: #1a7f37; } .grade.ok { background: #9a6700; } .grade.bad { background: #b42318; }
@@ -104,13 +100,16 @@ const STYLE = `
   @media print {
     body { padding: 0; max-width: none; }
     h2, tr, .subscore-table tr { break-inside: avoid; }
-    .bar-fill, .score, .grade, .fam-score, .hero-score, .cwv-ring { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bar-fill, .grade, .fam-score, .hero-score, .cwv-ring { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
 
-export function renderHtml(report: AuditReport, now: Date = new Date()): string {
+export function renderHtml(report: AuditReport, now: Date = new Date(), lang: Lang = 'en'): string {
+  const m = messages(lang);
+  const familyLabels = FAMILY_LABELS_I18N[lang];
+  const familyShort = FAMILY_SHORT_I18N[lang];
   const date = now.toISOString().slice(0, 10);
-  const families = Object.keys(FAMILY_LABELS) as Family[];
+  const families = Object.keys(familyLabels) as Family[];
   const sections: string[] = [];
 
   for (const family of families) {
@@ -120,7 +119,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
     const max = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.maxPoints), 0);
     const rows = results.map((r) => {
       const link = r.docUrl && r.status !== 'pass' && r.status !== 'skip'
-        ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">En savoir plus →</a>` : '';
+        ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
       const fix = r.fix && r.status !== 'pass' && r.status !== 'skip'
         ? `<div class="fix">${escapeHtml(r.fix)}${link}</div>` : '';
       return `<tr class="row">
@@ -129,7 +128,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
         <td class="pts">${r.points}/${r.maxPoints}</td>
       </tr>`;
     }).join('\n');
-    sections.push(`<h2>${escapeHtml(FAMILY_LABELS[family])} <span class="pts">(${earned}/${max})</span></h2>
+    sections.push(`<h2>${escapeHtml(familyLabels[family])} <span class="pts">(${earned}/${max})</span></h2>
       <table>${rows}</table>`);
   }
 
@@ -137,7 +136,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
 
   const subscoreRows = report.familyScores.map((fs) => {
     const cls = scoreClass(fs.score);
-    const label = escapeHtml(FAMILY_LABELS[fs.family]);
+    const label = escapeHtml(familyLabels[fs.family]);
     const weightPct = Math.round(fs.weight * 100);
     return `<tr>
         <td class="fam-label">${label}</td>
@@ -149,7 +148,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
 
   const subscoreSection = report.familyScores.length > 0
     ? `<section class="subscores">
-<h2>Category subscores</h2>
+<h2>${m.categorySubscores}</h2>
 <table class="subscore-table">${subscoreRows}</table>
 </section>`
     : '';
@@ -159,8 +158,8 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
   const toFix = report.results.filter((r) => r.status === 'fail' || r.status === 'warn').length;
 
   const cwvSection = report.psi
-    ? renderCwvHtml(report.psi)
-    : `<p class="cwv-note">Core Web Vitals non mesurés — lancez avec <code>--cwv --psi-key &lt;clé&gt;</code>.</p>`;
+    ? renderCwvHtml(report.psi, lang)
+    : `<p class="cwv-note">${m.cwvNotMeasured}</p>`;
 
   const recs = collectRecommendations(report.results);
   const CAP = 12;
@@ -169,50 +168,50 @@ export function renderHtml(report: AuditReport, now: Date = new Date()): string 
     if (items.length === 0) return '';
     const rows = items.map((r) => {
       const more = r.docUrl
-        ? ` <a class="ap-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">En savoir plus →</a>` : '';
+        ? ` <a class="ap-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
       return `<div class="ap-item">
         <span class="ap-sev ${r.status}"></span>
-        <span class="chip">${escapeHtml(FAMILY_SHORT[r.family])}</span>
+        <span class="chip">${escapeHtml(familyShort[r.family])}</span>
         <span class="ap-fix">${escapeHtml(r.fix)}${more}</span>
-        <span class="ap-imp">+${r.impact} pts</span>
+        <span class="ap-imp">+${r.impact} ${m.pts}</span>
       </div>`;
     }).join('\n');
     return `<div class="ap-group"><h3>${title}</h3>${rows}</div>`;
   };
   const actionPlan = recs.length > 0
     ? `<section class="action-plan">
-<h2>Plan d'action</h2>
-${renderApGroup('🔴 À corriger en priorité', shown.filter((r) => r.status === 'fail'))}
-${renderApGroup('🟠 À améliorer', shown.filter((r) => r.status === 'warn'))}
-${recs.length > CAP ? `<p class="ap-more-note">+${recs.length - CAP} autre(s) — voir le détail par famille ci-dessous.</p>` : ''}
+<h2>${m.actionPlan}</h2>
+${renderApGroup(m.fixFirst, shown.filter((r) => r.status === 'fail'))}
+${renderApGroup(m.improve, shown.filter((r) => r.status === 'warn'))}
+${recs.length > CAP ? `<p class="ap-more-note">${m.moreRecs(recs.length - CAP)}</p>` : ''}
 </section>`
     : '';
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>findable-audit report — ${escapeHtml(report.url)}</title>
+<title>${m.reportTitle} — ${escapeHtml(report.url)}</title>
 <style>${STYLE}</style>
 </head>
 <body>
-<h1>findable-audit report</h1>
+<h1>${m.reportTitle}</h1>
 <div class="meta">${escapeHtml(report.url)} · ${date}</div>
 <header class="hero">
-  <div class="hero-score ${scoreClass(report.score)}">${report.score}<span>/100</span></div>
+  <div class="hero-score ${scoreClass(report.score)}">${report.score}<span>${m.outOf100}</span></div>
   <div class="hero-meta">
-    <span class="grade ${gradeClass(report.grade)}">Grade ${escapeHtml(report.grade)}</span>
-    <div class="verdict">${escapeHtml(verdictOf(report.grade, failCount))}</div>
+    <span class="grade ${gradeClass(report.grade)}">${m.gradeLabel} ${escapeHtml(report.grade)}</span>
+    <div class="verdict">${escapeHtml(verdictOf(report.grade, failCount, lang))}</div>
   </div>
 </header>
-<p class="stats">${passed} réussis · ${toFix} à corriger · ${report.sampledPages.length} pages</p>
-<p class="pages">Pages audited: ${pages}</p>
+<p class="stats">${m.stats(passed, toFix, report.sampledPages.length)}</p>
+<p class="pages">${m.pagesAudited} ${pages}</p>
 ${subscoreSection}
 ${cwvSection}
 ${actionPlan}
 ${sections.join('\n')}
-<footer>Generated by findable-audit · https://github.com/piwig/findable-audit</footer>
+<footer>${m.footer}</footer>
 </body>
 </html>
 `;

@@ -36,6 +36,8 @@ describe('renderHtml', () => {
   it('is a self-contained HTML document', () => {
     expect(html.trimStart()).toMatch(/^<!doctype html/i);
     expect(html).toContain('<style');
+    expect(html).not.toContain('.badges {');
+    expect(html).not.toContain('.score.good {');
   });
   it('embeds no external resource (inline only; doc <a> links allowed)', () => {
     // Forbid external embedded resources (styles, scripts, images, iframes)…
@@ -91,11 +93,11 @@ describe('renderHtml', () => {
     // report has grade C and 1 failing check (llms-txt)
     expect(html).toMatch(/priority/i);            // verdict text for grade C
     expect(html).toContain('class="hero"');
-    expect(html).toMatch(/2 à corriger/);          // 1 fail + 1 warn ('evil') => 2
+    expect(html).toMatch(/2 to fix/);          // 1 fail + 1 warn ('evil') => 2
   });
   it('renders a prioritized action plan with severity groups and impact', () => {
-    expect(html).toContain('Plan d\'action');
-    expect(html).toMatch(/À corriger en priorité/);   // fails group (llms-txt)
+    expect(html).toContain('Action plan');
+    expect(html).toMatch(/Fix first/);   // fails group (llms-txt)
     expect(html).toContain('Add a /llms.txt file.');    // the fix text
     expect(html).toMatch(/\+\d+ pts/);                  // impact badge
   });
@@ -125,7 +127,28 @@ describe('renderHtml Core Web Vitals section', () => {
   });
   it('shows a discreet "non mesuré" note when psi is absent', () => {
     const html = renderHtml(report); // no psi
-    expect(html).toMatch(/non mesur/i);
+    expect(html).toMatch(/not measured/i);
     expect(html).not.toContain('conic-gradient');
+  });
+});
+
+describe('renderHtml in French', () => {
+  const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'), 'fr');
+  it('sets the document language and localizes chrome', () => {
+    expect(html).toContain('<html lang="fr">');
+    expect(html).toContain('Rapport findable-audit');
+    expect(html).toContain('<span class="grade ok">Note C</span>');
+    expect(html).toMatch(/priorité/);              // FR verdict for grade C
+    expect(html).toMatch(/2 à corriger/);          // FR stats
+    expect(html).toContain('Sous-scores par catégorie');
+    expect(html).toContain("Plan d'action");
+    expect(html).toMatch(/À corriger en priorité/);
+    expect(html).toMatch(/À améliorer/);
+    expect(html).toContain('Pages auditées :');
+    expect(html).toContain('En savoir plus →');
+  });
+  it('keeps the 107-check messages/fixes in English', () => {
+    expect(html).toContain('llms.txt missing');
+    expect(html).toContain('Add a /llms.txt file.');
   });
 });
