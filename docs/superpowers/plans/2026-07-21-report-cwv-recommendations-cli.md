@@ -784,14 +784,15 @@ git commit -m "feat(cli): render Core Web Vitals gauge dashboard in HTML report"
 Ajouter dans `test/report/html.test.ts` (dans le premier `describe`) :
 
 ```ts
-  it('renders a prioritized action plan with severity groups, impact and doc links', () => {
+  it('renders a prioritized action plan with severity groups and impact', () => {
     expect(html).toContain('Plan d\'action');
     expect(html).toMatch(/À corriger en priorité/);   // fails group (llms-txt)
     expect(html).toContain('Add a /llms.txt file.');    // the fix text
-    expect(html).toMatch(/href="https:\/\/[^"]+"[^>]*>En savoir plus/); // doc link
     expect(html).toMatch(/\+\d+ pts/);                  // impact badge
   });
 ```
+
+> Note d'ordre : le fixture `report` de `html.test.ts` n'a **pas** encore de `docUrl` à ce stade → le plan d'action n'émet aucun `href` externe ici, et l'assertion « aucune ressource externe » reste verte. Les liens « En savoir plus » (plan d'action **et** tables) sont introduits et testés en **Task 8**, qui met à jour cette assertion et ajoute `docUrl` au fixture.
 
 - [ ] **Step 2: Lancer — échoue**
 
