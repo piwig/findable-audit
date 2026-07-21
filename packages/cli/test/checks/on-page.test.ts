@@ -91,6 +91,10 @@ describe('title-h1-alignment', () => {
     const ctx = ctxFromPages([page('/', '<html><head><title>Sourdough Bread in Springfield</title></head><body><h1>Contact Us Today</h1></body></html>')]);
     expect((await titleH1Alignment.run(ctx)).status).toBe('warn');
   });
+  it('warns when title and H1 share only the brand token', async () => {
+    const ctx = ctxFromPages([page('/', '<html><head><title>Sourdough Bread in Springfield — Example Bakery</title></head><body><h1>Contact Example Bakery</h1></body></html>')]);
+    expect((await titleH1Alignment.run(ctx)).status).toBe('warn');
+  });
   it('fails when the H1 is missing', async () => {
     const ctx = ctxFromPages([page('/', '<html><head><title>Sourdough Bread in Springfield</title></head><body></body></html>')]);
     expect((await titleH1Alignment.run(ctx)).status).toBe('fail');

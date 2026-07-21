@@ -23,7 +23,7 @@ describe('perfect site e2e', () => {
     // familyScores present and non-empty: only included families (>=1 non-skip check).
     expect(report.familyScores.length).toBeGreaterThan(0);
     expect(report.familyScores.every((f) => f.score === 100)).toBe(true);
-    expect(report.sampledPages).toEqual(['/', '/about.html']);
+    expect(report.sampledPages).toEqual(['/', '/about.html', '/contact.html']);
     expect(renderTerminal(report)).toContain('100/100');
     expect(renderTerminal(report)).toContain('Grade: A');
     const json = JSON.parse(renderJson(report));

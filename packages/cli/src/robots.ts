@@ -167,7 +167,11 @@ export interface RobotsDirectiveSet {
 }
 
 function tokenize(value: string): string[] {
-  return value.split(/[,\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  // Handle BOTH space-separated directives ("noindex nofollow") AND "key: value"
+  // pairs with an optional space after the colon ("max-snippet: -1"): normalize
+  // any whitespace around a colon to a bare ":" first, so the value stays attached
+  // to its key ("max-snippet:-1") instead of splitting into "max-snippet:" + "-1".
+  return value.replace(/\s*:\s*/g, ':').split(/[,\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
 /**

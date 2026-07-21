@@ -1,6 +1,7 @@
 import { parse } from 'node-html-parser';
 import type { Check } from '../types.js';
 import { makeResult } from '../types.js';
+import { parsePage } from './dom.js';
 import {
   extractJsonLd, extractJsonLdBlocks, typesOf, flatten, isRef, isOrganizationType,
   NAP_REQUIRED_TYPES, str,
@@ -32,7 +33,7 @@ export const twitterCard: Check = {
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
-    const root = parse(res.body);
+    const root = parsePage(res);
     const tw = (p: string) => root.querySelector(`meta[name="twitter:${p}"]`)?.getAttribute('content')?.trim() ?? '';
     const og = (p: string) => root.querySelector(`meta[property="og:${p}"]`)?.getAttribute('content')?.trim() ?? '';
     const card = tw('card');

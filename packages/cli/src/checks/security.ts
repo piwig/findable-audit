@@ -188,9 +188,11 @@ export const clickjacking: Check = {
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
     const xfo = (headerOf(res, 'x-frame-options') ?? '').trim().toUpperCase();
     if (xfo === 'DENY' || xfo === 'SAMEORIGIN') return makeResult(this, 'pass', `X-Frame-Options: ${xfo}`);
-    const policy = cspOf(res);
-    if (policy) {
-      const fa = cspDirectives(policy).get('frame-ancestors');
+    // frame-ancestors is ONLY enforced when delivered via the HTTP CSP header — browsers
+    // ignore frame-ancestors in a <meta> CSP. Read the header directly, not cspOf (meta fallback).
+    const headerPolicy = headerOf(res, 'content-security-policy');
+    if (headerPolicy) {
+      const fa = cspDirectives(headerPolicy).get('frame-ancestors');
       if (fa && fa.length > 0 && !fa.includes('*')) return makeResult(this, 'pass', "CSP frame-ancestors restricts framing");
     }
     return makeResult(this, 'fail', 'no clickjacking protection (X-Frame-Options / frame-ancestors)',
@@ -202,16 +204,27 @@ export const clickjacking: Check = {
 // referrer-policy (HH)
 // ---------------------------------------------------------------------------
 
+/** The recognized Referrer-Policy tokens (spec §3.8); anything else is not a valid policy. */
+const REFERRER_POLICY_TOKENS = new Set([
+  'no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin',
+  'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url',
+]);
+
 export const referrerPolicy: Check = {
   id: 'referrer-policy', family: 'security', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
     const h = headerOf(res, 'referrer-policy');
-    if (!h) return makeResult(this, 'fail', 'no Referrer-Policy header',
+    if (!h || !h.trim()) return makeResult(this, 'fail', 'no Referrer-Policy header',
       'Add `Referrer-Policy: strict-origin-when-cross-origin`.');
     const values = h.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
-    if (values.includes('unsafe-url')) {
+    const recognized = values.filter((v) => REFERRER_POLICY_TOKENS.has(v));
+    if (recognized.length === 0) {
+      return makeResult(this, 'warn', `Referrer-Policy has no recognized value (${h})`,
+        'Use a recognized token such as strict-origin-when-cross-origin.');
+    }
+    if (recognized.includes('unsafe-url')) {
       return makeResult(this, 'warn', 'Referrer-Policy is leaky (unsafe-url)',
         'Use a non-leaky value such as strict-origin-when-cross-origin.');
     }

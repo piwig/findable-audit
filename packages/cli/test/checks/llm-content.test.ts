@@ -61,10 +61,17 @@ describe('llms-txt', () => {
     expect((await llmsTxt.run(await crawler('perfect-site'))).status).toBe('pass');
   });
   it('warns when it has fewer than 5 descriptive same-origin links', async () => {
-    const c = stubCtx({ '/llms.txt': { body: '# Site\n\n> A one-line summary of the site here.\n\n## Pages\n\n- [Home](http://stub.example/): home\n- [About](http://stub.example/about): about\n' } });
+    const c = stubCtx({ '/llms.txt': { body: '# Site\n\n> A one-line summary of the site here.\n\n## Pages\n\n- [Our full menu](http://stub.example/menu): menu\n- [About the bakery](http://stub.example/about): about\n' } });
     const r = await llmsTxt.run(c);
     expect(r.status).toBe('warn');
     expect(r.message).toContain('2/5');
+  });
+  it('does not count a too-short link title like "Go" as descriptive', async () => {
+    const body = '# Site\n\n> A one-line summary of the site here.\n\n## Pages\n\n'
+      + ['a', 'b', 'c', 'd', 'e', 'f'].map((p) => `- [Go](http://stub.example/${p}): x`).join('\n') + '\n';
+    const r = await llmsTxt.run(stubCtx({ '/llms.txt': { body } }));
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('0/5');
   });
   it('warns when there is no markdown H1', async () => {
     const c = stubCtx({ '/llms.txt': { body: 'just some text, no heading at all here\n' } });
@@ -223,6 +230,13 @@ describe('content-freshness', () => {
     const p = pageRes('/blog/post', doc('<h1>Post</h1><p>Body.</p>', head));
     expect((await contentFreshness.run(mpCtx([p]))).status).toBe('fail');
   });
+  it('does not let an unrelated recent <time> mask a stale article date', async () => {
+    const head = articleHead({ headline: 'Post', datePublished: '2019-01-01', dateModified: '2019-02-01' });
+    // A recent comment-widget <time> must NOT rescue an article whose own dates are years old.
+    const p = pageRes('/blog/post',
+      doc('<h1>Post</h1><p>Body.</p><aside><time datetime="2026-06-01">a recent comment</time></aside>', head));
+    expect((await contentFreshness.run(mpCtx([p]))).status).toBe('fail');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -247,6 +261,13 @@ describe('content-author-eeat', () => {
     const head = articleHead({ headline: 'Post' });
     const p = pageRes('/blog/post', doc('<h1>Post</h1><p>Body only.</p>', head));
     expect((await contentAuthorEeat.run(mpCtx([p]))).status).toBe('fail');
+  });
+  it('does not count a sentence opener like "By Friday, ..." as a byline', async () => {
+    const head = articleHead({ headline: 'Post' }); // no structured author
+    const p = pageRes('/blog/post',
+      doc('<h1>Post</h1><p>By Friday, the ovens are full and the shelves are stocked with fresh bread.</p>', head));
+    const r = await contentAuthorEeat.run(mpCtx([p]));
+    expect(r.status).toBe('fail'); // no structured author AND no genuine byline -> fail, not warn
   });
 });
 
@@ -303,9 +324,15 @@ describe('content-uniqueness', () => {
 // ---------------------------------------------------------------------------
 
 describe('about-contact', () => {
-  it('passes when About is linked and a contact method is exposed', async () => {
-    const body = doc('<h1>Home</h1><nav><a href="/about">About</a></nav><footer><a href="tel:+15550100">Call us</a></footer>');
+  it('passes only when About, Contact and a contact method are all present', async () => {
+    const body = doc('<h1>Home</h1><nav><a href="/about">About</a> <a href="/contact">Contact</a></nav><footer><a href="tel:+15550100">Call us</a></footer>');
     expect((await aboutContact.run(mpCtx([pageRes('/', body)]))).status).toBe('pass');
+  });
+  it('does NOT pass (warns) when About is linked and a contact method exists but there is no Contact page', async () => {
+    const body = doc('<h1>Home</h1><nav><a href="/about">About</a></nav><footer><a href="tel:+15550100">Call us</a></footer>');
+    const r = await aboutContact.run(mpCtx([pageRes('/', body)]));
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('Contact page');
   });
   it('fails when neither About/Contact nor a contact method exists', async () => {
     const body = doc('<h1>Home</h1><p>Nothing useful here.</p>');

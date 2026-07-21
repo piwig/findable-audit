@@ -79,8 +79,13 @@ export const titleH1Alignment: Check = {
       return makeResult(this, 'fail', `missing ${!title ? '<title>' : '<h1>'}`,
         'Add both a <title> and a single <h1> describing the page topic.');
     }
-    const titleTokens = new Set(tokenize(title));
-    const h1Tokens = tokenize(h1);
+    // Exclude the brand (the title's trailing segment after a separator, as in
+    // title-pattern) from the overlap, so two topically-different strings that
+    // share only the brand token don't falsely pass.
+    const segments = splitTitleSegments(title);
+    const brandTokens = segments.length >= 2 ? new Set(tokenize(segments[segments.length - 1])) : new Set<string>();
+    const titleTokens = new Set(tokenize(title).filter((t) => !brandTokens.has(t)));
+    const h1Tokens = tokenize(h1).filter((t) => !brandTokens.has(t));
     const shared = new Set(h1Tokens.filter((t) => titleTokens.has(t)));
     if (shared.size === 0) {
       return makeResult(this, 'warn', 'title and H1 topics diverge (no shared meaningful tokens)',

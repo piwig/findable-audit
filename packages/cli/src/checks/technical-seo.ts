@@ -1,7 +1,7 @@
 import type { Check, CrawlContext, FetchedResource, FetchChainResult } from '../types.js';
 import { makeResult } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
-import { parsePage } from './dom.js';
+import { parsePage, isValidBcp47 } from './dom.js';
 import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
 import { buildLinkGraph, pageOutLinks } from './link-graph.js';
 import { isLocalOrPrivateHost } from './fundamentals.js';
@@ -78,6 +78,17 @@ export const wwwConsolidation: Check = {
     const w0 = www?.hops[0];
     if (!a0 && !w0) return makeResult(this, 'warn', 'neither www nor apex host is reachable',
       'Serve the site on one canonical host and 301 the other to it.');
+    // Classify from the FULL hop list, not just hops[0]: a variant whose chain loops
+    // (never reaches a terminal status) or takes more than one redirect hop is broken,
+    // regardless of its opening status — e.g. a www↔apex loop opening with 302.
+    const brokenChain = (c: FetchChainResult | null | undefined): boolean => {
+      if (!c) return false;
+      return isRedirect(c.finalStatus) || c.hops.filter((h) => isRedirect(h.status)).length > 1;
+    };
+    if (brokenChain(apex) || brokenChain(www)) {
+      return makeResult(this, 'fail', 'www/apex redirect chain or loop between hosts',
+        'Point the non-canonical host at the canonical host with a single 301, not a chain or loop.');
+    }
     const a200 = a0?.status === 200;
     const w200 = w0?.status === 200;
     // Only one host live at all -> effectively consolidated.
@@ -355,8 +366,6 @@ export const metaRefresh: Check = {
 // hreflang-x-default
 // ---------------------------------------------------------------------------
 
-const BCP47_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
-
 interface HreflangEntry { lang: string; href: string; }
 
 function hreflangEntries(root: ReturnType<typeof parsePage>): HreflangEntry[] {
@@ -387,7 +396,7 @@ export const hreflangXDefault: Check = {
       if (!langs.includes('x-default')) missingXDefault.push(label);
       for (const e of entries) {
         if (e.lang.toLowerCase() === 'x-default') continue;
-        if (!BCP47_RE.test(e.lang)) invalidCodes.push(`${label} (${e.lang})`);
+        if (!isValidBcp47(e.lang)) invalidCodes.push(`${label} (${e.lang})`);
       }
       for (const e of entries) {
         if (e.href && !/^https?:\/\//i.test(e.href)) relativeHrefs.push(label);

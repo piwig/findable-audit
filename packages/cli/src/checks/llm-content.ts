@@ -15,6 +15,12 @@ function offenderList(paths: string[]): string {
 // llms-txt (upgrade: richness — H1 + summary + ≥1 ## section + ≥5 links)
 // ---------------------------------------------------------------------------
 
+/** A link title is descriptive when it is a real label, not a stub like "Go" or "›" (spec §3.2). */
+function isDescriptiveLinkTitle(title: string): boolean {
+  const words = title.split(/\s+/).filter(Boolean).length;
+  return title.length >= 10 || words >= 2;
+}
+
 /** Descriptive, absolute, same-origin markdown links `[Title](https://origin/…)` in an llms.txt body. */
 function descriptiveSameOriginLinks(body: string, origin: string): number {
   let count = 0;
@@ -22,7 +28,7 @@ function descriptiveSameOriginLinks(body: string, origin: string): number {
     const title = m[1].trim();
     let u: URL;
     try { u = new URL(m[2]); } catch { continue; }
-    if (title.length >= 2 && u.origin === origin) count += 1;
+    if (isDescriptiveLinkTitle(title) && u.origin === origin) count += 1;
   }
   return count;
 }
@@ -275,10 +281,10 @@ interface PageDates { all: Date[]; published: Date | null; modified: Date | null
 
 function extractDates(res: FetchedResource): PageDates {
   const root = parsePage(res);
-  const all: Date[] = [];
+  const timeDates: Date[] = [];
   for (const el of root.querySelectorAll('time[datetime]')) {
     const d = parseDate(el.getAttribute('datetime'));
-    if (d) all.push(d);
+    if (d) timeDates.push(d);
   }
   let published = parseDate(root.querySelector('meta[property="article:published_time"]')?.getAttribute('content'));
   let modified = parseDate(root.querySelector('meta[property="article:modified_time"]')?.getAttribute('content'));
@@ -286,8 +292,13 @@ function extractDates(res: FetchedResource): PageDates {
     published = published ?? parseDate(str(n.datePublished));
     modified = modified ?? parseDate(str(n.dateModified));
   }
-  if (published) all.push(published);
-  if (modified) all.push(modified);
+  const articleDates: Date[] = [];
+  if (published) articleDates.push(published);
+  if (modified) articleDates.push(modified);
+  // Prefer the article's own dates (JSON-LD datePublished/dateModified or article:*_time meta).
+  // Only fall back to arbitrary <time datetime> elements when no article-specific date exists,
+  // so an unrelated recent <time> (e.g. a comment-widget timestamp) can't mask a stale article.
+  const all = articleDates.length > 0 ? articleDates : timeDates;
   return { all, published, modified };
 }
 
@@ -337,7 +348,9 @@ function hasStructuredAuthor(res: FetchedResource): boolean {
 function hasVisibleByline(res: FetchedResource): boolean {
   const root = parsePage(res);
   if (root.querySelector('[rel="author"], [itemprop="author"], .author, .byline, .author-name')) return true;
-  return /\b[Bb]y\s+[A-Z][\p{L}.'-]+(\s+[A-Z][\p{L}.'-]+)?/u.test(mainContent(res).text);
+  // Prose fallback: require "By Firstname Lastname" — TWO capitalized name tokens — so
+  // sentence openers like "By Friday, …" or "By Design, …" (a single word) don't false-positive.
+  return /\b[Bb]y\s+[A-Z][\p{L}'-]+\s+[A-Z][\p{L}'-]+/u.test(mainContent(res).text);
 }
 
 export const contentAuthorEeat: Check = {
@@ -474,18 +487,20 @@ export const aboutContact: Check = {
     if (!hasAbout) hasAbout = await anyReachable(ctx, ['/about', '/about-us', '/about.html']);
     if (!hasContactPage) hasContactPage = await anyReachable(ctx, ['/contact', '/contact-us', '/contact.html']);
     const contactMethod = pages.some(hasContactMethod);
-    const contactReachable = hasContactPage || contactMethod;
 
-    if (hasAbout && contactReachable && contactMethod) {
+    // Spec §3.2: three independent signals are required to pass — an About page,
+    // a reachable Contact page, AND an exposed contact method. A contact method
+    // alone must NOT substitute for a real Contact page in the pass gate.
+    if (hasAbout && hasContactPage && contactMethod) {
       return makeResult(this, 'pass', 'About and Contact reachable with a contact method');
     }
-    if (!hasAbout && !contactReachable) {
+    if (!hasAbout && !hasContactPage && !contactMethod) {
       return makeResult(this, 'fail', 'About/Contact pages not found',
         'Publish linked /about and /contact pages and expose a contact method (tel/email/ContactPoint).');
     }
     const missing: string[] = [];
     if (!hasAbout) missing.push('About page');
-    if (!contactReachable) missing.push('Contact page');
+    if (!hasContactPage) missing.push('Contact page');
     if (!contactMethod) missing.push('contact method');
     return makeResult(this, 'warn', `About/Contact incomplete (missing: ${missing.join(', ')})`,
       'Publish linked /about and /contact pages; add a ContactPoint (tel/email) to your Organization JSON-LD.');

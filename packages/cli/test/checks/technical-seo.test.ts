@@ -117,6 +117,16 @@ describe('www-consolidation', () => {
     });
     expect((await wwwConsolidation.run(ctx)).status).toBe('warn');
   });
+  it('fails when a host redirect loops between www and apex (opening with a 302)', async () => {
+    const ctx = makeCtx({
+      chains: {
+        'https://stub.example/': chainOf(200, [H(200)]),
+        // www -> apex -> www, never terminal: a loop, even though hop[0] is a 302.
+        'https://www.stub.example/': chainOf(302, [H(302, 'https://stub.example/'), H(302, 'https://www.stub.example/')]),
+      },
+    });
+    expect((await wwwConsolidation.run(ctx)).status).toBe('fail');
+  });
   it('skips on a local/IP host', async () => {
     const c = new Crawler('http://127.0.0.1:8080/');
     expect((await wwwConsolidation.run(c)).status).toBe('skip');
@@ -252,6 +262,10 @@ describe('hreflang-x-default', () => {
   it('fails on an invalid BCP-47 code', async () => {
     const body = alt('english', 'https://stub.example/') + alt('x-default', 'https://stub.example/');
     expect((await hreflangXDefault.run(makeCtx({ pages: [page('/', body)] }))).status).toBe('fail');
+  });
+  it('accepts an uppercase BCP-47 code (case-insensitive: "EN-US" is valid)', async () => {
+    const body = alt('EN-US', 'https://stub.example/') + alt('fr', 'https://stub.example/fr') + alt('x-default', 'https://stub.example/');
+    expect((await hreflangXDefault.run(makeCtx({ pages: [page('/', body)] }))).status).toBe('pass');
   });
 });
 

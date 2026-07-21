@@ -1,6 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import http from 'node:http';
 import { Crawler } from '../src/crawler.js';
+import { isBlockedAddress } from '../src/ssrf.js';
 
 // fetchChain is the manual, no-follow fetch used by www-consolidation,
 // trailing-slash, redirect-chains and soft-404. These tests exercise the hop
@@ -74,6 +75,26 @@ describe('Crawler.fetchChain SSRF guard (blockPrivateHosts)', () => {
     const chain = await crawler.fetchChain('/');
     expect(chain).toBeNull();        // the whole chain is refused
     expect(targetHits).toBe(0);      // the blocked target was never contacted
+  });
+
+  it('refuses a redirect to the cloud-metadata IP 169.254.169.254 on port 80 (real address guard)', async () => {
+    const seen: string[] = [];
+    const entry = await listen(http.createServer((_req, res) => {
+      res.writeHead(302, { location: 'http://169.254.169.254/' }); // port 80 (an ALLOWED port)
+      res.end();
+    }));
+    const crawler = new Crawler(entry.url, 2000, undefined, {
+      blockPrivateHosts: true,
+      // Allow the loopback entry; use the REAL address guard for every other hop.
+      isBlocked: (ip) => { seen.push(ip); return ip !== '127.0.0.1' && isBlockedAddress(ip); },
+      // Mirror the real default port policy: '' (http default 80) and the entry's port are allowed,
+      // so the metadata target passes the PORT gate and the IP guard is what must refuse it.
+      allowPort: (p) => p === '' || p === '80' || p === entry.port,
+    });
+    const chain = await crawler.fetchChain('/');
+    expect(chain).toBeNull();                              // the whole chain is refused
+    expect(seen).toContain('169.254.169.254');             // the guard evaluated the metadata IP
+    expect(isBlockedAddress('169.254.169.254')).toBe(true); // and the real guard blocks it (before any connection)
   });
 
   it('(real guard) refuses a plain 127.0.0.1 target end-to-end', async () => {

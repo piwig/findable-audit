@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url';
 import { serveFixture } from '../helpers/server.js';
 import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
-import { parseRobots, isBlocked, robotsWellformed } from '../../src/robots.js';
+import {
+  parseRobots, isBlocked, robotsWellformed, robotsDirectiveSet, directiveValue, hasDirectiveToken,
+} from '../../src/robots.js';
+import type { FetchedResource } from '../../src/types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
   homepageOk, robotsDirectives,
@@ -102,6 +105,22 @@ describe('robotsWellformed (RFC 9309 hygiene)', () => {
     const r = robotsWellformed(asRes(huge));
     expect(r.status).toBe('fail');
     expect(r.reason).toContain('500KB');
+  });
+});
+
+describe('robots directive tokenizer (space-after-colon and space-separated)', () => {
+  const resWith = (headers: Record<string, string>): FetchedResource =>
+    ({ status: 200, ok: true, body: '<html></html>', contentType: 'text/html', finalUrl: 'http://x/', headers });
+
+  it('parses "max-snippet: -1" (space after colon) AND an adjacent directive', () => {
+    const set = robotsDirectiveSet(resWith({ 'x-robots-tag': 'max-snippet: -1, max-image-preview:none' }));
+    expect(directiveValue(set, 'max-snippet')).toBe('-1');
+    expect(directiveValue(set, 'max-image-preview')).toBe('none');
+  });
+  it('still splits space-separated directives like "noindex nofollow"', () => {
+    const set = robotsDirectiveSet(resWith({ 'x-robots-tag': 'noindex nofollow' }));
+    expect(hasDirectiveToken(set, 'noindex')).toBe(true);
+    expect(hasDirectiveToken(set, 'nofollow')).toBe(true);
   });
 });
 

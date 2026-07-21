@@ -69,12 +69,15 @@ export function isGenericAnchorText(text: string): boolean {
 // BCP-47 is shared with hreflang's validator (technical-seo hreflang-x-default).
 // ---------------------------------------------------------------------------
 
-/** BCP-47 language-tag shape (spec §3.7 html-lang): lowercase primary subtag + optional subtags. */
-const BCP47_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+/** BCP-47 language-tag shape (spec §3.7 html-lang): primary subtag + optional subtags. */
+const BCP47_RE = /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/;
 
-/** true when `code` is a well-formed BCP-47 language tag (e.g. "en", "en-US", "zh-Hant"). */
+/**
+ * true when `code` is a well-formed BCP-47 language tag (e.g. "en", "en-US", "zh-Hant").
+ * BCP-47 is case-insensitive, so "EN-US" is valid — lower-case before matching.
+ */
 export function isValidBcp47(code: string): boolean {
-  return BCP47_RE.test(code.trim());
+  return BCP47_RE.test(code.trim().toLowerCase());
 }
 
 export interface Landmarks {

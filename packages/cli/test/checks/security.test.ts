@@ -116,8 +116,12 @@ describe('clickjacking', () => {
   it('passes with X-Frame-Options SAMEORIGIN', async () => {
     expect((await clickjacking.run(ctxWith({ 'x-frame-options': 'SAMEORIGIN' }))).status).toBe('pass');
   });
-  it("passes with CSP frame-ancestors 'self'", async () => {
+  it("passes with CSP frame-ancestors 'self' delivered via the HTTP header", async () => {
     expect((await clickjacking.run(ctxWith({ 'content-security-policy': "frame-ancestors 'self'" }))).status).toBe('pass');
+  });
+  it('fails when frame-ancestors is only in a <meta> CSP (browsers do not enforce it) and there is no X-Frame-Options', async () => {
+    const ctx = ctxWith({}, '<html><head><meta http-equiv="Content-Security-Policy" content="frame-ancestors \'self\'"></head></html>');
+    expect((await clickjacking.run(ctx)).status).toBe('fail');
   });
   it('fails with neither protection', async () => {
     expect((await clickjacking.run(ctxWith({ 'content-security-policy': "default-src 'self'" }))).status).toBe('fail');
@@ -130,6 +134,10 @@ describe('referrer-policy', () => {
   });
   it('warns on unsafe-url', async () => {
     expect((await referrerPolicy.run(ctxWith({ 'referrer-policy': 'unsafe-url' }))).status).toBe('warn');
+  });
+  it('does not pass on an unrecognized (typo) value', async () => {
+    const r = await referrerPolicy.run(ctxWith({ 'referrer-policy': 'strick-origin' }));
+    expect(r.status).toBe('warn');
   });
   it('fails when absent', async () => {
     expect((await referrerPolicy.run(ctxWith({}))).status).toBe('fail');
