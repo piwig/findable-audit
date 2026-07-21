@@ -5,7 +5,7 @@
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` audits a site for **GEO** (Generative Engine Optimization) and technical SEO in one command, scores it out of 100, and tells you exactly what to fix.
+AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **107 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
 
 ## Quick start
 
@@ -13,74 +13,96 @@ AI assistants are becoming a major way people discover websites, but most sites 
 npx findable-audit https://your-site.com
 ```
 
-Sample output (run against the project's own "perfect site" test fixture):
+Below is a representative run against a large production site (`stripe.com --max-pages 6`, Core Web Vitals not enabled). The footer shows the overall score, the letter grade, and a subscore per family; individual checks print `OK` / `!!` / `XX` / `--` with a one-line fix on anything that isn't passing.
 
 ```text
-findable-audit report for http://127.0.0.1:8738/
+findable-audit report for https://stripe.com/
 
 AI crawler access
-  OK robots-exists          4/4  robots.txt found
-  OK ai-crawlers-allowed    12/12  all AI crawlers allowed
-  OK homepage-ok            6/6  homepage responds 200
-  OK robots-directives      4/4  no blocking robots directives (X-Robots-Tag / meta robots)
+  OK ai-crawlers-allowed     12/12  no AI or search crawlers blocked
+  OK homepage-ok              6/6   homepage responds 200
+  OK robots-wellformed        4/4   robots.txt parses cleanly
 
-Content for LLMs
-  OK llms-txt               10/10  llms.txt found and structured
-  OK llms-full-txt          4/4  llms-full.txt found
-  OK content-without-js     6/6  homepage has 370 chars of static text
-  OK images-alt             4/4  1/1 images have an alt attribute (100%)
+Answer-engine content
+  OK content-without-js       6/6   static text present on all sampled pages
+  !! content-lead-answer      2/5   no direct-answer lead on: /pricing (+2 more)
+       fix: Open each page with a 1-2 sentence direct answer or a TL;DR block.
+  !! content-freshness        2/5   missing/stale content date on: /about (+1 more)
+       fix: Emit ISO-8601 datePublished+dateModified and a visible date.
 
-Structured data
-  OK json-ld                10/10  1 valid JSON-LD block(s)
-  OK json-ld-entity         6/6  relevant entity found: LocalBusiness
-  OK schema-coverage        5/5  1/2 sampled pages carry valid JSON-LD
+On-page & content
+  OK headings-outline         5/5   one H1 + no skipped levels
+  XX meta-per-page            0/5   title/description out of range on: /pricing (+3 more)
+       fix: Give every page a unique in-range title + meta description.
 
-SEO fundamentals
-  OK sitemap                10/10  valid sitemap, referenced in robots.txt
-  OK indexnow               4/4  IndexNow key file verified
-  OK title-description      8/8  title and meta description look good
-  OK canonical              5/5  canonical set: https://example.com/
-  OK open-graph             5/5  Open Graph tags present
-  -- https                  0/5  local host — HTTPS check skipped
-  OK viewport               5/5  mobile viewport set
-  OK meta-robots-noindex    6/6  no noindex on 2 sampled page(s)
-  OK unique-titles          5/5  titles and descriptions unique across 2 pages
-  OK broken-internal-links  8/8  2 internal link(s) resolve
-  -- redirect-hygiene       0/4  local host — redirect check skipped
-  -- hreflang               0/3  no hreflang annotations (single-language site)
+Performance & Core Web Vitals
+  XX render-blocking-js       0/4   4 render-blocking head scripts on: /
+       fix: Add defer/async or move scripts to the end of <body>.
+  -- cwv-lcp                  0/6   run with --cwv --psi-key <key> to measure Core Web Vitals
 
-Score: 100/100
+Security & trust
+  OK https                    5/5   served over HTTPS
+  OK hsts                     4/4   HSTS max-age >= 180d
+
+Score: 73/100  Grade: C
+  AI crawler access               96/100  (weight 16%)
+  Answer-engine content           72/100  (weight 18%)
+  Structured data & metadata      79/100  (weight 15%)
+  Technical SEO                   72/100  (weight 15%)
+  On-page & content               53/100  (weight 12%)
+  Performance & Core Web Vitals   44/100  (weight 10%)
+  Accessibility                   71/100  (weight  7%)
+  Security & trust                93/100  (weight  7%)
 ```
 
-The `--` rows are checks that don't apply here (HTTPS/redirects are skipped on a local host; there are no hreflang annotations) — skipped checks don't count against the score.
+*(Illustrative excerpt — check lines are trimmed for length; a real run prints every applicable check in each family.)* The `--` rows are checks that don't apply to this run (here, Core Web Vitals were not requested) — skipped checks never count against the score.
 
 More real-site case studies (before/after scores) will be published in `examples/` at launch.
 
 ## What it checks
 
-Score /100, 23 checks in 4 families:
+**107 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
-| Family | Count | Checks |
-|---|---|---|
-| AI crawler access | 4 | robots.txt present; GPTBot, ClaudeBot, PerplexityBot, Google-Extended not blocked; homepage responds 200 without a JS wall; no blocking robots directives (`X-Robots-Tag` / meta robots) |
-| Content for LLMs | 4 | `llms.txt` present and structured; `llms-full.txt` present; main content readable without JavaScript; images have alt text |
-| Structured data | 3 | JSON-LD present and parsable; relevant type (LocalBusiness / Organization / Article) with NAP consistency; JSON-LD coverage across sampled pages |
-| SEO fundamentals | 12 | valid sitemap XML referenced in robots.txt; IndexNow key file; title/meta description lengths; canonical; Open Graph tags; HTTPS; mobile viewport; no noindexed sampled pages; unique titles/descriptions across sampled pages; no broken internal links; HTTP→HTTPS redirect hygiene; reciprocal hreflang alternates |
+| Family | Weight | Checks | What it covers |
+|---|---|---:|---|
+| **AI crawler access** | 0.16 | 8 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives — the gate: if crawlers are blocked, nothing else matters |
+| **Answer-engine content** | 0.18 | 12 | `llms.txt` / `llms-full.txt`, server-rendered text, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness |
+| **Structured data & metadata** | 0.15 | 19 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
+| **Technical SEO** | 0.15 | 20 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, IndexNow |
+| **On-page & content** | 0.12 | 11 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
+| **Performance & Core Web Vitals** | 0.10 | 19 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching) + opt-in field/lab Core Web Vitals |
+| **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
+| **Security & trust** | 0.07 | 9 | HTTPS end-to-end, HTTP→HTTPS 301, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy |
 
-Each check is explained in detail — including how to fix failures — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
+Every check is documented individually — what it verifies, why it matters, and how to fix a failure — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
+
+## Scoring
+
+findable-audit uses a **weighted per-family model**:
+
+1. **Per check** — `pass` earns full points, `warn` earns half, `fail` earns 0, `skip` is excluded entirely.
+2. **Per family** — the subscore is `earned / max` over that family's **non-skipped** checks, expressed out of 100.
+3. **Overall** — the family subscores are combined using the weights above (`round(100 × Σ weightᵢ·subᵢ / Σ weightᵢ)`). If a whole family has no applicable checks, it is dropped and its weight is redistributed proportionally over the rest.
+
+**Skipped / inapplicable checks are never penalized.** A site with no Product pages isn't marked down for lacking Product markup; a single-language site isn't marked down for hreflang; a run without `--cwv` isn't marked down for the field Core Web Vitals it never measured. Only checks that actually apply shape the score.
+
+**Letter grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
 ## Flags
 
 | Flag | Description |
 |---|---|
 | `--json` | Output the full report as JSON (for scripts and CI). |
+| `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
+| `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
 | `--min-score <n>` | Score threshold for exit code 0 (default: `60`). Below it, exit code is 1. |
 | `--timeout <ms>` | Per-request timeout in milliseconds (default: `10000`). |
 | `--max-pages <n>` | Pages to sample: the homepage plus up to `n-1` same-origin pages discovered from the sitemap (falling back to homepage links). Default: `10`; `1` audits the homepage only. |
-| `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
 | `--user-agent <ua>` | Override the crawler User-Agent, e.g. `--user-agent "GPTBot/1.0"`, to see what an AI crawler that a site filters by UA would get. |
-| `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
-| `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
+| `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
+| `--cwv` | Opt into Core Web Vitals via one (slow, ~15–30s) PageSpeed Insights call. Without it, the field/lab CWV checks skip; static performance heuristics still run. |
+| `--psi-key <key>` | Google PageSpeed Insights / CrUX API key (a [free Google API key](https://developers.google.com/speed/docs/insights/v5/get-started)). Recommended: the keyless endpoint is rate-limited and often returns HTTP 429. |
+| `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default: `mobile`). |
 
 ### Report files
 
@@ -110,6 +132,22 @@ npx findable-audit https://your-site.com --report audit.md --report audit.html
 
 The `broken-internal-links` check ignores Cloudflare `/cdn-cgi/` endpoints (e.g. email protection) — they are infrastructure, not content pages.
 
+## Core Web Vitals
+
+The `performance` family always runs its static heuristics (HTML weight, render-blocking JS/CSS, image dimensions, text compression, caching headers, DOM size…) with no key and no network cost beyond the pages already fetched.
+
+The field and lab Core Web Vitals — `cwv-lcp`, `cwv-cls`, `cwv-inp`, `cwv-ttfb`, `cwv-assessment`, `lighthouse-perf`, `lab-tbt`, `lab-fcp` — are **opt-in**:
+
+```bash
+npx findable-audit https://your-site.com --cwv --psi-key <your-google-api-key>
+```
+
+This makes a single PageSpeed Insights call (shared across all CWV checks) that returns **field data** (real-user p75 LCP / CLS / INP / TTFB from the Chrome UX Report) and **lab data** (a Lighthouse run). Without `--cwv`, or when no field data exists for a low-traffic URL, those checks `skip` rather than fail. A free Google API key is strongly recommended — the keyless endpoint is aggressively rate-limited.
+
+## Web app
+
+`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back as HTML or JSON. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies) and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
+
 ## Claude Code plugin
 
 findable-audit ships as a Claude Code plugin with three skills:
@@ -121,7 +159,7 @@ findable-audit ships as a Claude Code plugin with three skills:
 
 - **`geo-audit`** — runs `findable-audit` on a URL, interprets the JSON report and turns it into a prioritized fix plan, ordered by the points you are losing.
 - **`geo-implement`** — implements the GEO / AI-visibility artifacts on a static site (Astro, Next, Hugo): generates `robots.txt`, `llms.txt`, `llms-full.txt`, JSON-LD, sitemap wiring and IndexNow, then verifies the result with `findable-audit`.
-- **`fix-technical-seo`** — fixes the technical-SEO findings: canonical, meta robots (`noindex`), redirect hygiene, broken internal links, duplicate titles, Open Graph, viewport and hreflang.
+- **`fix-technical-seo`** — fixes the technical-SEO and on-page findings: canonical, meta robots (`noindex`), redirect hygiene, broken internal links, duplicate titles, heading outline, Open Graph, viewport and hreflang.
 
 ## Why GEO
 
@@ -134,3 +172,5 @@ Issues and pull requests are welcome. Run `npm ci`, `npm run build` and `npm tes
 ## License
 
 [MIT](LICENSE)
+</content>
+</invoke>
