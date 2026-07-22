@@ -109,8 +109,13 @@ describe('renderMarkdown in French', () => {
     expect(md).toContain('## On-page & contenu (2/4)');
     expect(md).toContain('## Corrections recommandées');
   });
-  it('keeps the 108-check messages/fixes in English', () => {
+  it('localizes the fix and appends a French "why" per check (dynamic message stays EN)', () => {
+    // dynamic check message stays English for now (#1 follow-up)
     expect(md).toContain('AI crawlers blocked: GPTBot');
-    expect(md).toContain('Remove the Disallow rules.');
+    // the fix is translated on a French report (#1/#53) — no English fix leak
+    expect(md).toContain('Ne mettez jamais'); // FR fix for ai-crawlers-allowed
+    expect(md).not.toContain('Remove the Disallow rules.');
+    // a French "why this matters" is appended to the check row
+    expect(md).toMatch(/Vérifie que le robots\.txt ne bloque pas/);
   });
 });

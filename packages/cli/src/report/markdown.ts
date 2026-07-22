@@ -4,6 +4,7 @@ import { verdictOf } from './verdict.js';
 import { renderCwvMarkdown } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
+import { checkWhy, checkFix } from './check-i18n.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
   pass: '✅', warn: '⚠️', fail: '❌', skip: '⏭️',
@@ -51,7 +52,9 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(m.mdCheckHeader);
     lines.push('|---|---|---|---|');
     for (const r of results) {
-      lines.push(`| ${ICONS[r.status]} | \`${r.id}\` | ${r.points}/${r.maxPoints} | ${cell(r.message)} |`);
+      const why = checkWhy(r.id, lang);
+      const msg = why ? `${cell(r.message)} — _${cell(why)}_` : cell(r.message);
+      lines.push(`| ${ICONS[r.status]} | \`${r.id}\` | ${r.points}/${r.maxPoints} | ${msg} |`);
     }
     lines.push('');
   }
@@ -61,7 +64,8 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(`## ${m.mdRecommendedFixes}`, '');
     for (const r of recs) {
       const link = r.docUrl ? ` — [${m.mdDoc}](${r.docUrl})` : '';
-      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${r.fix}${link}`);
+      const fix = checkFix(r.id, lang, r.fix) ?? r.fix;
+      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${fix}${link}`);
     }
     lines.push('');
   }

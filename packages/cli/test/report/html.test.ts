@@ -167,8 +167,14 @@ describe('renderHtml in French', () => {
     expect(html).toContain('Pages auditées :');
     expect(html).toContain('En savoir plus →');
   });
-  it('keeps the 108-check messages/fixes in English', () => {
+  it('localizes the fix and adds a French "why" per check (dynamic message stays EN)', () => {
+    // The dynamic check message stays English for now (#1 follow-up).
     expect(html).toContain('llms.txt missing');
-    expect(html).toContain('Add a /llms.txt file.');
+    // The fix is now translated on a French report (#1/#53) — no English fix leak.
+    expect(html).toContain('Ajoutez un fichier /llms.txt');
+    expect(html).not.toContain('Add a /llms.txt file.');
+    // A French "why this matters" line is shown for catalogued checks.
+    expect(html).toMatch(/class="why"/);
+    expect(html).toMatch(/Vérifie que \/llms\.txt/);
   });
 });

@@ -4,6 +4,7 @@ import { verdictOf } from './verdict.js';
 import { renderCwvHtml } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
+import { checkWhy, checkFix } from './check-i18n.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -76,6 +77,7 @@ const STYLE = `
   .fix { color: #555; font-size: .85rem; margin-top: .15rem; }
   .fix-more { color: #1a7f37; font-size: .8rem; white-space: nowrap; }
   .msg { color: #333; font-size: .9rem; margin-top: .1rem; }
+  .why { color: #6b7280; font-size: .82rem; line-height: 1.4; margin-top: .18rem; }
   .row { break-inside: avoid; }
   .subscores { margin: 1.25rem 0; }
   .subscore-table td { border-bottom: none; padding: .3rem .5rem; vertical-align: middle; }
@@ -173,13 +175,16 @@ export function renderHtml(report: AuditReport, now: Date = new Date(), lang: La
     const earned = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.points), 0);
     const max = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.maxPoints), 0);
     const rows = results.map((r) => {
+      const why = checkWhy(r.id, lang);
+      const whyHtml = why ? `<div class="why">${escapeHtml(why)}</div>` : '';
+      const fixText = checkFix(r.id, lang, r.fix);
       const link = r.docUrl && r.status !== 'pass' && r.status !== 'skip'
         ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
-      const fix = r.fix && r.status !== 'pass' && r.status !== 'skip'
-        ? `<div class="fix">${escapeHtml(r.fix)}${link}</div>` : '';
+      const fix = fixText && r.status !== 'pass' && r.status !== 'skip'
+        ? `<div class="fix">${escapeHtml(fixText)}${link}</div>` : '';
       return `<tr class="row">
         <td class="st ${r.status}">${STATUS_LABEL[r.status]}</td>
-        <td><code>${escapeHtml(r.id)}</code><div class="msg">${escapeHtml(r.message)}</div>${fix}</td>
+        <td><code>${escapeHtml(r.id)}</code><div class="msg">${escapeHtml(r.message)}</div>${whyHtml}${fix}</td>
         <td class="pts">${r.points}/${r.maxPoints}</td>
       </tr>`;
     }).join('\n');
@@ -227,7 +232,7 @@ export function renderHtml(report: AuditReport, now: Date = new Date(), lang: La
       return `<div class="ap-item">
         <span class="ap-sev ${r.status}"></span>
         <span class="chip">${escapeHtml(familyShort[r.family])}</span>
-        <span class="ap-fix">${escapeHtml(r.fix)}${more}</span>
+        <span class="ap-fix">${escapeHtml(checkFix(r.id, lang, r.fix) ?? r.fix)}${more}</span>
         <span class="ap-effort eff-${r.effort}">${m.effortLabel[r.effort]}</span>
         <span class="ap-imp">+${r.impact} ${m.pts}</span>
       </div>`;
