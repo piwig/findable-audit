@@ -59,6 +59,13 @@ export interface ReportMessages {
   cwvKpiHeader: { metric: string; value: string; rating: string; good: string; poor: string }; // KPI table (#2b)
   // action-plan effort estimate (#18)
   effortLabel: Record<EffortKey, string>;
+  // competitive comparison (#36)
+  compareTitle: string;
+  compareYou: string;
+  compareOverall: string;
+  compareGapsTitle: string;
+  compareNoGaps: string;
+  compareBehind: string; // suffix on a gap line, e.g. "-12 behind the leader"
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -117,6 +124,12 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     },
     cwvKpiHeader: { metric: 'Metric', value: 'Value (p75)', rating: 'Rating', good: 'Good', poor: 'Poor' },
     effortLabel: { quick: 'Quick win', moderate: 'Moderate', involved: 'Involved' },
+    compareTitle: 'Competitive comparison',
+    compareYou: 'You',
+    compareOverall: 'Overall score',
+    compareGapsTitle: 'Where you trail',
+    compareNoGaps: 'You lead or match on every family — nice.',
+    compareBehind: 'behind the leader',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -173,6 +186,12 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     },
     cwvKpiHeader: { metric: 'Métrique', value: 'Valeur (p75)', rating: 'Évaluation', good: 'Bon', poor: 'Mauvais' },
     effortLabel: { quick: 'Rapide', moderate: 'Modéré', involved: 'Conséquent' },
+    compareTitle: 'Comparaison concurrentielle',
+    compareYou: 'Vous',
+    compareOverall: 'Score global',
+    compareGapsTitle: 'Où vous êtes devancé',
+    compareNoGaps: 'Vous êtes en tête ou à égalité sur chaque famille — beau travail.',
+    compareBehind: 'sous le leader',
   },
 };
 

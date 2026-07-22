@@ -3,15 +3,18 @@ import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { writeFileSync } from 'node:fs';
 import { buildChecks } from './checks/index.js';
-import { runAudit, UnreachableSiteError } from './runner.js';
+import { runAudit, UnreachableSiteError, type AuditReport } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 import { renderSarif } from './report/sarif.js';
+import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
+
+--compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
@@ -48,6 +51,7 @@ const parseCliArgs = () =>
       'psi-key': { type: 'string' },
       'psi-strategy': { type: 'string', default: 'mobile' },
       lang: { type: 'string' },
+      compare: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -126,14 +130,37 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
 }
 
 try {
-  const report = await runAudit(targetUrl,
-    buildChecks({ indexnowKey: values['indexnow-key'] }),
-    { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy });
-  console.log(values.json ? renderJson(report) : renderTerminal(report));
+  const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop' };
+  const report = await runAudit(targetUrl, checks, auditOpts);
+
+  // --compare <u1,u2,...>: audit competitor URLs too and produce a side-by-side
+  // scorecard. A competitor that is invalid or unreachable is skipped (with a
+  // warning) rather than aborting the whole run.
+  const competitorReports: AuditReport[] = [];
+  if (values.compare && values.compare.trim() !== '') {
+    const urls = values.compare.split(',').map((s) => s.trim()).filter(Boolean)
+      .map((u) => (/^https?:\/\//i.test(u) ? u : `https://${u}`));
+    for (const cu of urls) {
+      if (!URL.canParse(cu) || !/^https?:$/.test(new URL(cu).protocol)) {
+        console.error(`findable-audit: skipping invalid --compare URL "${cu}"`);
+        continue;
+      }
+      try {
+        competitorReports.push(await runAudit(cu, checks, auditOpts));
+      } catch (err) {
+        console.error(`findable-audit: skipping "${cu}" (${(err as Error).message})`);
+      }
+    }
+  }
+  const compare = competitorReports.length > 0;
+  const reports = [report, ...competitorReports];
+
+  console.log(values.json ? renderJson(report) : compare ? renderCompareTerminal(reports, langTyped) : renderTerminal(report));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
   //   --no-report     -> none
-  //   otherwise       -> <host>-<date>.md and .html in the current directory
+  //   otherwise       -> <host>-<date>[-compare].md and .html in the current directory
   const now = new Date();
   const explicit = values.report ?? [];
   let targets: string[];
@@ -142,7 +169,7 @@ try {
   } else if (values['no-report']) {
     targets = [];
   } else {
-    const base = defaultReportBase(report.url, now);
+    const base = defaultReportBase(report.url, now) + (compare ? '-compare' : '');
     targets = [`${base}.md`, `${base}.html`];
   }
   let reportWriteFailed = false;
@@ -150,8 +177,8 @@ try {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report);
     else if (/\.json$/i.test(file)) body = renderJson(report);
-    else if (/\.html?$/i.test(file)) body = renderHtml(report, now, langTyped);
-    else body = renderMarkdown(report, now, langTyped);
+    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped) : renderHtml(report, now, langTyped);
+    else body = compare ? renderCompareMarkdown(reports, langTyped) : renderMarkdown(report, now, langTyped);
     try {
       writeFileSync(file, body, 'utf8');
       console.error(`report written to ${file}`);

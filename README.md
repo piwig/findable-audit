@@ -95,6 +95,7 @@ findable-audit uses a **weighted per-family model**:
 
 | Flag | Description |
 |---|---|
+| `--compare <url2,url3,...>` | Audit your URL against one or more competitors (comma-separated) and write a side-by-side scorecard — overall and per-family scores, with the families where you trail the leader. |
 | `--json` | Output the full report as JSON (for scripts and CI). |
 | `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
 | `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
