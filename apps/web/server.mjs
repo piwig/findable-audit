@@ -20,6 +20,7 @@ import { buildChecks } from '../../packages/cli/dist/checks/index.js';
 import { renderHtml } from '../../packages/cli/dist/report/html.js';
 import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
+import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
@@ -202,6 +203,7 @@ ${bodyHtml}
 // contract: form action, input name, selector markup, hreflang.
 function landingPage(lang = 'en') {
   const s = t(lang).landing;
+  const c = t(lang).compare;
   const chips = s.families.map((f) => `<span class="ld-chip">${escapeHtml(f)}</span>`).join('');
   const steps = s.steps.map((st, i) =>
     `<div class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></div>`).join('');
@@ -222,6 +224,18 @@ function landingPage(lang = 'en') {
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
   <div class="ld-steps">${steps}</div>
+</section>
+<section class="ld-sec">
+  <p class="ld-eyebrow">${escapeHtml(c.heading)}</p>
+  <p class="lead" style="margin:.1rem 0 1rem">${escapeHtml(c.lead)}</p>
+  <form method="get" action="/${lang}/compare">
+    <input type="url" name="url" placeholder="https://your-site.com" aria-label="${escapeHtml(c.urlLabel)}"
+      autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <input type="text" name="compare" placeholder="https://rival-1.com, https://rival-2.com" aria-label="${escapeHtml(c.competitorsLabel)}"
+      autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button type="submit" class="ld-cta"><span>${escapeHtml(c.cta)}</span></button>
+  </form>
+  <p class="hint">${escapeHtml(c.hint)}</p>
 </section>
 <hr class="ld-rule">
 `, { lang, alternates: { en: '/en/', fr: '/fr/' } });
@@ -299,8 +313,10 @@ function withTimeout(promise, ms) {
  * @param {URL} url validated target
  * @returns {Promise<import('../../packages/cli/dist/runner.js').AuditReport>}
  */
-async function auditUrl(url) {
-  const key = url.href;
+async function auditUrl(url, { cwv = cwvActive() } = {}) {
+  // Compare mode runs without CWV (no PSI call) so N audits stay fast; cache it
+  // under a distinct key so it never cross-contaminates a full single audit.
+  const key = url.href + (cwv ? '' : '#nocwv');
 
   const cached = cache.get(key);
   if (cached !== undefined) return cached;
@@ -322,8 +338,8 @@ async function auditUrl(url) {
     blockPrivateHosts: true, // fetch-layer SSRF guard: every hop is revalidated.
     signal: ac.signal,
   };
-  if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
-  const auditPromise = runAudit(key, checks, opts);
+  if (cwv) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
+  const auditPromise = runAudit(url.href, checks, opts);
   // Free the slot when the real audit settles, even if the HTTP response has
   // already timed out below; swallow a late rejection so it is never unhandled.
   auditPromise.then(
@@ -333,7 +349,7 @@ async function auditUrl(url) {
 
   let report;
   try {
-    report = await withTimeout(auditPromise, auditTimeout());
+    report = await withTimeout(auditPromise, cwv ? AUDIT_TIMEOUT_CWV_MS : AUDIT_TIMEOUT_MS);
   } catch (err) {
     ac.abort(); // on timeout (or any race failure) cancel in-flight fetches.
     throw err;
@@ -691,6 +707,68 @@ async function handleAudit(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// /compare — audit your URL against competitors, return a scorecard.
+// Synchronous and CWV-free (no PSI call) so N audits stay under the proxy
+// timeout; capped at 3 URLs total. The main URL must succeed; competitors are
+// best-effort (an unreachable/blocked competitor is skipped).
+// ---------------------------------------------------------------------------
+const MAX_COMPARE_URLS = 3;
+
+async function handleCompare(req, res) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const lang = normalizeLang(parsed.searchParams.get('lang'));
+  // localizedErrorPage (not errorPage) so the <html lang> matches the message language.
+  const errHtml = (title, message, status = 400) => {
+    const p = localizedErrorPage(lang, title, message, { status });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+  };
+
+  const rl = rateLimiter.take(clientIp(req));
+  if (!rl.allowed) {
+    const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+    const e = t(lang).error.rateLimited;
+    errHtml(e.title, `${e.message} (~${retryAfter}s)`, 429);
+    return;
+  }
+
+  const mainRaw = normalizeInput(parsed.searchParams.get('url') ?? '');
+  const competitorsRaw = (parsed.searchParams.get('compare') ?? '')
+    .split(',').map((s) => normalizeInput(s.trim())).filter(Boolean);
+  if (mainRaw === '') { const e = t(lang).error.missingUrl; errHtml(e.title, e.message); return; }
+
+  const rawUrls = [mainRaw, ...competitorsRaw].slice(0, MAX_COMPARE_URLS);
+  const reports = [];
+  for (let i = 0; i < rawUrls.length; i++) {
+    const isMain = i === 0;
+    let url;
+    try {
+      url = await assertPublicUrl(rawUrls[i]);
+    } catch (err) {
+      if (isMain) { errHtml(t(lang).error.urlNotAllowed.title, err instanceof BlockedUrlError ? err.message : 'Invalid URL'); return; }
+      continue; // skip a blocked competitor
+    }
+    try {
+      reports.push(await auditUrl(url, { cwv: false }));
+    } catch (err) {
+      if (!isMain) continue; // skip an unreachable/slow competitor
+      const code = err instanceof AuditTimeoutError ? 'timeout'
+        : (err && err.code === 'BUSY') ? 'busy'
+          : err instanceof UnreachableSiteError ? 'unreachable' : 'internal';
+      const e = t(lang).error[code] ?? t(lang).error.internal;
+      errHtml(e.title, e.message, statusForError(code));
+      return;
+    }
+  }
+
+  if (reports.length < 2) {
+    const c = t(lang).compare;
+    errHtml(c.needMoreTitle, c.needMore);
+    return;
+  }
+  send(res, 200, 'text/html; charset=utf-8', renderCompareHtml(reports, undefined, lang));
+}
+
+// ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
@@ -719,7 +797,7 @@ const server = http.createServer((req, res) => {
   // them would add a wasteful extra 301 hop to every SSE/result/export
   // request. They — like `/healthz` and `/audit.json` — stay global,
   // unprefixed routes left untouched by this block.
-  const HUMAN_PATHS = new Set(['/audit']);
+  const HUMAN_PATHS = new Set(['/audit', '/compare']);
 
   if (pathname === '/') {
     const lang = negotiateLang(req.headers['accept-language']);
@@ -771,6 +849,13 @@ const server = http.createServer((req, res) => {
   if (pathname === '/audit') {
     handleAuditStart(req, res).catch((err) => {
       console.error('unhandled /audit error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/compare') {
+    handleCompare(req, res).catch((err) => {
+      console.error('unhandled /compare error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
     return;
