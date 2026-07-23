@@ -47,6 +47,9 @@ const MAX_PAGES = 6; // pages sampled per audit (capped for cost/speed; frees th
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
 const CACHE_MAX_ENTRIES = 500; // bound the result cache so it can't grow unbounded.
 const REPO_URL = 'https://github.com/piwig/findable-audit';
+// Public origin for canonical/OG/sitemap URLs. Behind nginx we can't infer TLS
+// host reliably, so it is configured explicitly (default = production host).
+const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN ?? 'https://findable.bordebat.fr').replace(/\/$/, '');
 
 // Defense-in-depth CSP for the (already-escaped) HTML pages. The report uses an
 // inline <style>, hence style-src 'unsafe-inline'; there is no script and no
@@ -184,18 +187,106 @@ function brandHeader(lang) {
     + `${logoMark(26)}<span class="brand-name">findable<span class="g-dash">-</span>audit</span></a>`;
 }
 
-function shell(title, bodyHtml, { lang = 'en', alternates } = {}) {
+// --- Well-known discovery files (dogfooding our own GEO recommendations) ---
+function robotsTxt() {
+  return [
+    '# findable-audit — SEO + GEO audit tool. AI crawlers are explicitly welcome.',
+    '# We audit whether AI crawlers can reach and extract sites — so we allow them all.',
+    'User-agent: *',
+    'Allow: /',
+    '',
+    '# Named AI crawlers (citation-time and training) — all allowed:',
+    '# GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-User, anthropic-ai,',
+    '# PerplexityBot, Perplexity-User, Google-Extended, CCBot, Bytespider, Amazonbot.',
+    '',
+    'Disallow: /audit/',
+    'Disallow: /compare/',
+    '',
+    `Sitemap: ${PUBLIC_ORIGIN}/sitemap.xml`,
+    '',
+  ].join('\n');
+}
+
+function sitemapXml() {
+  const urls = [
+    { loc: `${PUBLIC_ORIGIN}/en/`, en: `${PUBLIC_ORIGIN}/en/`, fr: `${PUBLIC_ORIGIN}/fr/` },
+    { loc: `${PUBLIC_ORIGIN}/fr/`, en: `${PUBLIC_ORIGIN}/en/`, fr: `${PUBLIC_ORIGIN}/fr/` },
+  ];
+  const body = urls.map((u) =>
+    `  <url>\n    <loc>${u.loc}</loc>\n`
+    + `    <xhtml:link rel="alternate" hreflang="en" href="${u.en}"/>\n`
+    + `    <xhtml:link rel="alternate" hreflang="fr" href="${u.fr}"/>\n`
+    + `    <xhtml:link rel="alternate" hreflang="x-default" href="${u.en}"/>\n`
+    + '  </url>').join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${body}\n</urlset>\n`;
+}
+
+function llmsTxt() {
+  return [
+    '# findable-audit',
+    '',
+    '> Free, open-source SEO + GEO audit. It checks whether search engines and AI',
+    '> crawlers (GPTBot, ClaudeBot, PerplexityBot, …) can both reach and extract a',
+    '> site, then scores it A–F across 8 weighted families (AI access, LLM content,',
+    '> structured data, technical SEO, on-page, performance/CWV, accessibility, security).',
+    '',
+    '## Use it',
+    `- Web: ${PUBLIC_ORIGIN}/`,
+    `- Source & CLI: ${REPO_URL}`,
+    '',
+    '## What it is not',
+    '- Not an AI-answer monitor: it audits the *input* (your site), not the *output*',
+    '  of ChatGPT/Perplexity/Gemini. It predicts findability; it does not track mentions.',
+    '',
+  ].join('\n');
+}
+
+function securityTxt() {
+  const expires = new Date(Date.now() + 365 * 86_400_000).toISOString();
+  return [
+    `Contact: ${REPO_URL}/issues`,
+    `Expires: ${expires}`,
+    'Preferred-Languages: fr, en',
+    `Canonical: ${PUBLIC_ORIGIN}/.well-known/security.txt`,
+    '',
+  ].join('\n');
+}
+
+function shell(title, bodyHtml, { lang = 'en', alternates, meta } = {}) {
+  // Absolute hreflang for an indexable page (canonical origin), relative for the
+  // ephemeral pages that were never meant to be crawled anyway.
+  const abs = (p) => (meta ? PUBLIC_ORIGIN + p : p);
   const hreflangLinks = alternates
-    ? `\n<link rel="alternate" hreflang="en" href="${escapeHtml(alternates.en)}">`
-      + `\n<link rel="alternate" hreflang="fr" href="${escapeHtml(alternates.fr)}">`
-      + `\n<link rel="alternate" hreflang="x-default" href="${escapeHtml(alternates.en)}">`
+    ? `\n<link rel="alternate" hreflang="en" href="${escapeHtml(abs(alternates.en))}">`
+      + `\n<link rel="alternate" hreflang="fr" href="${escapeHtml(abs(alternates.fr))}">`
+      + `\n<link rel="alternate" hreflang="x-default" href="${escapeHtml(abs(alternates.en))}">`
     : '';
+  // Indexable pages (the landing) get description/canonical/OG/JSON-LD; every
+  // other (ephemeral) page stays noindex.
+  let seo = '<meta name="robots" content="noindex">';
+  if (meta) {
+    const canonical = PUBLIC_ORIGIN + meta.path;
+    const ogLocale = lang === 'fr' ? 'fr_FR' : 'en_US';
+    const altLocale = lang === 'fr' ? 'en_US' : 'fr_FR';
+    seo = '<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">'
+      + `\n<meta name="description" content="${escapeHtml(meta.description)}">`
+      + `\n<link rel="canonical" href="${escapeHtml(canonical)}">`
+      + `\n<meta property="og:type" content="website">`
+      + `\n<meta property="og:title" content="${escapeHtml(title)}">`
+      + `\n<meta property="og:description" content="${escapeHtml(meta.description)}">`
+      + `\n<meta property="og:url" content="${escapeHtml(canonical)}">`
+      + `\n<meta property="og:locale" content="${ogLocale}">`
+      + `\n<meta property="og:locale:alternate" content="${altLocale}">`
+      + `\n<meta name="twitter:card" content="summary">`
+      + (meta.jsonLd ? `\n<script type="application/ld+json">${JSON.stringify(meta.jsonLd).replace(/</g, '\\u003c')}</script>` : '');
+  }
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
+${seo}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>${escapeHtml(title)}</title>${hreflangLinks}
 <style>${PAGE_STYLE}</style>
@@ -252,7 +343,32 @@ function landingPage(lang = 'en') {
   <p class="hint">${escapeHtml(c.hint)}</p>
 </section>
 <hr class="ld-rule">
-`, { lang, alternates: { en: '/en/', fr: '/fr/' } });
+`, { lang, alternates: { en: '/en/', fr: '/fr/' }, meta: landingMeta(lang) });
+}
+
+// SEO/OG metadata + a connected JSON-LD @graph for the landing (dogfooding: this
+// graph must itself pass our entity-graph-connectivity check).
+function landingMeta(lang) {
+  const description = lang === 'fr'
+    ? 'Audit SEO + GEO gratuit et open source : mesure si les moteurs de recherche ET les crawlers IA (GPTBot, ClaudeBot, PerplexityBot) peuvent trouver et extraire votre site. Note A–F, plan d’action priorisé.'
+    : 'Free, open-source SEO + GEO audit: measures whether search engines AND AI crawlers (GPTBot, ClaudeBot, PerplexityBot) can find and extract your site. A–F grade, prioritized action plan.';
+  const org = `${PUBLIC_ORIGIN}/#org`;
+  const site = `${PUBLIC_ORIGIN}/#website`;
+  const app = `${PUBLIC_ORIGIN}/#app`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'Organization', '@id': org, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`, sameAs: [REPO_URL] },
+      { '@type': 'WebSite', '@id': site, url: `${PUBLIC_ORIGIN}/`, name: 'findable-audit', inLanguage: lang, publisher: { '@id': org } },
+      {
+        '@type': 'WebApplication', '@id': app, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`,
+        applicationCategory: 'DeveloperApplication', operatingSystem: 'Any', isPartOf: { '@id': site }, provider: { '@id': org },
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        description,
+      },
+    ],
+  };
+  return { path: `/${lang}/`, description, jsonLd };
 }
 
 function errorPage(title, message, { status = 400, lang = 'en' } = {}) {
@@ -544,6 +660,7 @@ function send(res, status, contentType, body, extraHeaders = {}) {
     'content-length': Buffer.byteLength(body),
     'referrer-policy': 'no-referrer',
     'x-content-type-options': 'nosniff',
+    'permissions-policy': 'geolocation=(), camera=(), microphone=()',
     ...extraHeaders,
   };
   // Default CSP for served HTML, unless the caller already set one (progress page).
@@ -1002,6 +1119,22 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/healthz') {
     send(res, 200, 'text/plain; charset=utf-8', 'ok');
+    return;
+  }
+  if (pathname === '/robots.txt') {
+    send(res, 200, 'text/plain; charset=utf-8', robotsTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/sitemap.xml') {
+    send(res, 200, 'application/xml; charset=utf-8', sitemapXml(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/llms.txt') {
+    send(res, 200, 'text/plain; charset=utf-8', llmsTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/.well-known/security.txt' || pathname === '/security.txt') {
+    send(res, 200, 'text/plain; charset=utf-8', securityTxt(), { 'cache-control': 'public, max-age=86400' });
     return;
   }
   if (pathname === '/audit') {

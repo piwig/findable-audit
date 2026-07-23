@@ -22,9 +22,10 @@ test('/en/ has the correct lang attribute, reciprocal hreflang, English copy and
   const html = await res.text();
   assert.equal(res.status, 200);
   assert.match(html, /<html lang="en">/);
-  assert.match(html, /<link rel="alternate" hreflang="en" href="\/en\/">/);
-  assert.match(html, /<link rel="alternate" hreflang="fr" href="\/fr\/">/);
-  assert.match(html, /<link rel="alternate" hreflang="x-default" href="\/en\/">/);
+  // Indexable landing → absolute hreflang (Google requires fully-qualified URLs).
+  assert.match(html, /<link rel="alternate" hreflang="en" href="https?:\/\/[^"]+\/en\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="fr" href="https?:\/\/[^"]+\/fr\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="x-default" href="https?:\/\/[^"]+\/en\/">/);
   assert.match(html, /Website URL/);
   assert.match(html, /<a href="\/fr\/" hreflang="fr" lang="fr">Français<\/a>/);
   assert.match(html, /action="\/en\/audit"/);
@@ -35,8 +36,8 @@ test('/fr/ has the correct lang attribute, reciprocal hreflang, French copy and 
   const html = await res.text();
   assert.equal(res.status, 200);
   assert.match(html, /<html lang="fr">/);
-  assert.match(html, /<link rel="alternate" hreflang="en" href="\/en\/">/);
-  assert.match(html, /<link rel="alternate" hreflang="fr" href="\/fr\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="en" href="https?:\/\/[^"]+\/en\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="fr" href="https?:\/\/[^"]+\/fr\/">/);
   assert.match(html, /URL du site/);
   assert.match(html, /<a href="\/en\/" hreflang="en" lang="en">English<\/a>/);
   assert.match(html, /action="\/fr\/audit"/);
