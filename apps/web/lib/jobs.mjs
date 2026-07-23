@@ -20,11 +20,15 @@ export function createJobStore(opts = {}) {
   /** @type {Map<string, any>} */
   const jobs = new Map();
 
-  function create({ url, lang }) {
+  function create({ url, lang, kind = 'audit', urls = null, ipHash = null }) {
     const job = {
       id: randomUUID(),
       url,
       lang,
+      kind,
+      urls,
+      ipHash,
+      reports: [],
       status: 'running',
       progress: null,
       report: null,

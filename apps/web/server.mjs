@@ -26,6 +26,7 @@ import { createRateLimiter } from './lib/rate-limit.mjs';
 import { createResultCache } from './lib/cache.mjs';
 import { clientIp } from './lib/client-ip.mjs';
 import { createJobStore } from './lib/jobs.mjs';
+import { createStore, loadOrCreateSalt, ipHasher, eventFromReport } from './lib/store.mjs';
 import { t } from './lib/i18n.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
@@ -58,6 +59,19 @@ const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW
 let inFlight = 0; // current number of running audits.
 const cache = createResultCache({ ttlMs: CACHE_TTL_MS, maxEntries: CACHE_MAX_ENTRIES });
 const jobs = createJobStore({ ttlMs: 180_000, maxJobs: 500 });
+
+// Usage-stats store (JSONL, best-effort). DATA_DIR defaults to apps/web/data/,
+// created lazily on the first append. The hashing salt is resolved once, lazily.
+const store = createStore({ dataDir: process.env.DATA_DIR ?? new URL('./data/', import.meta.url).pathname });
+let hashIpFn = null;
+async function hashIp(ip) {
+  if (!hashIpFn) hashIpFn = ipHasher(await loadOrCreateSalt(store.dataDir));
+  return hashIpFn(ip);
+}
+/** Append a completed audit to the store (fire-and-forget, never throws). */
+function recordAuditEvent(report, meta) {
+  return store.append(eventFromReport(report, meta));
+}
 
 class AuditTimeoutError extends Error {}
 
@@ -382,10 +396,15 @@ async function executeAudit(job) {
     onProgress: (ev) => jobs.setProgress(job.id, ev),
   };
   if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
+  const startedAt = Date.now();
   try {
     const report = await withTimeout(runAudit(key, checks, opts), auditTimeout());
     cache.set(key, report);
     jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang, { collapsed: true }) });
+    recordAuditEvent(report, {
+      kind: 'audit', lang: job.lang, ipHash: job.ipHash ?? null,
+      durationMs: Date.now() - startedAt, cwv: Boolean(report.psi),
+    });
   } catch (err) {
     ac.abort();
     const { code, message } = classifyError(err, job.lang);
@@ -609,7 +628,8 @@ async function handleAuditStart(req, res) {
 
   // Create the job but DO NOT run the audit yet — execution is lazy, kicked off
   // by /audit/stream or /audit/result (whichever the client hits first).
-  const job = jobs.create({ url: url.href, lang });
+  const ipHash = await hashIp(ip);
+  const job = jobs.create({ url: url.href, lang, ipHash });
   const nonce = crypto.randomBytes(16).toString('base64');
   const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
     + `script-src 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; `
@@ -663,6 +683,7 @@ async function handleAudit(req, res) {
 
   // 2) Run the audit (concurrency-capped, timed).
   let report;
+  const startedAt = Date.now();
   try {
     report = await auditUrl(url);
   } catch (err) {
@@ -690,6 +711,10 @@ async function handleAudit(req, res) {
   }
 
   // 3) Render JSON only — no reportWithBackLink, no HTML branch.
+  recordAuditEvent(report, {
+    kind: 'audit', lang: DEFAULT_LANG, ipHash: await hashIp(ip),
+    durationMs: Date.now() - startedAt, cwv: Boolean(report.psi),
+  });
   send(res, 200, 'application/json; charset=utf-8', renderJson(report));
 }
 
@@ -838,4 +863,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs, cwvActive, auditTimeout };
+export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent };
