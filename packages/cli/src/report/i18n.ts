@@ -66,6 +66,8 @@ export interface ReportMessages {
   compareGapsTitle: string;
   compareNoGaps: string;
   compareBehind: string; // suffix on a gap line, e.g. "-12 behind the leader"
+  // collapsible family summary status (accessible name for the color dot)
+  famStatus: { bad: string; ok: string; good: string };
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -130,6 +132,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     compareGapsTitle: 'Where you trail',
     compareNoGaps: 'You lead or match on every family — nice.',
     compareBehind: 'behind the leader',
+    famStatus: { bad: 'Needs fixes', ok: 'Warnings only', good: 'All passing' },
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -192,6 +195,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     compareGapsTitle: 'Où vous êtes devancé',
     compareNoGaps: 'Vous êtes en tête ou à égalité sur chaque famille — beau travail.',
     compareBehind: 'sous le leader',
+    famStatus: { bad: 'À corriger', ok: 'Avertissements', good: 'Tout passe' },
   },
 };
 

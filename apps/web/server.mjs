@@ -461,7 +461,8 @@ async function handleExport(req, res, job, format) {
   const j = jobs.get(job.id);
   if (!j) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
   if (j.status !== 'done' || !j.report) {
-    const p = errorPage('Report not ready', 'That report is not available for download.', { status: 409 });
+    const e = t(j.lang).error.reportNotReady;
+    const p = localizedErrorPage(j.lang, e.title, e.message, { status: 409 });
     send(res, p.status, 'text/html; charset=utf-8', p.html);
     return;
   }
@@ -792,7 +793,13 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/audit/result') {
     const job = jobFromQuery(req);
-    if (!job) { const p = errorPage('Not found', 'No such page.', { status: 404 }); send(res, p.status, 'text/html; charset=utf-8', p.html); return; }
+    if (!job) {
+      const lang = negotiateLang(req.headers['accept-language']);
+      const nf = t(lang).error.notFound;
+      const p = localizedErrorPage(lang, nf.title, nf.message, { status: 404 });
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+      return;
+    }
     handleResult(req, res, job).catch((err) => {
       console.error('unhandled /audit/result error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');

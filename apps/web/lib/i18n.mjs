@@ -51,6 +51,7 @@ export const WEB_MESSAGES = {
       missingUrl: { title: 'Missing URL', message: 'Please provide a URL to audit.' },
       urlNotAllowed: { title: 'URL not allowed' },
       internal: { title: 'Something went wrong', message: 'Something went wrong while auditing that site.' },
+      reportNotReady: { title: 'Report not ready', message: 'That report is not available for download yet.' },
       back: 'Audit another site',
     },
     landing: {
@@ -108,6 +109,7 @@ export const WEB_MESSAGES = {
       missingUrl: { title: 'URL manquante', message: 'Veuillez indiquer une URL à auditer.' },
       urlNotAllowed: { title: 'URL non autorisée' },
       internal: { title: 'Une erreur est survenue', message: "Une erreur est survenue lors de l'audit de ce site." },
+      reportNotReady: { title: 'Rapport pas encore prêt', message: "Ce rapport n'est pas encore disponible au téléchargement." },
       back: 'Auditer un autre site',
     },
     landing: {

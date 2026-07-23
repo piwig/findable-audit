@@ -44,6 +44,12 @@ describe('renderHtml', () => {
     expect(html).toContain('<summary class="fam-sum">');
     expect(html).toContain('class="fam-dot'); // worst-status indicator on the summary
   });
+  it('keeps the family label a heading and gives the status dot a text alternative (a11y)', () => {
+    // a heading inside <summary> preserves screen-reader heading navigation
+    expect(html).toMatch(/<summary class="fam-sum"><h2>/);
+    // the colour dot is not colour-only: role=img + an accessible name
+    expect(html).toMatch(/class="fam-dot (bad|ok|good)" role="img" aria-label="[^"]+"/);
+  });
   it('collapses families (closed <details>) when collapsed:true', () => {
     const collapsed = renderHtml(report, new Date('2026-07-20T00:00:00Z'), 'en', { collapsed: true });
     expect(collapsed).toContain('<details class="fam">'); // no `open`

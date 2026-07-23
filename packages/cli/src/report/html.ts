@@ -144,6 +144,8 @@ const STYLE = `
   .fam-sum::before { content: "\\25B8"; color: #999; font-size: .8em; flex: 0 0 auto; transition: transform .15s; }
   details[open] > .fam-sum::before { transform: rotate(90deg); }
   .fam-sum:hover { color: #1a7f37; }
+  .fam-sum h2 { margin: 0; padding: 0; border: 0; font: inherit; flex: 1; min-width: 0;
+    display: flex; align-items: center; gap: .5rem; }
   .fam-sum .pts { font-weight: 400; }
   .fam-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: auto; flex: 0 0 auto; }
   .fam-dot.good { background: #1a7f37; } .fam-dot.ok { background: #9a6700; } .fam-dot.bad { background: #b42318; }
@@ -170,7 +172,11 @@ const STYLE = `
   @media print {
     body { padding: 0; max-width: none; }
     h2, tr, .subscore-table tr { break-inside: avoid; }
-    .bar-fill, .grade, .fam-score, .hero-score, .cwv-ring { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .fam-sum { break-after: avoid; }
+    /* Reveal collapsed families so a direct print of the web result page is
+       complete (the downloaded export is already open). */
+    details.fam > table { display: table !important; content-visibility: visible !important; }
+    .bar-fill, .grade, .fam-score, .hero-score, .cwv-ring, .fam-dot { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
 
@@ -212,8 +218,12 @@ export function renderHtml(
     // downloaded/exported reports stay open (printable).
     const worst = results.some((r) => r.status === 'fail') ? 'bad'
       : results.some((r) => r.status === 'warn') ? 'ok' : 'good';
+    // A heading lives INSIDE the <summary> so screen-reader heading navigation
+    // still reaches every family; the dot carries a text alternative (role=img
+    // + aria-label) so its meaning isn't colour-only.
+    const statusLabel = escapeHtml(m.famStatus[worst]);
     sections.push(`<details class="fam"${collapsed ? '' : ' open'}>
-      <summary class="fam-sum">${escapeHtml(familyLabels[family])} <span class="pts">(${earned}/${max})</span><span class="fam-dot ${worst}"></span></summary>
+      <summary class="fam-sum"><h2>${escapeHtml(familyLabels[family])} <span class="pts">(${earned}/${max})</span><span class="fam-dot ${worst}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span></h2></summary>
       <table>${rows}</table>
     </details>`);
   }
