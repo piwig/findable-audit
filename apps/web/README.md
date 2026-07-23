@@ -49,10 +49,31 @@ headers and spoof the rate-limit key.
 | GET    | `/`                  | Landing page with the audit form.                   |
 | GET    | `/audit?url=<url>`   | Progress page (HTML); see [Async audit flow](#async-audit-flow-sse-and-export) below for the full `/audit/*` route set. |
 | GET    | `/audit.json?url=<url>` | JSON audit report (200), or a JSON error.        |
+| GET    | `/compare/start?url=<u>&compare=<c1,c2>` | Progress page for an async competitive comparison; see [Competitive comparison](#competitive-comparison-compare) below. |
+| GET    | `/robots.txt` · `/sitemap.xml` · `/llms.txt` · `/.well-known/security.txt` | Discovery files (we dogfood our own GEO advice). |
 | GET    | `/healthz`           | `200 ok` (for systemd / nginx health checks).       |
 | *      | anything else        | `404`.                                              |
 
 A bare host such as `example.com` is accepted and treated as `https://example.com`.
+
+### SEO/GEO metadata
+
+The landing (`/en/`, `/fr/`) is indexable and carries a meta description, an
+absolute `<link rel="canonical">`, Open Graph / Twitter Card tags, and a
+connected JSON-LD `@graph` (Organization + WebSite + WebApplication). Canonical
+and sitemap URLs use `PUBLIC_ORIGIN` (default `https://findable.bordebat.fr`;
+set it to match the deployment host). Every other (ephemeral) page stays
+`noindex`.
+
+## Competitive comparison (`/compare`)
+
+`/compare/start?url=<you>&compare=<rival1,rival2>` audits your URL against up to
+two competitors and renders a side-by-side scorecard. It runs **asynchronously**
+on the same job/SSE pattern as `/audit` (progress page → `/compare/stream` →
+`/compare/result`), so N sequential audits never hit the proxy timeout (the
+reason the earlier synchronous `/compare` was reverted). Audits run CWV-free to
+stay fast; an unreachable competitor is skipped with a notice; fewer than two
+reachable sites yields a friendly "not enough sites" page.
 
 ## Languages
 
@@ -118,16 +139,19 @@ unreachable) and logs nothing sensitive.
 
 ### Abuse / resource limits
 
-- **Concurrency cap:** at most 3 audits run at once; over that → `429` "busy".
-- **Per-IP rate limit:** ~6 audits per rolling minute (keyed on `X-Real-IP`, else
-  the last `X-Forwarded-For` hop, else the socket address) → `429`. The key map
-  is bounded (`maxKeys`, default 10000; oldest evicted) so rotating/spoofed keys
+- **Concurrency cap:** at most 10 audits run at once (`MAX_CONCURRENT`); over
+  that → `429` "busy".
+- **Per-IP rate limit:** 20 audits per rolling minute (`RATE_LIMIT`, keyed on
+  `X-Real-IP`, else the last `X-Forwarded-For` hop, else the socket address) →
+  `429`. A `/compare` request spends one token per submitted URL. The key map is
+  bounded (`maxKeys`, default 10000; oldest evicted) so rotating/spoofed keys
   cannot grow memory without bound.
-- **Per-audit hard timeout:** ~25s wall-clock (plus a 10s per-request timeout
-  inside the crawler). The timeout aborts in-flight fetches via an
-  `AbortController`, so the concurrency slot is freed promptly rather than after
-  the remaining requests drain → `504`.
-- **Page cap:** at most 8 pages sampled per audit.
+- **Per-audit hard timeout:** 45s wall-clock (`AUDIT_TIMEOUT_MS`; raised to 90s
+  when `PSI_KEY`/CWV is active), plus a 10s per-request timeout inside the
+  crawler. The timeout aborts in-flight fetches via an `AbortController`, so the
+  concurrency slot is freed promptly rather than after the remaining requests
+  drain → `504`.
+- **Page cap:** at most 6 pages sampled per audit (`MAX_PAGES`).
 - **Result cache:** identical URLs are served from a 60s in-memory cache, bounded
   to 500 entries (TTL sweep + oldest-eviction) so it cannot grow without bound.
 - **CSP:** HTML responses carry a `Content-Security-Policy`
@@ -221,6 +245,34 @@ in that case beyond what already runs `/audit/stream` through the same
 
 See memory `[[findable-audit-web-deploiement]]` for the full redeploy
 procedure (`git pull` + `npm ci`/`build` + service restart) on top of this.
+
+## Usage stats store
+
+Completed audits are journalled (best-effort, never blocking a response) to an
+append-only JSONL store under `DATA_DIR` (default `apps/web/data/`,
+`lib/store.mjs`). Client IPs are **never stored in the clear** — only
+`sha256(STATS_SALT + ip)` truncated to 16 hex; the salt comes from the
+`STATS_SALT` env or a generated `DATA_DIR/salt` file (mode 600). The active file
+rotates to `events-<YYYYMM>-<seq>.jsonl` past `STORE_MAX_BYTES` (32 MB). Each
+line records `{ts, kind, domain, url, lang, score, grade, familyScores, ipHash,
+durationMs, cwv}`. Leaving `DATA_DIR` writable is all that is required; nothing
+reads the store at request time.
+
+`lib/stats.mjs` aggregates that store into dashboard-ready KPIs (totals, grade
+distribution, top domains, per-domain history) — a pure function with no I/O.
+
+Set `PUBLIC_ORIGIN` to the deployment host (e.g. `https://findable.bordebat.fr`)
+so canonical, Open Graph, sitemap and robots URLs are correct.
+
+## Environment variables
+
+| Var | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3021` | HTTP port (bound to `127.0.0.1`). |
+| `PUBLIC_ORIGIN` | `https://findable.bordebat.fr` | Canonical/OG/sitemap/robots origin. |
+| `PSI_KEY` | *(unset)* | Google PageSpeed key → enables Core Web Vitals. |
+| `DATA_DIR` | `apps/web/data/` | JSONL usage-stats store location. |
+| `STATS_SALT` | *(generated)* | Salt for hashing client IPs in the store. |
 
 ### Known follow-ups
 

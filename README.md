@@ -64,7 +64,7 @@ More real-site case studies (before/after scores) will be published in `examples
 
 ## What it checks
 
-**108 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**109 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
@@ -96,6 +96,10 @@ findable-audit uses a **weighted per-family model**:
 | Flag | Description |
 |---|---|
 | `--compare <url2,url3,...>` | Audit your URL against one or more competitors (comma-separated) and write a side-by-side scorecard — overall and per-family scores, with the families where you trail the leader. |
+| `--baseline <file.json>` | Diff this run against a prior `--report *.json`: overall/per-family score deltas, plus which checks regressed, improved, appeared or disappeared. Shown in the terminal and added as a "Change vs baseline" section to the md/html reports. |
+| `--fail-on-regression` | Exit `1` when the score drops below the baseline by more than `--regression-tolerance` points. Requires `--baseline`. The CI gate for "did this change hurt our findability?". |
+| `--regression-tolerance <n>` | Points the score may drop below the baseline before `--fail-on-regression` trips (default `0`). |
+| `--entity-graph <file>` | Write the JSON-LD entity graph across the sampled pages. Format by extension: `.json`, `.dot` (Graphviz), or `.mmd` (Mermaid). |
 | `--json` | Output the full report as JSON (for scripts and CI). |
 | `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
 | `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
@@ -179,6 +183,28 @@ jobs:
         with:
           sarif_file: findable-audit.sarif
       - run: echo "Score ${{ steps.findable.outputs.score }} — grade ${{ steps.findable.outputs.grade }}"
+```
+
+### Regression gate (`--baseline`)
+
+Beyond a fixed `--min-score` floor, you can fail CI when a change **lowers** your
+score versus a committed baseline — catching a regression even while you are
+still well above the floor:
+
+```bash
+# One-time: capture the baseline and commit it.
+npx findable-audit https://your-site.com --report baseline.json --no-report
+
+# In CI: re-audit and fail if the score drops by more than 2 points.
+npx findable-audit https://your-site.com \
+  --baseline baseline.json --fail-on-regression --regression-tolerance 2 --no-report
+# exit 1 on regression; the terminal + md/html reports show the per-check diff.
+```
+
+Export the entity graph for inspection or diagrams:
+
+```bash
+npx findable-audit https://your-site.com --entity-graph graph.mmd  # or .dot / .json
 ```
 
 The action exposes `score` and `grade` as step outputs, so you can drive a **score badge** from them (a shields.io endpoint, or a static badge in your README):

@@ -13,4 +13,5 @@ dist/
 # Deployed and maintained by hand on the VPS; the JSONL store stays local there.
 /apps/web/admin.local.mjs
 /apps/web/test/admin.test.mjs
+/apps/web/ADMIN.local.md
 /apps/web/data/
