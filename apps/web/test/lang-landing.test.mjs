@@ -65,3 +65,11 @@ test('an unsupported prefix falls through to a best-effort-localized 404 (Accept
   assert.match(html, /<html lang="fr">/);
   assert.match(html, /Introuvable/);
 });
+
+test('errorPage passes the language to the shell (a missing-url error on /fr/audit is a French page)', async () => {
+  const res = await fetch(`${base}/fr/audit`); // handleAuditStart → missing-url → errorPage
+  const html = await res.text();
+  assert.equal(res.status, 400);
+  assert.match(html, /<html lang="fr">/);       // was <html lang="en"> before the fix
+  assert.match(html, /URL manquante/);          // FR missingUrl title
+});

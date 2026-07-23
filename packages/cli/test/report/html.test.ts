@@ -39,6 +39,18 @@ describe('renderHtml', () => {
     expect(html).not.toContain('.badges {');
     expect(html).not.toContain('.score.good {');
   });
+  it('renders each family as an OPEN <details> by default (printable) with a summary + status dot', () => {
+    expect(html).toMatch(/<details class="fam" open>/);
+    expect(html).toContain('<summary class="fam-sum">');
+    expect(html).toContain('class="fam-dot'); // worst-status indicator on the summary
+  });
+  it('collapses families (closed <details>) when collapsed:true', () => {
+    const collapsed = renderHtml(report, new Date('2026-07-20T00:00:00Z'), 'en', { collapsed: true });
+    expect(collapsed).toContain('<details class="fam">'); // no `open`
+    expect(collapsed).not.toMatch(/<details class="fam" open>/);
+    expect(collapsed).toContain('<summary class="fam-sum">');
+    expect(collapsed).toContain('Answer-engine content'); // family label still present (in the summary)
+  });
   it('shows an inline (self-contained) logomark in the report title', () => {
     // the logomark is an inline SVG next to the title — no external asset, no data URI
     expect(html).toMatch(/<h1 class="report-h1"><svg[^>]*viewBox="0 0 32 32"/);

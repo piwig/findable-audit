@@ -136,12 +136,25 @@ const STYLE = `
   .ap-effort.eff-moderate { color: #9a6700; background: #fbf1dd; }
   .ap-effort.eff-involved { color: #555; background: #eef0f2; }
   .ap-more-note { color: #888; font-size: .82rem; margin: .5rem 0 0; }
+  details.fam { margin: 0; }
+  .fam-sum { cursor: pointer; font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 .4rem;
+    padding: .3rem 0 .35rem; border-bottom: 1px solid #e5e5e5; list-style: none;
+    display: flex; align-items: center; gap: .5rem; }
+  .fam-sum::-webkit-details-marker { display: none; }
+  .fam-sum::before { content: "\\25B8"; color: #999; font-size: .8em; flex: 0 0 auto; transition: transform .15s; }
+  details[open] > .fam-sum::before { transform: rotate(90deg); }
+  .fam-sum:hover { color: #1a7f37; }
+  .fam-sum .pts { font-weight: 400; }
+  .fam-dot { width: 9px; height: 9px; border-radius: 50%; margin-left: auto; flex: 0 0 auto; }
+  .fam-dot.good { background: #1a7f37; } .fam-dot.ok { background: #9a6700; } .fam-dot.bad { background: #b42318; }
+  details.fam > table { margin-top: .25rem; }
   @media (max-width: 640px) {
     /* overflow-wrap inherits: breaks long space-less tokens (URLs in .meta, verdict,
        action-plan fixes) that would otherwise force horizontal scroll on phones. */
     body { padding: 1.1rem; overflow-wrap: anywhere; }
     h1 { font-size: 1.3rem; }
     h2 { font-size: 1.05rem; }
+    .fam-sum { font-size: 1.05rem; }
     .hero { flex-direction: column; align-items: flex-start; gap: .6rem; }
     .hero-score { font-size: 1.7rem; }
     .subscore-table td { padding: .3rem .25rem; }
@@ -161,7 +174,12 @@ const STYLE = `
   }
 `;
 
-export function renderHtml(report: AuditReport, now: Date = new Date(), lang: Lang = 'en'): string {
+export function renderHtml(
+  report: AuditReport,
+  now: Date = new Date(),
+  lang: Lang = 'en',
+  { collapsed = false }: { collapsed?: boolean } = {},
+): string {
   const m = messages(lang);
   const familyLabels = FAMILY_LABELS_I18N[lang];
   const familyShort = FAMILY_SHORT_I18N[lang];
@@ -188,8 +206,16 @@ export function renderHtml(report: AuditReport, now: Date = new Date(), lang: La
         <td class="pts">${r.points}/${r.maxPoints}</td>
       </tr>`;
     }).join('\n');
-    sections.push(`<h2>${escapeHtml(familyLabels[family])} <span class="pts">(${earned}/${max})</span></h2>
-      <table>${rows}</table>`);
+    // Collapsible per-family section: a native <details>/<summary> (no JS, so
+    // CSP-safe). The dot on the summary flags the family's worst status so a
+    // reader can scan without expanding. Web reports pass collapsed:true;
+    // downloaded/exported reports stay open (printable).
+    const worst = results.some((r) => r.status === 'fail') ? 'bad'
+      : results.some((r) => r.status === 'warn') ? 'ok' : 'good';
+    sections.push(`<details class="fam"${collapsed ? '' : ' open'}>
+      <summary class="fam-sum">${escapeHtml(familyLabels[family])} <span class="pts">(${earned}/${max})</span><span class="fam-dot ${worst}"></span></summary>
+      <table>${rows}</table>
+    </details>`);
   }
 
   const pages = report.sampledPages.map((p) => `<code>${escapeHtml(p)}</code>`).join(', ');

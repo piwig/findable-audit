@@ -234,9 +234,9 @@ function errorPage(title, message, { status = 400, lang = 'en' } = {}) {
 <h1>${escapeHtml(title)}</h1>
 <p>${escapeHtml(message)}</p>
 </div>
-<p><a href="/">&larr; ${back}</a></p>
+<p><a href="/${encodeURIComponent(lang)}/">&larr; ${back}</a></p>
 `;
-  return { status, html: shell(title, body) };
+  return { status, html: shell(title, body, { lang }) };
 }
 
 // Localized 404 (and other job-lifecycle) error page: links back to the
@@ -365,7 +365,7 @@ async function executeAudit(job) {
   const key = job.url;
   const cached = cache.get(key);
   if (cached !== undefined) {
-    jobs.finish(job.id, { report: cached, html: renderHtml(cached, undefined, job.lang) });
+    jobs.finish(job.id, { report: cached, html: renderHtml(cached, undefined, job.lang, { collapsed: true }) });
     return;
   }
   if (inFlight >= MAX_CONCURRENT) {
@@ -385,7 +385,7 @@ async function executeAudit(job) {
   try {
     const report = await withTimeout(runAudit(key, checks, opts), auditTimeout());
     cache.set(key, report);
-    jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang) });
+    jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang, { collapsed: true }) });
   } catch (err) {
     ac.abort();
     const { code, message } = classifyError(err, job.lang);
