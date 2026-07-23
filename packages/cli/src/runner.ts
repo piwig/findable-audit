@@ -113,5 +113,5 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   const { score, grade, familyScores } = computeScore(results);
   emit({ phase: 'score', done: 1, total: 1 });
   const sampledPages = crawler.sample.pages.map(pathOf);
-  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results, psi: crawler.psi };
+  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results, psi: crawler.psi, generatedAt: new Date().toISOString() };
 }

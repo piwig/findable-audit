@@ -5,6 +5,7 @@ import { renderCwvMarkdown } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix } from './check-i18n.js';
+import { renderDiffMarkdown, type ReportDiff } from './diff.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
   pass: '✅', warn: '⚠️', fail: '❌', skip: '⏭️',
@@ -15,7 +16,7 @@ function cell(text: string): string {
   return text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 }
 
-export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang: Lang = 'en'): string {
+export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang: Lang = 'en', opts: { diff?: ReportDiff } = {}): string {
   const m = messages(lang);
   const familyLabels = FAMILY_LABELS_I18N[lang];
   const failCount = report.results.filter((r) => r.status === 'fail').length;
@@ -68,6 +69,10 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
       lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${fix}${link}`);
     }
     lines.push('');
+  }
+
+  if (opts.diff) {
+    lines.push(renderDiffMarkdown(opts.diff, lang), '');
   }
 
   lines.push('---', '', m.mdFooter, '');

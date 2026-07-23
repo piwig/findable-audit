@@ -5,6 +5,7 @@ import { renderCwvHtml } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix } from './check-i18n.js';
+import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -184,7 +185,7 @@ export function renderHtml(
   report: AuditReport,
   now: Date = new Date(),
   lang: Lang = 'en',
-  { collapsed = false }: { collapsed?: boolean } = {},
+  { collapsed = false, diff }: { collapsed?: boolean; diff?: ReportDiff } = {},
 ): string {
   const m = messages(lang);
   const familyLabels = FAMILY_LABELS_I18N[lang];
@@ -306,6 +307,7 @@ ${recs.length > CAP ? `<p class="ap-more-note">${m.moreRecs(recs.length - CAP)}<
 <p class="pages">${m.pagesAudited} ${pages}</p>
 ${subscoreSection}
 ${cwvSection}
+${diff ? renderDiffHtmlSection(diff, lang) : ''}
 ${actionPlan}
 ${sections.join('\n')}
 <footer>${m.footer}</footer>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { buildChecks } from './checks/index.js';
 import { runAudit, UnreachableSiteError, type AuditReport } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
@@ -10,11 +10,14 @@ import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 import { renderSarif } from './report/sarif.js';
 import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
+import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
+--baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
+--fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
@@ -52,6 +55,9 @@ const parseCliArgs = () =>
       'psi-strategy': { type: 'string', default: 'mobile' },
       lang: { type: 'string' },
       compare: { type: 'string' },
+      baseline: { type: 'string' },
+      'fail-on-regression': { type: 'boolean', default: false },
+      'regression-tolerance': { type: 'string', default: '0' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -129,10 +135,42 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
   process.exit(2);
 }
 
+// --baseline / --fail-on-regression / --regression-tolerance validation.
+const failOnRegression = values['fail-on-regression'];
+const regressionTolerance = Number(values['regression-tolerance']);
+if (!Number.isInteger(regressionTolerance) || regressionTolerance < 0) {
+  console.error(`findable-audit: invalid --regression-tolerance value "${values['regression-tolerance']}" (expected an integer >= 0)\n\n${USAGE}`);
+  process.exit(2);
+}
+if ((failOnRegression || values['regression-tolerance'] !== '0') && values.baseline === undefined) {
+  console.error(`findable-audit: --fail-on-regression / --regression-tolerance require --baseline <file>\n\n${USAGE}`);
+  process.exit(2);
+}
+let baseline: AuditReport | undefined;
+if (values.baseline !== undefined) {
+  let parsedBaseline: unknown;
+  try {
+    parsedBaseline = JSON.parse(readFileSync(values.baseline, 'utf8'));
+  } catch (err) {
+    console.error(`findable-audit: cannot read baseline "${values.baseline}": ${(err as Error).message}`);
+    process.exit(2);
+  }
+  const b = parsedBaseline as Partial<AuditReport>;
+  if (!b || typeof b.score !== 'number' || !Array.isArray(b.results) || !Array.isArray(b.familyScores)) {
+    console.error(`findable-audit: "${values.baseline}" is not a valid audit report (expected a findable-audit --report *.json file)`);
+    process.exit(2);
+  }
+  baseline = b as AuditReport;
+}
+
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
   const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop' };
   const report = await runAudit(targetUrl, checks, auditOpts);
+  report.toolVersion = createRequire(import.meta.url)('../package.json').version;
+
+  // --baseline: diff the fresh report against a prior audit.json.
+  const diff: ReportDiff | undefined = baseline ? diffReports(report, baseline) : undefined;
 
   // --compare <u1,u2,...>: audit competitor URLs too and produce a side-by-side
   // scorecard. A competitor that is invalid or unreachable is skipped (with a
@@ -157,6 +195,7 @@ try {
   const reports = [report, ...competitorReports];
 
   console.log(values.json ? renderJson(report) : compare ? renderCompareTerminal(reports, langTyped) : renderTerminal(report));
+  if (diff && !values.json) console.log('\n' + renderDiffTerminal(diff, langTyped));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
   //   --no-report     -> none
@@ -177,8 +216,8 @@ try {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report);
     else if (/\.json$/i.test(file)) body = renderJson(report);
-    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped) : renderHtml(report, now, langTyped);
-    else body = compare ? renderCompareMarkdown(reports, langTyped) : renderMarkdown(report, now, langTyped);
+    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped) : renderHtml(report, now, langTyped, { diff });
+    else body = compare ? renderCompareMarkdown(reports, langTyped) : renderMarkdown(report, now, langTyped, { diff });
     try {
       writeFileSync(file, body, 'utf8');
       console.error(`report written to ${file}`);
@@ -193,7 +232,8 @@ try {
   // keep-alive sockets are still closing crashes Node with a libuv assertion
   // ("!(handle->flags & UV_HANDLE_CLOSING)", src\win\async.c). Setting
   // process.exitCode lets the event loop drain and the process exit cleanly.
-  process.exitCode = reportWriteFailed ? 2 : report.score >= minScore ? 0 : 1;
+  const regressed = failOnRegression && baseline !== undefined && report.score < baseline.score - regressionTolerance;
+  process.exitCode = reportWriteFailed ? 2 : regressed ? 1 : report.score >= minScore ? 0 : 1;
 } catch (err) {
   if (err instanceof UnreachableSiteError) {
     console.error(`findable-audit: ${err.message}`);
