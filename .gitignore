@@ -7,3 +7,10 @@ dist/
 
 # graphify knowledge-graph output (local navigation aid, regenerated on demand)
 /graphify-out/
+
+# Private admin dashboard + usage-stats data — VPS-only, NEVER committed to the
+# public candidature repo (see docs/competitive-analysis-and-roadmap.md §12.A).
+# Deployed and maintained by hand on the VPS; the JSONL store stays local there.
+/apps/web/admin.local.mjs
+/apps/web/test/admin.test.mjs
+/apps/web/data/
