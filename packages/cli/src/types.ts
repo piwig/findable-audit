@@ -86,6 +86,8 @@ export interface CrawlContext {
   fetchChain?(path: string, opts?: { maxHops?: number }): Promise<FetchChainResult | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
+  /** JSON-LD entity graph across the sampled pages. Attached by the runner; absent in unit tests. */
+  entityGraph?: import('./report/entity-graph.js').EntityGraph;
   /**
    * Core Web Vitals data from the single PageSpeed Insights call. Set by the
    * runner only when `--cwv` is given:

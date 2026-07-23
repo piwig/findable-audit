@@ -70,6 +70,9 @@ export function buildEntityGraph(pages: { path: string; html: string }[]): Entit
 
   for (const { path, html } of pages) {
     for (const entity of flatten(extractJsonLd(html))) {
+      // Skip pure wrappers (a bare {@context,@graph} object has neither @type
+      // nor @id); flatten already expanded its @graph children as siblings.
+      if (typesOf(entity).length === 0 && typeof entity['@id'] !== 'string') continue;
       register(entity, path);
     }
   }
@@ -91,9 +94,8 @@ export function buildEntityGraph(pages: { path: string; html: string }[]): Entit
   };
 }
 
-/** Connected components over the UNDIRECTED edge graph (union-find). */
-function countComponents(nodes: EntityNode[], edges: EntityEdge[]): number {
-  if (nodes.length === 0) return 0;
+/** Map each node id to a representative id of its connected component (undirected, union-find). */
+export function componentIndex(nodes: EntityNode[], edges: EntityEdge[]): Map<string, string> {
   const parent = new Map<string, string>();
   for (const n of nodes) parent.set(n.id, n.id);
   const find = (x: string): string => {
@@ -104,8 +106,19 @@ function countComponents(nodes: EntityNode[], edges: EntityEdge[]): number {
   };
   const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb); };
   for (const e of edges) { if (parent.has(e.from) && parent.has(e.to)) union(e.from, e.to); }
-  return new Set(nodes.map((n) => find(n.id))).size;
+  const out = new Map<string, string>();
+  for (const n of nodes) out.set(n.id, find(n.id));
+  return out;
 }
+
+/** Connected components over the UNDIRECTED edge graph. */
+function countComponents(nodes: EntityNode[], edges: EntityEdge[]): number {
+  if (nodes.length === 0) return 0;
+  return new Set(componentIndex(nodes, edges).values()).size;
+}
+
+/** Root-type entities (Organization/WebSite/Person/LocalBusiness) that are named. */
+export const ENTITY_ROOT_TYPES = ROOT_TYPES;
 
 // --- Renderers ---
 

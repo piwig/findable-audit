@@ -114,6 +114,8 @@ export class Crawler implements CrawlContext {
   sample?: PageSample;
   /** Core Web Vitals data, attached by the runner when `--cwv` is set. */
   psi?: PsiResult | null;
+  /** JSON-LD entity graph, attached by the runner after sampling. */
+  entityGraph?: import('./report/entity-graph.js').EntityGraph;
   private cache = new Map<string, FetchedResource | null>();
   private originResolved = false;
 

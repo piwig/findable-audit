@@ -5,6 +5,7 @@ import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
 import { fetchPsi, type PsiResult } from './perf/psi.js';
+import { buildEntityGraph, type EntityGraph } from './report/entity-graph.js';
 
 export class UnreachableSiteError extends Error {}
 
@@ -35,6 +36,8 @@ export interface AuditReport {
   generatedAt?: string;
   /** CLI version that produced this report (set by index.ts). Optional for backward-compat. */
   toolVersion?: string;
+  /** JSON-LD entity graph across sampled pages. Included only when opts.includeEntityGraph is set. */
+  entityGraph?: EntityGraph;
 }
 
 export interface AuditOptions {
@@ -62,6 +65,8 @@ export interface AuditOptions {
   psiKey?: string;
   /** PSI strategy (default 'mobile'). */
   psiStrategy?: 'mobile' | 'desktop';
+  /** Include the built entity graph in the returned AuditReport (for --entity-graph export). */
+  includeEntityGraph?: boolean;
   /**
    * Best-effort progress callback for a live UI (e.g. the web app's SSE stream).
    * Wrapped in try/catch by the runner: it never throws into the audit and never
@@ -85,6 +90,14 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
 
   crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
   emit({ phase: 'sample', done: crawler.sample.pages.length, total: opts.maxPages ?? 10 });
+
+  // Build the JSON-LD entity graph once, from the sampled HTML the crawler
+  // already fetched (never executes JS). Checks read it from ctx.entityGraph.
+  crawler.entityGraph = buildEntityGraph(crawler.sample.pages.map((p) => {
+    let path = '/';
+    try { path = new URL(p.finalUrl).pathname; } catch { /* keep '/' */ }
+    return { path, html: p.body };
+  }));
 
   // Core Web Vitals: at most ONE PageSpeed Insights call for the whole run, made
   // only on opt-in. The 8 CWV/lab checks read the cached result from ctx.psi.
@@ -113,5 +126,9 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   const { score, grade, familyScores } = computeScore(results);
   emit({ phase: 'score', done: 1, total: 1 });
   const sampledPages = crawler.sample.pages.map(pathOf);
-  return { url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results, psi: crawler.psi, generatedAt: new Date().toISOString() };
+  return {
+    url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results,
+    psi: crawler.psi, generatedAt: new Date().toISOString(),
+    ...(opts.includeEntityGraph ? { entityGraph: crawler.entityGraph } : {}),
+  };
 }

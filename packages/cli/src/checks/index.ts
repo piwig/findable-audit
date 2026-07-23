@@ -40,6 +40,7 @@ import {
 import {
   lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,
 } from './performance-cwv.js';
+import { entityGraphConnectivity } from './entity-graph.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -55,7 +56,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     charset, favicon, contentReadability, figureCaption,
     jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness, sdArticle, sdProduct,
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,
-    sdConsistency, napConsistency,
+    sdConsistency, napConsistency, entityGraphConnectivity,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
