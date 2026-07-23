@@ -5,8 +5,13 @@
 //   - TTL: a job older than ttlMs is treated as absent and pruned.
 //   - maxJobs: on overflow the oldest (Map insertion order) job is evicted.
 //
-// Job shape (contract): { id, url, lang, status, progress, report, html, error, createdAt }.
+// Job shape (contract): { id, url, lang, kind, urls, ipHash, reports, status,
+//                         progress, report, html, error, createdAt }.
 //   status  : 'running' | 'done' | 'error'
+//   kind    : 'audit' (default) | 'compare'
+//   urls    : the compare URL list (main first), or null for a plain audit
+//   ipHash  : the hashed client IP for stats, or null
+//   reports : the compare AuditReport[] once done (empty for a plain audit)
 //   progress: the latest AuditProgress snapshot, or null before the first event
 //   report  : the AuditReport once done, else null
 //   html    : the pre-rendered report HTML once done, else null
@@ -49,7 +54,7 @@ export function createJobStore(opts = {}) {
   }
 
   function setProgress(id, progress) { const j = jobs.get(id); if (j) j.progress = progress; }
-  function finish(id, { report, html }) { const j = jobs.get(id); if (j) { j.status = 'done'; j.report = report; j.html = html; } }
+  function finish(id, { report, html, reports }) { const j = jobs.get(id); if (j) { j.status = 'done'; j.report = report; j.html = html; if (reports !== undefined) j.reports = reports; } }
   function fail(id, code, message) { const j = jobs.get(id); if (j) { j.status = 'error'; j.error = { code, message }; } }
 
   function prune(now = Date.now()) {
