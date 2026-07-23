@@ -31,6 +31,10 @@ export interface AuditReport {
   results: CheckResult[];
   /** Raw PageSpeed data: PsiResult when --cwv succeeded, null when it failed, undefined when not requested. */
   psi?: PsiResult | null;
+  /** ISO timestamp of when this audit ran (set by the runner). Optional so old audit.json still parses. */
+  generatedAt?: string;
+  /** CLI version that produced this report (set by index.ts). Optional for backward-compat. */
+  toolVersion?: string;
 }
 
 export interface AuditOptions {
