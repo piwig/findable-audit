@@ -20,6 +20,7 @@ import { buildChecks } from '../../packages/cli/dist/checks/index.js';
 import { renderHtml } from '../../packages/cli/dist/report/html.js';
 import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
+import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
@@ -216,6 +217,7 @@ ${bodyHtml}
 // contract: form action, input name, selector markup, hreflang.
 function landingPage(lang = 'en') {
   const s = t(lang).landing;
+  const c = t(lang).compare;
   const chips = s.families.map((f) => `<span class="ld-chip">${escapeHtml(f)}</span>`).join('');
   const steps = s.steps.map((st, i) =>
     `<div class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></div>`).join('');
@@ -236,6 +238,18 @@ function landingPage(lang = 'en') {
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
   <div class="ld-steps">${steps}</div>
+</section>
+<section class="ld-sec">
+  <p class="ld-eyebrow">${escapeHtml(c.heading)}</p>
+  <p class="lead" style="margin:.1rem 0 1rem">${escapeHtml(c.lead)}</p>
+  <form method="get" action="/${lang}/compare/start">
+    <input type="url" name="url" placeholder="https://your-site.com" aria-label="${escapeHtml(c.urlLabel)}"
+      autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <input type="text" name="compare" placeholder="https://rival-1.com, https://rival-2.com" aria-label="${escapeHtml(c.competitorsLabel)}"
+      autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button type="submit" class="ld-cta"><span>${escapeHtml(c.cta)}</span></button>
+  </form>
+  <p class="hint">${escapeHtml(c.hint)}</p>
 </section>
 <hr class="ld-rule">
 `, { lang, alternates: { en: '/en/', fr: '/fr/' } });
@@ -423,7 +437,7 @@ function ensureStarted(job) {
     // grow unbounded on a long-running server. Safe because this function
     // short-circuits above on any non-'running' (i.e. terminal) job status, so
     // a deleted entry is never wrongly re-executed for a terminal job.
-    pr = executeAudit(job).finally(() => running.delete(job.id));
+    pr = (job.kind === 'compare' ? executeCompare(job) : executeAudit(job)).finally(() => running.delete(job.id));
     running.set(job.id, pr);
   }
   return pr;
@@ -719,6 +733,200 @@ async function handleAudit(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// /compare — audit your URL against up to two competitors, ASYNC via the job
+// pattern (a redo of the reverted synchronous /compare, 31966ea, which timed
+// out behind the proxy). CWV-free so N audits stay fast. The main URL must
+// succeed; competitors are best-effort (an unreachable one is skipped).
+// ---------------------------------------------------------------------------
+const MAX_COMPARE_COMPETITORS = 2;
+
+function compareProgressPage(jobId, lang, nonce) {
+  const m = t(lang).compare;
+  const id = encodeURIComponent(jobId);
+  const jobLiteral = JSON.stringify(jobId);
+  const siteTpl = JSON.stringify(m.progressSite).replace(/</g, '\\u003c');
+  const body = `
+<h1>${escapeHtml(m.progressHeading)}</h1>
+<p class="lead">${escapeHtml(m.lead)}</p>
+<div class="progress" role="progressbar" aria-live="polite" aria-label="${escapeHtml(m.progressHeading)}">
+  <div id="bar" class="bar" style="width:0%"></div>
+</div>
+<p id="status" class="hint">${escapeHtml(m.progressHeading)}</p>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=/compare/result?job=${id}">
+  <p><a href="/compare/result?job=${id}">${escapeHtml(m.resultTitle)}</a></p>
+</noscript>
+<script nonce="${nonce}">
+(function () {
+  var TPL = ${siteTpl};
+  var status = document.getElementById('status');
+  var bar = document.getElementById('bar');
+  var job = ${jobLiteral};
+  var es = new EventSource('/compare/stream?job=' + encodeURIComponent(job));
+  es.addEventListener('progress', function (e) {
+    try {
+      var p = JSON.parse(e.data);
+      if (status && p.total) status.textContent = TPL.replace('{i}', p.done).replace('{n}', p.total);
+      if (bar && p.total) bar.style.width = Math.round(p.done / p.total * 100) + '%';
+    } catch (_) {}
+  });
+  es.addEventListener('done', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job); });
+  es.addEventListener('error', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job); });
+})();
+</script>
+`;
+  return shell(m.progressTitle, body, { lang });
+}
+
+async function handleCompareStart(req, res) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const lang = normalizeLang(parsed.searchParams.get('lang'));
+  const errHtml = (title, message, status = 400) => {
+    const p = localizedErrorPage(lang, title, message, { status });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+  };
+
+  const ip = clientIp(req);
+  const mainRaw = normalizeInput(parsed.searchParams.get('url') ?? '');
+  const competitorsRaw = (parsed.searchParams.get('compare') ?? '')
+    .split(',').map((s) => normalizeInput(s.trim())).filter(Boolean).slice(0, MAX_COMPARE_COMPETITORS);
+  if (mainRaw === '') { const e = t(lang).error.missingUrl; errHtml(e.title, e.message); return; }
+
+  // Rate-limit: one token PER URL submitted (main + competitors), so a compare
+  // costs its true share of the per-IP budget.
+  const rawUrls = [mainRaw, ...competitorsRaw];
+  for (let i = 0; i < rawUrls.length; i++) {
+    const rl = rateLimiter.take(ip);
+    if (!rl.allowed) {
+      const retryAfter = Math.ceil(rl.retryAfterMs / 1000);
+      const e = t(lang).error.rateLimited;
+      errHtml(e.title, `${e.message} (~${retryAfter}s)`, 429);
+      return;
+    }
+  }
+
+  // Validate the main URL up front (a bad main URL is a hard 400); competitors
+  // are validated lazily during execution and skipped if blocked.
+  let mainUrl;
+  try {
+    mainUrl = await assertPublicUrl(mainRaw);
+  } catch (err) {
+    errHtml(t(lang).error.urlNotAllowed.title, err instanceof BlockedUrlError ? err.message : 'Invalid URL');
+    return;
+  }
+
+  const urls = [mainUrl.href, ...competitorsRaw];
+  const ipHash = await hashIp(ip);
+  const job = jobs.create({ url: mainUrl.href, lang, kind: 'compare', urls, ipHash });
+  const nonce = crypto.randomBytes(16).toString('base64');
+  const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+    + `script-src 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; `
+    + "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+  send(res, 200, 'text/html; charset=utf-8', compareProgressPage(job.id, lang, nonce), { 'content-security-policy': csp });
+}
+
+// Sequentially audit each URL (CWV-free), reporting per-site progress. The main
+// URL must succeed; competitors are best-effort. < 2 reachable sites → fail with
+// the localized "needMore" code, surfaced by handleCompareResult.
+async function executeCompare(job) {
+  // No own inFlight bookkeeping: auditUrl() already caps concurrency, times out
+  // and caches per sub-audit. Audits run sequentially so at most one sub-audit
+  // holds a slot at a time.
+  const startedAt = Date.now();
+  const total = job.urls.length;
+  const reports = [];
+  const skipped = [];
+  for (let i = 0; i < job.urls.length; i++) {
+    const isMain = i === 0;
+    jobs.setProgress(job.id, { phase: 'compare', done: i, total });
+    let url;
+    try {
+      url = await assertPublicUrl(job.urls[i]);
+    } catch {
+      if (isMain) { jobs.fail(job.id, 'unreachable', t(job.lang).error.unreachable.message); return; }
+      skipped.push(job.urls[i]); continue;
+    }
+    try {
+      const report = await auditUrl(url, { cwv: false });
+      reports.push(report);
+      recordAuditEvent(report, { kind: 'compare', lang: job.lang, ipHash: job.ipHash ?? null, durationMs: Date.now() - startedAt, cwv: false });
+    } catch (err) {
+      if (isMain) {
+        const code = err instanceof AuditTimeoutError ? 'timeout'
+          : (err && err.code === 'BUSY') ? 'busy'
+            : err instanceof UnreachableSiteError ? 'unreachable' : 'internal';
+        jobs.fail(job.id, code, t(job.lang).error[code]?.message ?? t(job.lang).error.internal.message);
+        return;
+      }
+      skipped.push(job.urls[i]);
+    }
+  }
+  jobs.setProgress(job.id, { phase: 'compare', done: total, total });
+  if (reports.length < 2) { jobs.fail(job.id, 'needMore', t(job.lang).compare.needMore); return; }
+  const skippedNote = skipped.length
+    ? `<p style="max-width:960px;margin:.5rem auto;color:#b45309;font:14px system-ui,sans-serif">`
+      + skipped.map((u) => escapeHtml(t(job.lang).compare.skipped.replace('{url}', u))).join('<br>') + '</p>'
+    : '';
+  const html = renderCompareHtml(reports, undefined, job.lang);
+  jobs.finish(job.id, { report: reports[0], reports, html: injectAfterBody(html, skippedNote) });
+}
+
+// Insert extra HTML right after <body> (used to prepend the skipped-sites note).
+function injectAfterBody(html, extra) {
+  if (!extra) return html;
+  const idx = html.indexOf('<body>');
+  if (idx === -1) return extra + html;
+  const at = idx + '<body>'.length;
+  return html.slice(0, at) + '\n' + extra + html.slice(at);
+}
+
+async function handleCompareResult(req, res, job) {
+  await ensureStarted(job);
+  const j = jobs.get(job.id);
+  if (!j) {
+    const nf = t(job.lang ?? 'en').error.notFound;
+    const p = localizedErrorPage(job.lang ?? 'en', nf.title, nf.message, { status: 404 });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+  if (j.status === 'done' && j.html) {
+    send(res, 200, 'text/html; charset=utf-8', withCompareChrome(j.html, j.id, j.lang));
+    return;
+  }
+  // needMore is a compare-specific "error" surfaced as a friendly page.
+  if (j.error?.code === 'needMore') {
+    const c = t(j.lang).compare;
+    const p = localizedErrorPage(j.lang, c.needMoreTitle, c.needMore, { status: 400 });
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+  const code = j.error?.code ?? 'internal';
+  const cat = t(j.lang).error[code] ?? t(j.lang).error.internal;
+  const p = localizedErrorPage(j.lang, cat.title, j.error?.message ?? cat.message, { status: statusForError(code) });
+  send(res, p.status, 'text/html; charset=utf-8', p.html);
+}
+
+// Download/back bar for the compare result (parallels withResultChrome).
+function withCompareChrome(reportHtml, jobId, lang) {
+  const id = encodeURIComponent(jobId);
+  const retry = escapeHtml(t(lang).progress.retry);
+  const download = escapeHtml(t(lang).result.download);
+  const home = `/${encodeURIComponent(lang)}/`;
+  const bar = '<p style="max-width:960px;margin:1rem auto .5rem;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
+    + `${download} <a href="/compare/export?job=${id}&format=html" style="color:#1a7f37">HTML</a>`
+    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`;
+  return injectAfterBody(reportHtml, bar);
+}
+
+async function handleCompareExport(req, res, job) {
+  await ensureStarted(job);
+  const j = jobs.get(job.id);
+  if (!j || j.status !== 'done' || !j.html) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or unfinished comparison.'); return; }
+  const filename = `compare-${new Date().toISOString().slice(0, 10)}.html`;
+  send(res, 200, 'text/html; charset=utf-8', j.html, { 'content-disposition': `attachment; filename="${filename}"` });
+}
+
+// ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
@@ -747,7 +955,7 @@ const server = http.createServer((req, res) => {
   // them would add a wasteful extra 301 hop to every SSE/result/export
   // request. They — like `/healthz` and `/audit.json` — stay global,
   // unprefixed routes left untouched by this block.
-  const HUMAN_PATHS = new Set(['/audit']);
+  const HUMAN_PATHS = new Set(['/audit', '/compare/start']);
 
   if (pathname === '/') {
     const lang = negotiateLang(req.headers['accept-language']);
@@ -842,6 +1050,43 @@ const server = http.createServer((req, res) => {
     if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
     handleExport(req, res, job, format).catch((err) => {
       console.error('unhandled /audit/export error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/compare/start') {
+    handleCompareStart(req, res).catch((err) => {
+      console.error('unhandled /compare/start error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/compare/stream') {
+    const job = jobFromQuery(req);
+    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    handleStream(req, res, job);
+    return;
+  }
+  if (pathname === '/compare/result') {
+    const job = jobFromQuery(req);
+    if (!job) {
+      const lang = negotiateLang(req.headers['accept-language']);
+      const nf = t(lang).error.notFound;
+      const p = localizedErrorPage(lang, nf.title, nf.message, { status: 404 });
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+      return;
+    }
+    handleCompareResult(req, res, job).catch((err) => {
+      console.error('unhandled /compare/result error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/compare/export') {
+    const job = jobFromQuery(req);
+    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    handleCompareExport(req, res, job).catch((err) => {
+      console.error('unhandled /compare/export error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
     return;

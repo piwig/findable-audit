@@ -82,6 +82,21 @@ export const WEB_MESSAGES = {
       // Punctuation is baked in (locale-dependent): EN uses a plain colon…
       download: 'Download:',
     },
+    compare: {
+      needMoreTitle: 'Not enough sites to compare',
+      needMore: 'Provide your URL and at least one reachable competitor URL.',
+      heading: 'Compare against competitors',
+      lead: 'Audit your site next to up to two competitors — see where you lead and where you trail, family by family.',
+      urlLabel: 'Your URL',
+      competitorsLabel: 'Competitor URLs (comma-separated, up to 2)',
+      cta: 'Compare',
+      hint: 'Public http(s) URLs. Core Web Vitals are skipped in compare mode to keep it fast.',
+      progressTitle: 'Comparison in progress',
+      progressHeading: 'Comparing sites',
+      progressSite: 'Auditing site {i} of {n}…',
+      resultTitle: 'Competitive scorecard',
+      skipped: '{url} could not be reached and was skipped.',
+    },
   },
   fr: {
     progress: {
@@ -139,6 +154,21 @@ export const WEB_MESSAGES = {
     result: {
       // …FR puts a non-breaking space before the colon (French typography).
       download: 'Télécharger :',
+    },
+    compare: {
+      needMoreTitle: 'Pas assez de sites à comparer',
+      needMore: 'Indiquez votre URL et au moins un concurrent joignable.',
+      heading: 'Comparer à des concurrents',
+      lead: 'Auditez votre site à côté de deux concurrents maximum — voyez où vous menez et où vous êtes devancé, famille par famille.',
+      urlLabel: 'Votre URL',
+      competitorsLabel: 'URL concurrentes (séparées par des virgules, 2 max)',
+      cta: 'Comparer',
+      hint: 'URL http(s) publiques. Les Core Web Vitals sont ignorés en mode comparaison pour rester rapide.',
+      progressTitle: 'Comparaison en cours',
+      progressHeading: 'Comparaison des sites',
+      progressSite: 'Audit du site {i} sur {n}…',
+      resultTitle: 'Tableau comparatif',
+      skipped: '{url} n’a pas pu être joint et a été ignoré.',
     },
   },
 };
