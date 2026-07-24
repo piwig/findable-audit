@@ -150,9 +150,31 @@ export interface FetchPsiOptions {
 }
 
 /**
+ * Redact the *audited* URL for log lines: if its query string carries a `key=`
+ * parameter (or the URL is unparsable), drop the query entirely. The PSI
+ * *request* URL (which embeds the API key) is never logged at all.
+ */
+function redactUrlForLog(u: string): string {
+  try {
+    const parsed = new URL(u);
+    if (parsed.searchParams.has('key')) {
+      parsed.search = '';
+      return parsed.toString();
+    }
+    return u;
+  } catch {
+    return u.split('?')[0];
+  }
+}
+
+/**
  * Make the ONE PageSpeed Insights call for the run and parse it. Returns `null`
  * on any transport error, timeout, or non-200 response (e.g. a keyless 429),
  * which the checks treat as "no PSI data" and `skip`. Never throws.
+ *
+ * Failures are logged best-effort to stderr (HTTP status or error name) so
+ * "CWV silently absent" is diagnosable; the log line never contains the PSI
+ * API key nor any query string carrying `key=`.
  *
  * fetchPsi owns its own bounded timeout (default 45s) independent of any
  * caller-supplied `signal` — like `Crawler`, it never hangs forever waiting on
@@ -163,15 +185,21 @@ export async function fetchPsi(url: string, opts: FetchPsiOptions = {}): Promise
   const params = new URLSearchParams({ url, strategy, category: 'performance' });
   if (opts.key) params.set('key', opts.key);
   const signals = [AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_PSI_TIMEOUT_MS), opts.signal].filter(Boolean) as AbortSignal[];
+  const logUrl = redactUrlForLog(url);
   try {
     const res = await fetch(`${PSI_ENDPOINT}?${params.toString()}`, {
       signal: AbortSignal.any(signals),
       headers: { accept: 'application/json' },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`findable-audit: PSI request failed for ${logUrl} (HTTP ${res.status})`);
+      return null;
+    }
     const json = await res.json();
     return parsePsi(json, strategy);
-  } catch {
+  } catch (err) {
+    const name = err && typeof (err as { name?: unknown }).name === 'string' ? (err as { name: string }).name : 'Error';
+    console.error(`findable-audit: PSI request failed for ${logUrl} (${name})`);
     return null;
   }
 }

@@ -9,6 +9,14 @@ function esc(text: string): string {
 function hostOf(url: string): string { try { return new URL(url).hostname || url; } catch { return url; } }
 function scoreClass(s: number): string { return s >= 80 ? 'good' : s >= 60 ? 'ok' : 'bad'; }
 
+/**
+ * Rendering options shared by the three compare renderers.
+ * `cwvNote` (default true): compare audits are lightweight — they skip Core Web
+ * Vitals — so a note says so near the family scores. Callers whose compare
+ * audits DID measure CWV (CLI `--cwv`) pass `cwvNote: false` to suppress it.
+ */
+export interface CompareRenderOptions { cwvNote?: boolean }
+
 interface Column { host: string; you: boolean; score: number; grade: string; fam: Map<Family, number>; }
 
 function columns(reports: AuditReport[]): Column[] {
@@ -45,7 +53,7 @@ function gaps(cols: Column[], fams: Family[], labels: Record<Family, string>, m:
   return out.sort((a, b) => b.gap - a.gap);
 }
 
-export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en'): string {
+export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en', opts: CompareRenderOptions = {}): string {
   const m = messages(lang);
   const labels = FAMILY_LABELS_I18N[lang];
   const cols = columns(reports);
@@ -61,6 +69,7 @@ export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en')
     const best = present.length ? Math.max(...present) : -1;
     lines.push(`| ${labels[fam]} | ${vals.map((v) => (v == null ? '—' : `${v === best ? '**' : ''}${v}${v === best ? '**' : ''}`)).join(' | ')} |`);
   }
+  if (opts.cwvNote !== false) lines.push('', `_${m.compareCwvNote}_`);
   lines.push('');
   const g = gaps(cols, fams, labels, m);
   lines.push(`### ${m.compareGapsTitle}`, '');
@@ -82,13 +91,14 @@ const COMPARE_STYLE = `
   td.lead { font-weight: 800; }
   td.lead::after { content: " 🏆"; }
   .s.good { color: #1a7f37; } .s.ok { color: #9a6700; } .s.bad { color: #b42318; }
+  .cwv-note { color: #666; font-size: .85rem; margin: .5rem 0 0; }
   .gaps { margin: 1.25rem 0; } .gaps li { margin: .2rem 0; }
   .gap-n { font-weight: 700; color: #b42318; }
   footer { margin-top: 2rem; color: #888; font-size: .8rem; border-top: 1px solid #e5e5e5; padding-top: .75rem; }
   @media (max-width: 560px) { body { padding: 1.1rem; } }
 `;
 
-export function renderCompareHtml(reports: AuditReport[], now: Date = new Date(), lang: Lang = 'en'): string {
+export function renderCompareHtml(reports: AuditReport[], now: Date = new Date(), lang: Lang = 'en', opts: CompareRenderOptions = {}): string {
   const m = messages(lang);
   const labels = FAMILY_LABELS_I18N[lang];
   const cols = columns(reports);
@@ -124,7 +134,7 @@ export function renderCompareHtml(reports: AuditReport[], now: Date = new Date()
 <thead><tr><th></th>${headCells}</tr></thead>
 <tbody>${overall}${famRows}</tbody>
 </table></div>
-<h2>${esc(m.compareGapsTitle)}</h2>
+${opts.cwvNote !== false ? `<p class="cwv-note">${esc(m.compareCwvNote)}</p>\n` : ''}<h2>${esc(m.compareGapsTitle)}</h2>
 ${gapsHtml}
 <footer>${esc(m.footer)}</footer>
 </body>
@@ -133,7 +143,7 @@ ${gapsHtml}
 }
 
 /** Compact plain-text comparison for stdout. */
-export function renderCompareTerminal(reports: AuditReport[], lang: Lang = 'en'): string {
+export function renderCompareTerminal(reports: AuditReport[], lang: Lang = 'en', opts: CompareRenderOptions = {}): string {
   const m = messages(lang);
   const labels = FAMILY_LABELS_I18N[lang];
   const cols = columns(reports);
@@ -151,6 +161,7 @@ export function renderCompareTerminal(reports: AuditReport[], lang: Lang = 'en')
     const best = present.length ? Math.max(...present) : -1;
     lines.push(pad(labels[fam], w) + vals.map((v) => pad(v == null ? '—' : `${v}${v === best ? ' *' : ''}`, colW)).join(''));
   }
+  if (opts.cwvNote !== false) lines.push('', m.compareCwvNote);
   const g = gaps(cols, fams, labels, m);
   lines.push('', m.compareGapsTitle + ':');
   if (g.length === 0) lines.push('  ' + m.compareNoGaps);

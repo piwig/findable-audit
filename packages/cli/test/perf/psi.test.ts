@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -165,5 +165,57 @@ describe('fetchPsi (globalThis.fetch stubbed, never the real API)', () => {
     controller.abort();
     const r = await fetchPsi('https://example.com/', { signal: controller.signal, timeoutMs: 5000 });
     expect(r).toBeNull();
+  });
+});
+
+describe('fetchPsi best-effort failure logging (stderr, never the key)', () => {
+  const realFetch = globalThis.fetch;
+  let errSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { errSpy = vi.spyOn(console, 'error').mockImplementation(() => {}); });
+  afterEach(() => { globalThis.fetch = realFetch; errSpy.mockRestore(); });
+
+  const logged = () => errSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+
+  it('logs the HTTP status on a non-200 and never leaks the PSI key', async () => {
+    globalThis.fetch = (async () => ({ ok: false, status: 429, json: async () => ({}) } as Response)) as typeof fetch;
+    const r = await fetchPsi('https://example.com/', { key: 'SECRET-PSI-KEY' });
+    expect(r).toBeNull(); // return behaviour unchanged
+    expect(logged()).toContain('429');
+    expect(logged()).toContain('example.com');
+    expect(logged()).not.toContain('SECRET-PSI-KEY');
+    expect(logged()).not.toContain('key=');
+  });
+
+  it('logs the error name on a transport error, still returning null', async () => {
+    globalThis.fetch = (async () => { const e = new Error('conn reset'); e.name = 'FetchError'; throw e; }) as typeof fetch;
+    expect(await fetchPsi('https://example.com/', { key: 'SECRET-PSI-KEY' })).toBeNull();
+    expect(logged()).toContain('FetchError');
+    expect(logged()).not.toContain('SECRET-PSI-KEY');
+    expect(logged()).not.toContain('key=');
+  });
+
+  it('logs the timeout as a named error, still returning null', async () => {
+    globalThis.fetch = ((_input: string | URL, init?: RequestInit) => {
+      if (init?.signal?.aborted) return Promise.reject(new DOMException('aborted', 'AbortError'));
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      });
+    }) as typeof fetch;
+    expect(await fetchPsi('https://example.com/', { timeoutMs: 50 })).toBeNull();
+    expect(logged()).toMatch(/TimeoutError|AbortError/);
+  });
+
+  it('redacts the audited URL query when it contains key=', async () => {
+    globalThis.fetch = (async () => ({ ok: false, status: 500, json: async () => ({}) } as Response)) as typeof fetch;
+    await fetchPsi('https://example.com/page?key=abc123&x=1');
+    expect(logged()).toContain('https://example.com/page');
+    expect(logged()).not.toContain('abc123');
+    expect(logged()).not.toContain('key=');
+  });
+
+  it('keeps an audited URL without key= intact', async () => {
+    globalThis.fetch = (async () => ({ ok: false, status: 500, json: async () => ({}) } as Response)) as typeof fetch;
+    await fetchPsi('https://example.com/page?lang=fr');
+    expect(logged()).toContain('https://example.com/page?lang=fr');
   });
 });

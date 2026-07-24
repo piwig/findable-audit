@@ -40,6 +40,21 @@ test('GET /compare/result with an unknown job → localized 404', async () => {
   assert.equal(res.status, 404);
 });
 
+test('the compare result page mentions CWV are not measured, in both languages', async () => {
+  // Same dist import + call shape as server.mjs (renderCompareHtml(reports, undefined, lang)):
+  // the web /compare flow always audits with { cwv: false }, so the note must show.
+  const { renderCompareHtml } = await import('../../../packages/cli/dist/report/compare.js');
+  const mk = (url, score, fam) => ({
+    url, score, grade: 'B', sampledPages: ['/'], results: [],
+    familyScores: [{ family: 'ai-access', score: fam, weight: 0.1, earned: fam, max: 100 }],
+  });
+  const reports = [mk('https://you.example/', 70, 60), mk('https://rival.example/', 80, 90)];
+  const en = renderCompareHtml(reports, undefined, 'en');
+  assert.match(en, /Core Web Vitals are not measured in comparison mode \(lightweight audits\)/);
+  const fr = renderCompareHtml(reports, undefined, 'fr');
+  assert.match(fr, /Core Web Vitals non mesurés en mode comparaison \(audits allégés\)/);
+});
+
 test('WEB_MESSAGES.compare is present and translated in both languages', () => {
   for (const lang of ['en', 'fr']) {
     const c = WEB_MESSAGES[lang].compare;

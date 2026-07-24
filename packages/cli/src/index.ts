@@ -219,7 +219,10 @@ try {
   const compare = competitorReports.length > 0;
   const reports = [report, ...competitorReports];
 
-  console.log(values.json ? renderJson(report) : compare ? renderCompareTerminal(reports, langTyped) : renderTerminal(report));
+  // Compare audits reuse auditOpts: CWV is measured only when --cwv was given,
+  // so the "CWV not measured" note is suppressed exactly in that case.
+  const compareOpts = { cwvNote: !values.cwv };
+  console.log(values.json ? renderJson(report) : compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report));
   if (diff && !values.json) console.log('\n' + renderDiffTerminal(diff, langTyped));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
@@ -241,8 +244,8 @@ try {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report);
     else if (/\.json$/i.test(file)) body = renderJson(report);
-    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped) : renderHtml(report, now, langTyped, { diff });
-    else body = compare ? renderCompareMarkdown(reports, langTyped) : renderMarkdown(report, now, langTyped, { diff });
+    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff });
+    else body = compare ? renderCompareMarkdown(reports, langTyped, compareOpts) : renderMarkdown(report, now, langTyped, { diff });
     try {
       writeFileSync(file, body, 'utf8');
       console.error(`report written to ${file}`);

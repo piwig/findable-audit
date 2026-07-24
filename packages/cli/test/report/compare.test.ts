@@ -53,3 +53,33 @@ describe('competitive comparison', () => {
     expect(renderCompareMarkdown([strong, weak])).toContain('You lead or match on every family');
   });
 });
+
+describe('CWV note in comparison mode', () => {
+  const EN_NOTE = 'Core Web Vitals are not measured in comparison mode (lightweight audits)';
+  const FR_NOTE = 'Core Web Vitals non mesurés en mode comparaison (audits allégés)';
+
+  it('appears by default in markdown, html and terminal (EN)', () => {
+    expect(renderCompareMarkdown([you, rival])).toContain(EN_NOTE);
+    expect(renderCompareHtml([you, rival])).toContain(EN_NOTE);
+    expect(renderCompareTerminal([you, rival])).toContain(EN_NOTE);
+  });
+
+  it('sits near the family scores: after the score table, before the gaps section (html)', () => {
+    const html = renderCompareHtml([you, rival]);
+    const at = html.indexOf(EN_NOTE);
+    expect(at).toBeGreaterThan(html.indexOf('</table>'));
+    expect(at).toBeLessThan(html.indexOf('Where you trail'));
+  });
+
+  it('is translated in French', () => {
+    expect(renderCompareMarkdown([you, rival], 'fr')).toContain(FR_NOTE);
+    expect(renderCompareHtml([you, rival], new Date(), 'fr')).toContain(FR_NOTE);
+    expect(renderCompareTerminal([you, rival], 'fr')).toContain(FR_NOTE);
+  });
+
+  it('is suppressed when the compare audits did measure CWV (--cwv)', () => {
+    expect(renderCompareMarkdown([you, rival], 'en', { cwvNote: false })).not.toContain(EN_NOTE);
+    expect(renderCompareHtml([you, rival], new Date(), 'en', { cwvNote: false })).not.toContain(EN_NOTE);
+    expect(renderCompareTerminal([you, rival], 'en', { cwvNote: false })).not.toContain(EN_NOTE);
+  });
+});
