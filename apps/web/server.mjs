@@ -32,6 +32,7 @@ import { createJobStore } from './lib/jobs.mjs';
 import { createStore, loadOrCreateSalt, ipHasher, eventFromReport } from './lib/store.mjs';
 import { turnstileEnabled, turnstileSiteKey, verifyTurnstile } from './lib/turnstile.mjs';
 import { t } from './lib/i18n.mjs';
+import { OG_IMAGE_PNG, TOUCH_ICON_PNG } from './lib/og-image.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
 
@@ -54,6 +55,7 @@ const REPO_URL = 'https://github.com/piwig/findable-audit';
 // Public origin for canonical/OG/sitemap URLs. Behind nginx we can't infer TLS
 // host reliably, so it is configured explicitly (default = production host).
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN ?? 'https://findable.bordebat.fr').replace(/\/$/, '');
+const PUBLIC_HOST = new URL(PUBLIC_ORIGIN).hostname;
 
 // Defense-in-depth CSP for the (already-escaped) HTML pages. The report uses an
 // inline <style>, hence style-src 'unsafe-inline'; there is no script and no
@@ -220,16 +222,25 @@ function robotsTxt() {
   ].join('\n');
 }
 
+// Indexable pages and their REAL last-edit datetimes (maintained by hand when
+// the corresponding copy changes — sitemap-lastmod wants real, distinct,
+// non-future values, never a synthetic build date).
+const SITE_PAGES = [
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-24T14:20:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-24T14:20:00+02:00' },
+  { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-24T15:05:00+02:00' },
+  { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-24T15:05:00+02:00' },
+  { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
+  { path: '/fr/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
+];
+
 function sitemapXml() {
-  const urls = [
-    { loc: `${PUBLIC_ORIGIN}/en/`, en: `${PUBLIC_ORIGIN}/en/`, fr: `${PUBLIC_ORIGIN}/fr/` },
-    { loc: `${PUBLIC_ORIGIN}/fr/`, en: `${PUBLIC_ORIGIN}/en/`, fr: `${PUBLIC_ORIGIN}/fr/` },
-  ];
-  const body = urls.map((u) =>
-    `  <url>\n    <loc>${u.loc}</loc>\n`
-    + `    <xhtml:link rel="alternate" hreflang="en" href="${u.en}"/>\n`
-    + `    <xhtml:link rel="alternate" hreflang="fr" href="${u.fr}"/>\n`
-    + `    <xhtml:link rel="alternate" hreflang="x-default" href="${u.en}"/>\n`
+  const body = SITE_PAGES.map((u) =>
+    `  <url>\n    <loc>${PUBLIC_ORIGIN}${u.path}</loc>\n`
+    + `    <lastmod>${u.lastmod}</lastmod>\n`
+    + `    <xhtml:link rel="alternate" hreflang="en" href="${PUBLIC_ORIGIN}${u.alt.en}"/>\n`
+    + `    <xhtml:link rel="alternate" hreflang="fr" href="${PUBLIC_ORIGIN}${u.alt.fr}"/>\n`
+    + `    <xhtml:link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}${u.alt.en}"/>\n`
     + '  </url>').join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n`
     + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${body}\n</urlset>\n`;
@@ -244,15 +255,95 @@ function llmsTxt() {
     '> site, then scores it A–F across 8 weighted families (AI access, LLM content,',
     '> structured data, technical SEO, on-page, performance/CWV, accessibility, security).',
     '',
-    '## Use it',
-    `- Web: ${PUBLIC_ORIGIN}/`,
-    `- Source & CLI: ${REPO_URL}`,
+    '## Pages',
+    `- [Run an audit (English)](${PUBLIC_ORIGIN}/en/): the audit form — paste a URL, get an A–F scorecard with a prioritized fix plan.`,
+    `- [Lancer un audit (français)](${PUBLIC_ORIGIN}/fr/): le formulaire d’audit — collez une URL, obtenez une note A–F et un plan d’action.`,
+    `- [About the project](${PUBLIC_ORIGIN}/en/about/): what the 112 checks cover and how the 8 weighted families are scored.`,
+    `- [Contact the team](${PUBLIC_ORIGIN}/en/contact/): how to report bugs, propose checks or reach us securely.`,
+    `- [Full content for LLMs](${PUBLIC_ORIGIN}/llms-full.txt): the complete check catalogue and tool documentation in one plain-text file.`,
+    '',
+    '## Source',
+    `- [Source & CLI on GitHub](${REPO_URL}): MIT-licensed engine, CLI and CI gate.`,
     '',
     '## What it is not',
     '- Not an AI-answer monitor: it audits the *input* (your site), not the *output*',
     '  of ChatGPT/Perplexity/Gemini. It predicts findability; it does not track mentions.',
     '',
   ].join('\n');
+}
+
+// /llms-full.txt — the "substance" companion to /llms.txt (≥2000 words, real
+// headings). Assembled once from the SAME sources of truth the humans see:
+// the i18n copy (landing GEO explainer, About, Contact) plus the live check
+// catalogue (`checks`) — so it can never drift from what the tool actually does.
+let llmsFullCache = null;
+function llmsFullTxt() {
+  if (llmsFullCache) return llmsFullCache;
+  const en = t('en');
+  const fr = t('fr');
+  const blocksToText = (blocks) => blocks.map((b) => (b.h2 ? `### ${b.h2}\n\n${b.p}` : b.p)).join('\n\n');
+  const byFamily = new Map();
+  for (const c of checks) byFamily.set(c.family, [...(byFamily.get(c.family) ?? []), c]);
+  const catalogue = [...byFamily.entries()]
+    .map(([fam, list]) => `### ${fam} (${list.length} checks)\n\n`
+      + list.map((c) => `- ${c.id} — up to ${c.maxPoints} points`).join('\n'))
+    .join('\n\n');
+  llmsFullCache = [
+    '# findable-audit — full reference for LLMs',
+    '',
+    '> Free, open-source SEO + GEO audit: paste a URL, get an A–F grade covering both',
+    '> classic search visibility and AI-crawler findability, with a prioritized fix plan.',
+    '',
+    '## Why GEO matters',
+    '',
+    en.landing.geoBody.join('\n\n'),
+    '',
+    '## About the tool',
+    '',
+    blocksToText(en.about.blocks),
+    '',
+    '## The scoring model',
+    '',
+    'An audit fetches the target homepage, discovers more pages through the sitemap (or, failing that, homepage links), and samples several of them. Every check runs against that sample and returns pass, warn, fail or skip together with the points it awards and — for anything short of a pass — a one-line, concrete fix. Checks are grouped into families; each family produces a 0–100 sub-score, and the weighted blend of the eight families gives the overall score and its A–F grade. Because the same catalogue runs every time, two audits of the same site are directly comparable: the CLI can store a baseline report and fail a CI pipeline when a deploy makes the score regress.',
+    '',
+    `## Check catalogue (${checks.length} checks)`,
+    '',
+    'Grouped by family; each line is a check id and the maximum points it can award.',
+    '',
+    catalogue,
+    '',
+    '## Using the web app',
+    '',
+    `Open ${PUBLIC_ORIGIN}/en/ (or /fr/ for French), paste a public http(s) URL and submit. The audit streams its progress live, then renders the scorecard with every finding and its fix. Reports can be exported as Markdown, HTML or JSON, and the app can generate starter indexing files (robots.txt, llms.txt, sitemap.xml, JSON-LD stubs) from your results. Reports are ephemeral: they expire from the server a few minutes after completion. Internal, private and reserved addresses are refused. A compare mode audits your site next to up to two competitors, family by family.`,
+    '',
+    '## Using the CLI',
+    '',
+    'The npm package ships the same engine as a command line tool: `findable-audit <url>` prints the scorecard; `--json` and `--md` switch the output format; `--max-pages` bounds the crawl sample; `--emit` writes the starter indexing files; `--compare` audits competitors side by side; `--baseline` plus `--fail-on-regression` turn it into a CI gate; `--psi-key` adds Core Web Vitals via PageSpeed Insights; `--entity-graph` prints the JSON-LD entity graph the auditor reconstructed.',
+    '',
+    '## Contact & source',
+    '',
+    blocksToText(en.contact.blocks),
+    '',
+    `- Issues: ${REPO_URL}/issues`,
+    `- Source: ${REPO_URL}`,
+    `- Security policy: ${PUBLIC_ORIGIN}/.well-known/security.txt`,
+    '',
+    '## Version française',
+    '',
+    '### Pourquoi le GEO compte',
+    '',
+    fr.landing.geoBody.join('\n\n'),
+    '',
+    '### À propos de l’outil',
+    '',
+    blocksToText(fr.about.blocks),
+    '',
+    '### Contact',
+    '',
+    blocksToText(fr.contact.blocks),
+    '',
+  ].join('\n');
+  return llmsFullCache;
 }
 
 function securityTxt() {
@@ -291,7 +382,15 @@ function shell(title, bodyHtml, { lang = 'en', alternates, meta } = {}) {
       + `\n<meta property="og:url" content="${escapeHtml(canonical)}">`
       + `\n<meta property="og:locale" content="${ogLocale}">`
       + `\n<meta property="og:locale:alternate" content="${altLocale}">`
-      + `\n<meta name="twitter:card" content="summary">`
+      + `\n<meta property="og:site_name" content="findable-audit">`
+      + `\n<meta property="og:image" content="${PUBLIC_ORIGIN}/og.png">`
+      + `\n<meta property="og:image:width" content="1200">`
+      + `\n<meta property="og:image:height" content="630">`
+      + `\n<meta property="og:image:alt" content="findable-audit — SEO + GEO audit, graded A-F">`
+      + `\n<meta name="twitter:card" content="summary_large_image">`
+      + `\n<meta name="twitter:title" content="${escapeHtml(title)}">`
+      + `\n<meta name="twitter:description" content="${escapeHtml(meta.description)}">`
+      + `\n<meta name="twitter:image" content="${PUBLIC_ORIGIN}/og.png">`
       + (meta.jsonLd ? `\n<script type="application/ld+json">${JSON.stringify(meta.jsonLd).replace(/</g, '\\u003c')}</script>` : '');
   }
   return `<!doctype html>
@@ -301,6 +400,7 @@ function shell(title, bodyHtml, { lang = 'en', alternates, meta } = {}) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${seo}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>${escapeHtml(title)}</title>${hreflangLinks}
 <style>${PAGE_STYLE}</style>
 </head>
@@ -308,7 +408,7 @@ ${seo}
 <main>
 <header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
 ${bodyHtml}
-<footer>findable-audit · <a href="${REPO_URL}">source on GitHub</a></footer>
+<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a></footer>
 </main>
 </body>
 </html>
@@ -329,10 +429,19 @@ function landingPage(lang = 'en') {
   // server, which keeps the default (script-src 'none') CSP and an unchanged
   // form. Read at REQUEST time (turnstileEnabled() defaults to process.env),
   // not cached, so toggling the env takes effect on the next request.
-  const turnstileWidget = turnstileEnabled()
-    ? `\n  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`
-      + `\n  <div class="cf-turnstile" data-sitekey="${escapeHtml(turnstileSiteKey())}"></div>`
+  const turnstileOn = turnstileEnabled();
+  // One widget PER form: Turnstile injects its hidden cf-turnstile-response
+  // input only into the form that contains the .cf-turnstile div, and the
+  // server verifies the token on BOTH /audit and /compare/start — without a
+  // second widget the compare form could never pass verification.
+  const turnstileDiv = turnstileOn
+    ? `\n  <div class="cf-turnstile" data-sitekey="${escapeHtml(turnstileSiteKey())}"></div>`
       + `\n  <noscript>${escapeHtml(s.captchaNoscript)}</noscript>`
+    : '';
+  const turnstileWidget = turnstileOn
+    ? `\n  <link rel="preconnect" href="https://challenges.cloudflare.com">`
+      + `\n  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`
+      + turnstileDiv
     : '';
   return shell(s.title, `
 <p class="ld-eyebrow">${escapeHtml(s.eyebrow)}</p>
@@ -359,10 +468,14 @@ function landingPage(lang = 'en') {
     <input type="url" name="url" placeholder="https://your-site.com" aria-label="${escapeHtml(c.urlLabel)}"
       autocomplete="off" autocapitalize="off" spellcheck="false" required>
     <input type="text" name="compare" placeholder="https://rival-1.com, https://rival-2.com" aria-label="${escapeHtml(c.competitorsLabel)}"
-      autocomplete="off" autocapitalize="off" spellcheck="false">
+      autocomplete="off" autocapitalize="off" spellcheck="false">${turnstileDiv}
     <button type="submit" class="ld-cta"><span>${escapeHtml(c.cta)}</span></button>
   </form>
   <p class="hint">${escapeHtml(c.hint)}</p>
+</section>
+<section class="ld-sec">
+  <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.geoTitle)}</h2>
+  ${s.geoBody.map((p) => `<p class="lead" style="margin:.1rem 0 .7rem">${escapeHtml(p)}</p>`).join('\n  ')}
 </section>
 <hr class="ld-rule">
 `, { lang, alternates: { en: '/en/', fr: '/fr/' }, meta: landingMeta(lang) });
@@ -371,26 +484,122 @@ function landingPage(lang = 'en') {
 // SEO/OG metadata + a connected JSON-LD @graph for the landing (dogfooding: this
 // graph must itself pass our entity-graph-connectivity check).
 function landingMeta(lang) {
+  // ≤160 chars, verb-led, no ALL-CAPS filler — mirrors what meta-description
+  // (and serp-preview) reward.
   const description = lang === 'fr'
-    ? 'Audit SEO + GEO gratuit et open source : mesure si les moteurs de recherche ET les crawlers IA (GPTBot, ClaudeBot, PerplexityBot) peuvent trouver et extraire votre site. Note A–F, plan d’action priorisé.'
-    : 'Free, open-source SEO + GEO audit: measures whether search engines AND AI crawlers (GPTBot, ClaudeBot, PerplexityBot) can find and extract your site. A–F grade, prioritized action plan.';
+    ? 'Audit SEO + GEO gratuit et open source : vérifiez que les moteurs de recherche et les crawlers IA (GPTBot, ClaudeBot) trouvent et citent votre site. Note A–F.'
+    : 'Free, open-source SEO + GEO audit: check that search engines and AI crawlers (GPTBot, ClaudeBot) can find, extract and cite your site. Graded A–F.';
   const org = `${PUBLIC_ORIGIN}/#org`;
   const site = `${PUBLIC_ORIGIN}/#website`;
   const app = `${PUBLIC_ORIGIN}/#app`;
+  const url = `${PUBLIC_ORIGIN}/${lang}/`;
+  const crumbs = `${url}#breadcrumb`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'Organization', '@id': org, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`, sameAs: [REPO_URL] },
+      {
+        '@type': 'Organization', '@id': org, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`,
+        logo: `${PUBLIC_ORIGIN}/apple-touch-icon.png`, sameAs: [REPO_URL],
+      },
       { '@type': 'WebSite', '@id': site, url: `${PUBLIC_ORIGIN}/`, name: 'findable-audit', inLanguage: lang, publisher: { '@id': org } },
       {
         '@type': 'WebApplication', '@id': app, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`,
         applicationCategory: 'DeveloperApplication', operatingSystem: 'Any', isPartOf: { '@id': site }, provider: { '@id': org },
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
         description,
+      },
+      {
+        '@type': 'WebPage', '@id': `${url}#webpage`, url, isPartOf: { '@id': site },
+        about: { '@id': app }, inLanguage: lang, breadcrumb: { '@id': crumbs },
+      },
+      {
+        '@type': 'BreadcrumbList', '@id': crumbs,
+        itemListElement: [{ '@type': 'ListItem', position: 1, name: 'findable-audit', item: url }],
       },
     ],
   };
   return { path: `/${lang}/`, description, jsonLd };
+}
+
+// Shared @graph scaffolding for the interior pages (About / Contact):
+// Organization + WebSite + WebPage + BreadcrumbList, connected via @id — the
+// same dogfooding constraint as the landing (entity-graph-connectivity).
+function pageMeta(lang, slug, { description, crumbName, orgExtras = {} }) {
+  const org = `${PUBLIC_ORIGIN}/#org`;
+  const site = `${PUBLIC_ORIGIN}/#website`;
+  const path = `/${lang}/${slug}/`;
+  const url = PUBLIC_ORIGIN + path;
+  const crumbs = `${url}#breadcrumb`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization', '@id': org, name: 'findable-audit', url: `${PUBLIC_ORIGIN}/`,
+        logo: `${PUBLIC_ORIGIN}/apple-touch-icon.png`, sameAs: [REPO_URL], ...orgExtras,
+      },
+      { '@type': 'WebSite', '@id': site, url: `${PUBLIC_ORIGIN}/`, name: 'findable-audit', inLanguage: lang, publisher: { '@id': org } },
+      {
+        '@type': 'WebPage', '@id': `${url}#webpage`, url, isPartOf: { '@id': site },
+        inLanguage: lang, breadcrumb: { '@id': crumbs },
+      },
+      {
+        '@type': 'BreadcrumbList', '@id': crumbs,
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'findable-audit', item: `${PUBLIC_ORIGIN}/${lang}/` },
+          { '@type': 'ListItem', position: 2, name: crumbName },
+        ],
+      },
+    ],
+  };
+  return { path, description, jsonLd };
+}
+
+function interiorBlocks(blocks) {
+  return blocks.map((b) =>
+    (b.h2 ? `<h2 class="ld-eyebrow" style="font-size:.8rem;margin-top:1.4rem">${escapeHtml(b.h2)}</h2>\n` : '')
+    + `<p class="lead" style="margin:.2rem 0 .8rem">${escapeHtml(b.p)}</p>`).join('\n');
+}
+
+function aboutPage(lang) {
+  const a = t(lang).about;
+  const body = `
+<h1 class="ld-h1" style="font-size:clamp(1.6rem,4vw,2.3rem)">${escapeHtml(a.h1)}</h1>
+${interiorBlocks(a.blocks)}
+<hr class="ld-rule">
+`;
+  return shell(a.title, body, {
+    lang,
+    alternates: { en: '/en/about/', fr: '/fr/about/' },
+    meta: pageMeta(lang, 'about', { description: a.description, crumbName: t(lang).nav.about }),
+  });
+}
+
+function contactPage(lang) {
+  const c = t(lang).contact;
+  const body = `
+<h1 class="ld-h1" style="font-size:clamp(1.6rem,4vw,2.3rem)">${escapeHtml(c.h1)}</h1>
+${interiorBlocks(c.blocks)}
+<h2 class="ld-eyebrow" style="font-size:.8rem;margin-top:1.4rem">${escapeHtml(c.linksHeading)}</h2>
+<ul class="lead" style="margin:.2rem 0 .8rem;padding-left:1.2rem">
+<li><a href="${REPO_URL}/issues">${escapeHtml(c.issuesLabel)}</a></li>
+<li><a href="${REPO_URL}">${escapeHtml(c.sourceLabel)}</a></li>
+<li><a href="/.well-known/security.txt">${escapeHtml(c.securityLabel)}</a></li>
+</ul>
+<hr class="ld-rule">
+`;
+  return shell(c.title, body, {
+    lang,
+    alternates: { en: '/en/contact/', fr: '/fr/contact/' },
+    meta: pageMeta(lang, 'contact', {
+      description: c.description,
+      crumbName: t(lang).nav.contact,
+      orgExtras: {
+        contactPoint: {
+          '@type': 'ContactPoint', contactType: 'technical support',
+          url: `${REPO_URL}/issues`, availableLanguage: ['en', 'fr'],
+        },
+      },
+    }),
+  });
 }
 
 function errorPage(title, message, { status = 400, lang = 'en' } = {}) {
@@ -1194,6 +1403,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // #SEO (www-consolidation): exactly one canonical host. Requests reaching
+  // us under www.<host> bounce to the apex with a single 301 preserving
+  // path + query. Any other Host (localhost, 127.0.0.1, the LAN IP…) is
+  // left alone so dev/test behavior is unchanged.
+  const reqHost = String(req.headers.host ?? '').toLowerCase().split(':')[0];
+  if (reqHost === `www.${PUBLIC_HOST}`) {
+    send(res, 301, 'text/plain; charset=utf-8', 'Moved Permanently', { location: PUBLIC_ORIGIN + req.url });
+    return;
+  }
+
   // --- i18n path-prefix routing (sub-phase 2C) ------------------------------
   // Every human-facing page lives under /en or /fr. `/` redirects to the
   // Accept-Language match (else English). Only `/audit` is human-navigable
@@ -1208,8 +1427,26 @@ const server = http.createServer((req, res) => {
   const HUMAN_PATHS = new Set(['/audit', '/compare/start']);
 
   if (pathname === '/') {
+    // 301 (was 302): the language homes are the permanent canonical entry
+    // points; Vary tells caches the target depends on Accept-Language.
     const lang = negotiateLang(req.headers['accept-language']);
-    send(res, 302, 'text/plain; charset=utf-8', 'Found', { location: `/${lang}/` });
+    send(res, 301, 'text/plain; charset=utf-8', 'Moved Permanently', { location: `/${lang}/`, vary: 'accept-language' });
+    return;
+  }
+
+  // #SEO (url-canonicalization): one canonical shape per indexable page —
+  // trailing slash, lang-prefixed. Single 301 hop, query preserved.
+  if (/^\/(?:en|fr)(?:\/about|\/contact)?$/.test(pathname)) {
+    const search = new URL(req.url, 'http://localhost').search;
+    send(res, 301, 'text/plain; charset=utf-8', 'Moved Permanently', { location: `${pathname}/${search}` });
+    return;
+  }
+
+  // Unprefixed /about, /contact (typed URLs): 301 to the negotiated language.
+  const interior = /^\/(about|contact)\/?$/.exec(pathname);
+  if (interior) {
+    const lang = negotiateLang(req.headers['accept-language']);
+    send(res, 301, 'text/plain; charset=utf-8', 'Moved Permanently', { location: `/${lang}/${interior[1]}/`, vary: 'accept-language' });
     return;
   }
 
@@ -1232,6 +1469,11 @@ const server = http.createServer((req, res) => {
       // (script-src 'none') unchanged, matching today's behavior exactly.
       const headers = turnstileEnabled() ? { 'content-security-policy': CSP_TURNSTILE } : {};
       send(res, 200, 'text/html; charset=utf-8', landingPage(split.lang), headers);
+      return;
+    }
+    if (pathname === '/about/' || pathname === '/contact/') {
+      const page = pathname === '/about/' ? aboutPage(split.lang) : contactPage(split.lang);
+      send(res, 200, 'text/html; charset=utf-8', page);
       return;
     }
     // Any other rest path (/audit, /audit/stream, /audit/result, /audit/export,
@@ -1268,6 +1510,14 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/llms.txt') {
     send(res, 200, 'text/plain; charset=utf-8', llmsTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/llms-full.txt') {
+    send(res, 200, 'text/plain; charset=utf-8', llmsFullTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/og.png' || pathname === '/apple-touch-icon.png') {
+    send(res, 200, 'image/png', pathname === '/og.png' ? OG_IMAGE_PNG : TOUCH_ICON_PNG, { 'cache-control': 'public, max-age=86400' });
     return;
   }
   if (pathname === '/.well-known/security.txt' || pathname === '/security.txt') {

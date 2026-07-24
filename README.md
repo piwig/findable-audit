@@ -62,6 +62,24 @@ Score: 73/100  Grade: C
 
 More real-site case studies (before/after scores) will be published in `examples/` at launch.
 
+## Install
+
+Nothing to install for a one-off run — `npx findable-audit <url>` always fetches the latest published version. For a permanent CLI:
+
+```bash
+npm install -g findable-audit
+findable-audit https://your-site.com
+```
+
+From source (Node ≥ 20):
+
+```bash
+git clone https://github.com/piwig/findable-audit && cd findable-audit
+npm ci && npm run build
+node packages/cli/dist/index.js https://your-site.com   # CLI
+node apps/web/server.mjs                                 # self-hosted web app on 127.0.0.1:3021
+```
+
 ## What it checks
 
 **112 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
@@ -173,7 +191,7 @@ This makes a single PageSpeed Insights call (shared across all CWV checks) that 
 
 ## Web app
 
-`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site"), a **"generate indexing files" section** (the same `robots.txt` / `llms.txt` / `llms-full.txt` / `.well-known/ai.json` / `sitemap.xml` / `jsonld-stubs.json` that `--emit` writes, regenerated on demand and streamed as a download — nothing is written to disk server-side), and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies), rejects oversized request URLs (>2048 chars) before any routing as a cheap defense-in-depth measure, and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
+`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site"), a **"generate indexing files" section** (the same `robots.txt` / `llms.txt` / `llms-full.txt` / `.well-known/ai.json` / `sitemap.xml` / `jsonld-stubs.json` that `--emit` writes, regenerated on demand and streamed as a download — nothing is written to disk server-side), and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. The site dogfoods its own audit: About + Contact pages with connected JSON-LD (Organization / WebSite / WebPage / BreadcrumbList), a sitemap with real `lastmod` dates, `llms.txt` plus a ≥2000-word `llms-full.txt` built from the live check catalogue, an Open Graph card image (`/og.png`, generated dependency-free — no image library), an apple-touch icon, and single-hop 301s for `www` → apex, trailing slashes and the language root (with `Vary: Accept-Language`). It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies), rejects oversized request URLs (>2048 chars) before any routing as a cheap defense-in-depth measure, and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
 
 ### Cloudflare Turnstile (optional CAPTCHA)
 
@@ -185,7 +203,7 @@ Environment=TURNSTILE_SITE_KEY=<public site key>
 Environment=TURNSTILE_SECRET_KEY=<secret key>
 ```
 
-When enabled, the widget renders on the landing form (the CSP is relaxed to allow-list `challenges.cloudflare.com` for script/frame/connect on that page only — the widget script is loaded by `src`, so no inline script and no nonce are needed) and the server verifies the token against Cloudflare's `siteverify` endpoint **before creating an audit job**, for both the single-URL and comparison forms. A missing or failed verification is rejected with a generic error; the secret key is only ever sent to Cloudflare, never logged or echoed back to the client.
+When enabled, a widget renders on **both** the audit form and the comparison form (Turnstile injects its token only into the form containing the widget, and both endpoints verify it) (the CSP is relaxed to allow-list `challenges.cloudflare.com` for script/frame/connect on that page only — the widget script is loaded by `src`, so no inline script and no nonce are needed) and the server verifies the token against Cloudflare's `siteverify` endpoint **before creating an audit job**, for both the single-URL and comparison forms. A missing or failed verification is rejected with a generic error; the secret key is only ever sent to Cloudflare, never logged or echoed back to the client.
 
 ## GitHub Action & CI
 

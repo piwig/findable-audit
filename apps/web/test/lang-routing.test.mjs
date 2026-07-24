@@ -23,15 +23,16 @@ test.after(() => {
   server.close();
 });
 
-test('GET / redirects (302) to /en/ when no Accept-Language is sent', async () => {
+test('GET / redirects (301 + Vary) to /en/ when no Accept-Language is sent', async () => {
   const res = await fetch(`${base}/`, { redirect: 'manual' });
-  assert.equal(res.status, 302);
+  assert.equal(res.status, 301);
   assert.equal(res.headers.get('location'), '/en/');
+  assert.match(res.headers.get('vary') ?? '', /accept-language/i);
 });
 
-test('GET / redirects (302) to /fr/ when Accept-Language prefers French', async () => {
+test('GET / redirects (301) to /fr/ when Accept-Language prefers French', async () => {
   const res = await fetch(`${base}/`, { redirect: 'manual', headers: { 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.5' } });
-  assert.equal(res.status, 302);
+  assert.equal(res.status, 301);
   assert.equal(res.headers.get('location'), '/fr/');
 });
 
@@ -76,4 +77,30 @@ test('GET /audit/stream, /audit/result, /audit/export (unprefixed) are never red
     const res = await fetch(`${base}${p}?job=x`, { redirect: 'manual' });
     assert.notEqual(res.status, 301, `${p} should not 301-redirect (would add a wasteful extra hop)`);
   }
+});
+
+test('trailing-slash canonicalization: /en, /en/about, /fr/contact each 301 to the slashed form', async () => {
+  for (const [from, to] of [['/en', '/en/'], ['/en/about', '/en/about/'], ['/fr/contact', '/fr/contact/']]) {
+    const res = await fetch(`${base}${from}`, { redirect: 'manual' });
+    assert.equal(res.status, 301, from);
+    assert.equal(res.headers.get('location'), to);
+  }
+});
+
+test('unprefixed /about and /contact 301 to the negotiated language', async () => {
+  const en = await fetch(`${base}/about`, { redirect: 'manual' });
+  assert.equal(en.status, 301);
+  assert.equal(en.headers.get('location'), '/en/about/');
+  const fr = await fetch(`${base}/contact/`, { redirect: 'manual', headers: { 'accept-language': 'fr' } });
+  assert.equal(fr.status, 301);
+  assert.equal(fr.headers.get('location'), '/fr/contact/');
+});
+
+test('GET /en/about/ and /fr/contact/ serve the interior pages (200)', async () => {
+  const about = await fetch(`${base}/en/about/`);
+  assert.equal(about.status, 200);
+  assert.match(await about.text(), /About findable-audit/);
+  const contact = await fetch(`${base}/fr/contact/`);
+  assert.equal(contact.status, 200);
+  assert.match(await contact.text(), /Contact/);
 });

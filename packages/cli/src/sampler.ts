@@ -62,6 +62,11 @@ export async function samplePages(ctx: CrawlContext, maxPages: number): Promise<
     raw = homepageLinks(pages[0]);
   }
 
+  // Dedupe by FINAL (post-redirect) URL, not just by requested URL: when `/`
+  // 302s to `/en/` and the sitemap also lists `/en/`, both entries resolve to
+  // the same document — sampling it twice would poison every multi-page check
+  // (unique-titles, content-uniqueness, …) with a false duplicate.
+  const sampledFinals = new Set(pages.map((p) => p.finalUrl || new URL('/', ctx.baseUrl).toString()));
   const seen = new Set([new URL('/', ctx.baseUrl).toString()]);
   const candidates: string[] = [];
   for (const c of raw) {
@@ -78,7 +83,11 @@ export async function samplePages(ctx: CrawlContext, maxPages: number): Promise<
   for (const url of candidates) {
     if (pages.length >= maxPages) break;
     const res = await ctx.fetch(url);
-    if (isHtml(res)) pages.push(res);
+    if (!isHtml(res)) continue;
+    const finalUrl = res.finalUrl || url;
+    if (sampledFinals.has(finalUrl)) continue;
+    sampledFinals.add(finalUrl);
+    pages.push(res);
   }
   return { pages, source };
 }
