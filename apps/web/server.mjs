@@ -28,6 +28,7 @@ import { createResultCache } from './lib/cache.mjs';
 import { clientIp } from './lib/client-ip.mjs';
 import { createJobStore } from './lib/jobs.mjs';
 import { createStore, loadOrCreateSalt, ipHasher, eventFromReport } from './lib/store.mjs';
+import { turnstileEnabled, turnstileSiteKey } from './lib/turnstile.mjs';
 import { t } from './lib/i18n.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
@@ -56,6 +57,15 @@ const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN ?? 'https://findable.bordebat.f
 // external origin, so scripts and everything else are locked to 'self'/'none'.
 const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; "
   + "img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+
+// Relaxed landing CSP, served ONLY when turnstileEnabled() (#7): allow-lists
+// Cloudflare's Turnstile origin for the widget script (loaded by `src`, no
+// inline code so no nonce is needed), its challenge iframe, and its XHR calls.
+// Every other directive matches the default CSP above.
+const CSP_TURNSTILE = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
+  + "script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; "
+  + "connect-src 'self' https://challenges.cloudflare.com; img-src 'self' data:; "
+  + "base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 
 const checks = buildChecks();
 const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW_MS });
@@ -312,13 +322,22 @@ function landingPage(lang = 'en') {
   const chips = s.families.map((f) => `<span class="ld-chip">${escapeHtml(f)}</span>`).join('');
   const steps = s.steps.map((st, i) =>
     `<div class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></div>`).join('');
+  // #7: only when Turnstile is env-gated ON — never on a plain dev/local/test
+  // server, which keeps the default (script-src 'none') CSP and an unchanged
+  // form. Read at REQUEST time (turnstileEnabled() defaults to process.env),
+  // not cached, so toggling the env takes effect on the next request.
+  const turnstileWidget = turnstileEnabled()
+    ? `\n  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`
+      + `\n  <div class="cf-turnstile" data-sitekey="${escapeHtml(turnstileSiteKey())}"></div>`
+      + `\n  <noscript>${escapeHtml(s.captchaNoscript)}</noscript>`
+    : '';
   return shell(s.title, `
 <p class="ld-eyebrow">${escapeHtml(s.eyebrow)}</p>
 <h1 class="ld-h1">${escapeHtml(s.h1Lead)}<span class="g">${escapeHtml(s.h1Accent)}</span>${escapeHtml(s.h1Tail)}</h1>
 <p class="lead">${escapeHtml(s.lead)}</p>
 <form method="get" action="/${lang}/audit">
   <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
-    autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    autocomplete="off" autocapitalize="off" spellcheck="false" required>${turnstileWidget}
   <button type="submit" class="ld-cta"><span>${escapeHtml(s.cta)}</span></button>
 </form>
 <p class="hint">${escapeHtml(s.hint)}</p>
@@ -1094,7 +1113,11 @@ const server = http.createServer((req, res) => {
     pathname = split.rest;
 
     if (pathname === '/') {
-      send(res, 200, 'text/html; charset=utf-8', landingPage(split.lang));
+      // #7: serve the relaxed (Cloudflare-allow-listed) CSP only when
+      // Turnstile is enabled; otherwise `send()` applies the default CSP
+      // (script-src 'none') unchanged, matching today's behavior exactly.
+      const headers = turnstileEnabled() ? { 'content-security-policy': CSP_TURNSTILE } : {};
+      send(res, 200, 'text/html; charset=utf-8', landingPage(split.lang), headers);
       return;
     }
     // Any other rest path (/audit, /audit/stream, /audit/result, /audit/export,

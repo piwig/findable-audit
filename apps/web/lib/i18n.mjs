@@ -19,7 +19,8 @@
 //             { urlNotAllowed },  // {title} only — the message is the SSRF layer's own technical BlockedUrlError.message, left untranslated
 //             { back },           // plain string — generic error-page back-link label
 //   landing:  { title, eyebrow, h1Lead, h1Accent, h1Tail, lead, urlLabel, cta, hint,
-//               familiesTitle, families:[8 strings], howTitle, steps:[{t,d} x3] },
+//               familiesTitle, families:[8 strings], howTitle, steps:[{t,d} x3],
+//               captchaNoscript },  // #7: Turnstile <noscript> fallback
 //   selector: { ariaLabel, en, fr },
 //   result:   { download },  // label for the report's download bar; the "audit another site" link reuses progress.retry
 // }>
@@ -72,6 +73,9 @@ export const WEB_MESSAGES = {
         { t: 'Live audit', d: 'multi-page crawl + checks, streamed in real time.' },
         { t: 'Score + plan', d: 'A–F grade, prioritized fixes, Markdown / HTML / JSON export.' },
       ],
+      // #7: <noscript> fallback shown next to the Turnstile widget (only
+      // rendered when Turnstile is env-gated on) — bot verification needs JS.
+      captchaNoscript: 'Bot verification requires JavaScript. Please enable it to submit an audit.',
     },
     selector: {
       ariaLabel: 'Language',
@@ -145,6 +149,10 @@ export const WEB_MESSAGES = {
         { t: 'Test en cours', d: 'crawl multi-pages + checks, en direct.' },
         { t: 'Score + plan', d: 'note A–F, corrections priorisées, export Markdown / HTML / JSON.' },
       ],
+      // #7 : repli <noscript> affiché à côté du widget Turnstile (rendu
+      // uniquement quand Turnstile est activé via l'env) — la vérification
+      // anti-robot nécessite JavaScript.
+      captchaNoscript: 'La vérification anti-robot nécessite JavaScript. Veuillez l’activer pour lancer un audit.',
     },
     selector: {
       ariaLabel: 'Langue',
