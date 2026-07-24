@@ -157,6 +157,54 @@ unreachable) and logs nothing sensitive.
 - **CSP:** HTML responses carry a `Content-Security-Policy`
   (`default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'; …`)
   as defense-in-depth over the already-escaped output.
+- **Request-length guard (`MAX_URL_LEN`):** any request whose URL (path +
+  query) exceeds 8192 chars (a standard nginx/Apache-style 8KB bound) is
+  rejected with `414` before any parsing or dispatch — a cheap bound against
+  requests engineered to force repeated URL/query parsing work. This runs
+  ahead of the Turnstile gate below, so the bound must stay well above a
+  Turnstile token (Cloudflare provisions tokens up to ~2048 chars) riding in
+  the `cf-turnstile-response` query param alongside the audited URL(s);
+  raising it below that would 414-reject a legitimate captcha submission.
+
+### Cloudflare Turnstile (optional CAPTCHA)
+
+Set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to put a
+[Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) widget in
+front of `/audit` and `/compare/start`. This is optional and **env-gated**
+(`lib/turnstile.mjs`):
+
+- **Both unset (default):** Turnstile is fully disabled — no widget is
+  rendered, no verification call is made, behavior is byte-identical to
+  before Turnstile existed. This is what local dev and the test suite run
+  with.
+- **Only one of the two set:** treated as a misconfiguration (most likely a
+  copy-paste mistake in the env file) — logged once via `console.warn` and
+  behaves as fully disabled rather than half-configured.
+- **Both set:** the widget renders on the audit form, and the server
+  verifies the `cf-turnstile-response` token against Cloudflare's
+  `siteverify` endpoint **after** the rate-limit/SSRF checks but **before**
+  any job is created. A missing, invalid, or unverifiable token gets a `400`
+  + localized captcha error page (`en`/`fr`); no job is created and no
+  network audit runs. Verification is fail-closed: a network error, timeout,
+  or non-2xx response from Cloudflare resolves to "not verified", never
+  "verified".
+
+The secret key is used only in the outgoing POST body to Cloudflare's
+`siteverify` endpoint — it is never logged, never echoed in a response, and
+never reaches the client. Wrong or missing tokens produce a generic error
+page; no verification detail is leaked back to the caller.
+
+### npm audit posture
+
+`apps/web` itself has zero runtime dependencies (see top of this file). A
+`npm audit` run against the monorepo currently reports advisories, but they
+are limited to the **dev-only chain** (`vitest` → `esbuild`, never executed
+in production — only during `npm test`), plus `fast-xml-parser`, a prod
+dependency of `packages/cli` that this app imports transitively: only its
+`XMLValidator` is used here (to validate sitemap XML we fetch), and the
+known-vulnerable path is in `XMLBuilder`, which is never reached by that
+usage. A major-version upgrade of `fast-xml-parser` is planned to clear the
+advisory outright.
 
 ## Tests
 
@@ -285,6 +333,8 @@ so canonical, Open Graph, sitemap and robots URLs are correct.
 | `PSI_KEY` | *(unset)* | Google PageSpeed key → enables Core Web Vitals. |
 | `DATA_DIR` | `apps/web/data/` | JSONL usage-stats store location. |
 | `STATS_SALT` | *(generated)* | Salt for hashing client IPs in the store. |
+| `TURNSTILE_SITE_KEY` | *(unset)* | Cloudflare Turnstile public site key → enables the CAPTCHA widget. See [Cloudflare Turnstile](#cloudflare-turnstile-optional-captcha) below. |
+| `TURNSTILE_SECRET_KEY` | *(unset)* | Cloudflare Turnstile secret key, used server-side only for `siteverify`. Required alongside `TURNSTILE_SITE_KEY` to enable the gate. |
 
 ### Known follow-ups
 

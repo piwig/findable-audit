@@ -59,6 +59,19 @@ test('with keys set, a token that fails verification returns 400 + captcha error
   });
 });
 
+test('with keys set, a token that fails verification returns 400 + captcha error page in French (fr/en parity, spec #7)', async () => {
+  await withTurnstileEnv('site-key', 'secret-key', async () => {
+    setVerifyTurnstileForTest(async () => ({ ok: false }));
+    const before = jobs.size;
+    const res = await fetch(`${base}/fr/audit?url=${encodeURIComponent(PUBLIC)}&cf-turnstile-response=bad-token`);
+    assert.equal(res.status, 400);
+    const html = await res.text();
+    // i18n captcha error strings (added this task) render in French too.
+    assert.match(html, /<html lang="fr"/);
+    assert.equal(jobs.size, before, 'no job was created for a failed verification');
+  });
+});
+
 test('with keys set, a token that passes verification lets the normal flow continue (job created)', async () => {
   await withTurnstileEnv('site-key', 'secret-key', async () => {
     let calledWith = null;

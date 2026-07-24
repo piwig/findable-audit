@@ -40,7 +40,7 @@ import { renderLangSelector } from './lib/lang-selector.mjs';
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 3021;
 const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
-const MAX_URL_LEN = 2048; // reject request lines longer than this before any parsing/dispatch (#8: cheap DoS bound; well above any real link we generate).
+const MAX_URL_LEN = 8192; // reject request lines longer than this before any parsing/dispatch (#8: cheap DoS bound). Standard nginx/Apache-style 8KB bound — must be large enough to accommodate a Turnstile token riding in the `cf-turnstile-response` query param (Cloudflare provisions tokens up to ~2048 chars) alongside the audited URL(s), on top of any real link we generate.
 const MAX_CONCURRENT = 10; // at most N audits at once. Audits are I/O-bound (~0.6s CPU each), so this is generous without stressing CPU; memory is the real limit and each audit is only a few MB.
 const RATE_LIMIT = 20; // audits per IP...
 const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
@@ -468,6 +468,17 @@ function statusForError(code) {
 // ---------------------------------------------------------------------------
 // Audit execution
 // ---------------------------------------------------------------------------
+
+// Test-only seam, same pattern as verifyTurnstileImpl below: indirected
+// through a reassignable module-level binding purely so tests can stub the
+// crawl itself (capture the opts runAudit was called with, and/or return a
+// synthetic report) without a real network request. Production code never
+// reassigns it.
+let runAuditImpl = runAudit;
+function setRunAuditForTest(fn) {
+  runAuditImpl = fn ?? runAudit;
+}
+
 function withTimeout(promise, ms) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -506,9 +517,10 @@ async function auditUrl(url, { cwv = cwvActive() } = {}) {
     maxPages: MAX_PAGES,
     blockPrivateHosts: true, // fetch-layer SSRF guard: every hop is revalidated.
     signal: ac.signal,
+    includeEntityGraph: true, // attach report.entityGraph (cheap: already built internally) so /audit/generate's jsonld-stubs.json only stubs types actually absent from the site, mirroring the CLI's --emit (index.ts).
   };
   if (cwv) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
-  const auditPromise = runAudit(url.href, checks, opts);
+  const auditPromise = runAuditImpl(url.href, checks, opts);
   // Free the slot when the real audit settles, even if the HTTP response has
   // already timed out below; swallow a late rejection so it is never unhandled.
   auditPromise.then(
@@ -563,11 +575,12 @@ async function executeAudit(job) {
     blockPrivateHosts: true,          // fetch-layer SSRF guard, unchanged.
     signal: ac.signal,
     onProgress: (ev) => jobs.setProgress(job.id, ev),
+    includeEntityGraph: true, // attach report.entityGraph (cheap: already built internally) so /audit/generate's jsonld-stubs.json only stubs types actually absent from the site, mirroring the CLI's --emit (index.ts).
   };
   if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
   const startedAt = Date.now();
   try {
-    const report = await withTimeout(runAudit(key, checks, opts), auditTimeout());
+    const report = await withTimeout(runAuditImpl(key, checks, opts), auditTimeout());
     cache.set(key, report);
     jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang, { collapsed: true }) });
     recordAuditEvent(report, {
@@ -1374,4 +1387,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest };
+export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest, setRunAuditForTest };

@@ -2,6 +2,10 @@
 // MAX_URL_LEN early — a cheap bound against a trivial DoS vector (huge request
 // lines forcing repeated URL/query parsing work per request). No crash, no
 // info leak (generic short body); normal URLs are completely unaffected.
+//
+// MAX_URL_LEN is 8192 (nginx/Apache-style 8KB bound), not the tighter 2048 a
+// standard link would need: it must leave room for a Turnstile token riding
+// in the `cf-turnstile-response` query param (see turnstile-gate.test.mjs).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,10 +21,10 @@ test.after(() => server.close());
 
 test('GET with an over-long URL is rejected (414), short generic body, no crash', async () => {
   // /healthz is otherwise a trivial 200; pad it with a long query string well
-  // past MAX_URL_LEN (2048) but still under Node's default header-size limit
-  // so the request itself reaches our handler.
-  const overlong = `/healthz?pad=${'a'.repeat(3000)}`;
-  assert.ok(overlong.length > 2048, 'sanity: test URL exceeds MAX_URL_LEN');
+  // past MAX_URL_LEN (8192) but still under Node's default header-size limit
+  // (16384) so the request itself reaches our handler.
+  const overlong = `/healthz?pad=${'a'.repeat(9000)}`;
+  assert.ok(overlong.length > 8192, 'sanity: test URL exceeds MAX_URL_LEN');
   const res = await fetch(`${BASE}${overlong}`);
   assert.equal(res.status, 414);
   const body = await res.text();
@@ -31,6 +35,25 @@ test('GET with an over-long URL is rejected (414), short generic body, no crash'
   // The server must still be alive and serving normal requests afterwards.
   const ok = await fetch(`${BASE}/healthz`);
   assert.equal(ok.status, 200);
+});
+
+// Boundary: the guard is `req.url.length > MAX_URL_LEN`, so exactly 8192 must
+// pass and 8193 must not. This is the case that matters for FIX A: a real
+// Turnstile token (up to ~2048 chars) riding in the query string alongside a
+// URL must land comfortably under this bound.
+test('GET with a URL exactly at MAX_URL_LEN (8192) is accepted, not 414', async () => {
+  const path = `/healthz?pad=${'a'.repeat(8192 - '/healthz?pad='.length)}`;
+  assert.equal(path.length, 8192, 'sanity: test URL is exactly MAX_URL_LEN');
+  const res = await fetch(`${BASE}${path}`);
+  assert.equal(res.status, 200);
+  assert.equal(await res.text(), 'ok');
+});
+
+test('GET with a URL one char over MAX_URL_LEN (8193) is rejected (414)', async () => {
+  const path = `/healthz?pad=${'a'.repeat(8193 - '/healthz?pad='.length)}`;
+  assert.equal(path.length, 8193, 'sanity: test URL is one char over MAX_URL_LEN');
+  const res = await fetch(`${BASE}${path}`);
+  assert.equal(res.status, 414);
 });
 
 test('GET with a normal-length URL is unaffected (200)', async () => {
