@@ -15,7 +15,8 @@
 //
 // Shape: Record<Lang, {
 //   progress: { title, heading, lead, phases:{connect,sample,checks,cwv,score}, done, failed, noscript, retry },
-//   error:    { rateLimited, busy, timeout, unreachable, notFound, missingUrl, internal },  // each {title,message}
+//   error:    { rateLimited, busy, timeout, unreachable, notFound, missingUrl, internal,
+//               captchaFailed },  // each {title,message} — captchaFailed added task 5 (#7 server-side gate)
 //             { urlNotAllowed },  // {title} only — the message is the SSRF layer's own technical BlockedUrlError.message, left untranslated
 //             { back },           // plain string — generic error-page back-link label
 //   landing:  { title, eyebrow, h1Lead, h1Accent, h1Tail, lead, urlLabel, cta, hint,
@@ -53,6 +54,7 @@ export const WEB_MESSAGES = {
       urlNotAllowed: { title: 'URL not allowed' },
       internal: { title: 'Something went wrong', message: 'Something went wrong while auditing that site.' },
       reportNotReady: { title: 'Report not ready', message: 'That report is not available for download yet.' },
+      captchaFailed: { title: 'Verification failed', message: 'We could not confirm you are human. Please try again.' },
       back: 'Audit another site',
     },
     landing: {
@@ -129,6 +131,7 @@ export const WEB_MESSAGES = {
       urlNotAllowed: { title: 'URL non autorisée' },
       internal: { title: 'Une erreur est survenue', message: "Une erreur est survenue lors de l'audit de ce site." },
       reportNotReady: { title: 'Rapport pas encore prêt', message: "Ce rapport n'est pas encore disponible au téléchargement." },
+      captchaFailed: { title: 'Vérification échouée', message: "Nous n'avons pas pu confirmer que vous n'êtes pas un robot. Veuillez réessayer." },
       back: 'Auditer un autre site',
     },
     landing: {

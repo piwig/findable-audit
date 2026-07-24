@@ -28,7 +28,7 @@ import { createResultCache } from './lib/cache.mjs';
 import { clientIp } from './lib/client-ip.mjs';
 import { createJobStore } from './lib/jobs.mjs';
 import { createStore, loadOrCreateSalt, ipHasher, eventFromReport } from './lib/store.mjs';
-import { turnstileEnabled, turnstileSiteKey } from './lib/turnstile.mjs';
+import { turnstileEnabled, turnstileSiteKey, verifyTurnstile } from './lib/turnstile.mjs';
 import { t } from './lib/i18n.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
@@ -735,6 +735,17 @@ function progressPage(jobId, lang, nonce) {
   return shell(m.title, body, { lang });
 }
 
+// Task 5 (#7): server-side Turnstile verification, called from
+// handleAuditStart/handleCompareStart just before job creation. Indirected
+// through a reassignable module-level binding — rather than calling
+// verifyTurnstile() directly — purely so tests can stub the outbound
+// siteverify call without a real network request (setVerifyTurnstileForTest,
+// exported below). Production code never reassigns it.
+let verifyTurnstileImpl = verifyTurnstile;
+function setVerifyTurnstileForTest(fn) {
+  verifyTurnstileImpl = fn ?? verifyTurnstile;
+}
+
 // Rate-limit + SSRF check, then create the job and return the progress page.
 // Execution is lazy: the audit itself is kicked off by /audit/stream or
 // /audit/result (added in Tasks 5-8), whichever the client hits first.
@@ -774,6 +785,22 @@ async function handleAuditStart(req, res) {
       return;
     }
     throw err;
+  }
+
+  // #7: server-side Turnstile verification, AFTER rate-limit + SSRF, BEFORE
+  // job creation. turnstileEnabled() is read once per request (calling it
+  // twice would double the misconfiguration console.warn — see turnstile.mjs).
+  // Env-gated: with no keys, this block never runs and the token is never
+  // even read — behavior is byte-identical to before Turnstile existed.
+  if (turnstileEnabled()) {
+    const token = parsed.searchParams.get('cf-turnstile-response');
+    const { ok } = await verifyTurnstileImpl(token, ip, { secret: process.env.TURNSTILE_SECRET_KEY });
+    if (!ok) {
+      const e = t(lang).error.captchaFailed;
+      const p = errorPage(e.title, e.message, { status: 400, lang });
+      send(res, p.status, 'text/html; charset=utf-8', p.html);
+      return;
+    }
   }
 
   // Create the job but DO NOT run the audit yet — execution is lazy, kicked off
@@ -949,6 +976,19 @@ async function handleCompareStart(req, res) {
   } catch (err) {
     errHtml(t(lang).error.urlNotAllowed.title, err instanceof BlockedUrlError ? err.message : 'Invalid URL');
     return;
+  }
+
+  // #7: same server-side Turnstile gate as handleAuditStart, before job
+  // creation. See the comment on verifyTurnstileImpl for why this is
+  // indirected. Env-gated: with no keys, unchanged.
+  if (turnstileEnabled()) {
+    const token = parsed.searchParams.get('cf-turnstile-response');
+    const { ok } = await verifyTurnstileImpl(token, ip, { secret: process.env.TURNSTILE_SECRET_KEY });
+    if (!ok) {
+      const e = t(lang).error.captchaFailed;
+      errHtml(e.title, e.message, 400);
+      return;
+    }
   }
 
   const urls = [mainUrl.href, ...competitorsRaw];
@@ -1264,4 +1304,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent };
+export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest };
