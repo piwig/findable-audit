@@ -88,6 +88,10 @@ export const WEB_MESSAGES = {
       // Punctuation is baked in (locale-dependent): EN uses a plain colon…
       download: 'Download:',
     },
+    generate: {
+      heading: 'Generate indexing files',
+      note: 'Generic files — review before deploying, especially robots.txt.',
+    },
     compare: {
       needMoreTitle: 'Not enough sites to compare',
       needMore: 'Provide your URL and at least one reachable competitor URL.',
@@ -165,6 +169,10 @@ export const WEB_MESSAGES = {
     result: {
       // …FR puts a non-breaking space before the colon (French typography).
       download: 'Télécharger :',
+    },
+    generate: {
+      heading: 'Générer les fichiers d’indexation',
+      note: 'Fichiers génériques — à relire avant de déployer, en particulier robots.txt.',
     },
     compare: {
       needMoreTitle: 'Pas assez de sites à comparer',

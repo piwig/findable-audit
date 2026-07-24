@@ -14,6 +14,7 @@
 
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { basename } from 'node:path';
 
 import { runAudit, UnreachableSiteError } from '../../packages/cli/dist/runner.js';
 import { buildChecks } from '../../packages/cli/dist/checks/index.js';
@@ -21,6 +22,7 @@ import { renderHtml } from '../../packages/cli/dist/report/html.js';
 import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
 import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
+import { EMITTED_FILES } from '../../packages/cli/dist/generate/index.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
@@ -417,6 +419,22 @@ function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
   return { status, html: shell(title, body, { lang }) };
 }
 
+// #55 (web): "generate indexing files" section — one download link per
+// EMITTED_FILES entry (the same single source of truth as the CLI's --emit,
+// packages/cli/src/generate/index.ts) plus the required bilingual warning.
+// Every link hits /audit/generate, which regenerates the file IN MEMORY on
+// each request — nothing is ever written to disk.
+function generateFilesSection(jobId, lang) {
+  const id = encodeURIComponent(jobId);
+  const g = t(lang).generate;
+  const links = EMITTED_FILES.map((f) =>
+    `<a href="/audit/generate?job=${id}&file=${encodeURIComponent(f.filename)}" style="color:#1a7f37">${escapeHtml(f.filename)}</a>`)
+    .join(' · ');
+  return '<p style="max-width:860px;margin:0 auto .75rem;font:14px -apple-system,Segoe UI,Roboto,sans-serif;color:#555">'
+    + `<strong>${escapeHtml(g.heading)}:</strong> ${links}<br>`
+    + `<span style="color:#b45309">${escapeHtml(g.note)}</span></p>`;
+}
+
 // Wrap the stored report HTML with a download bar + back link (job-scoped),
 // injected at the TOP of the report so the actions are reachable without
 // scrolling past a long report.
@@ -429,7 +447,8 @@ function withResultChrome(reportHtml, jobId, lang) {
     + `${download} <a href="/audit/export?job=${id}&format=md" style="color:#1a7f37">Markdown</a> · `
     + `<a href="/audit/export?job=${id}&format=html" style="color:#1a7f37">HTML</a> · `
     + `<a href="/audit/export?job=${id}&format=json" style="color:#1a7f37">JSON</a>`
-    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`;
+    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`
+    + generateFilesSection(jobId, lang);
   const marker = '<body>';
   const idx = reportHtml.indexOf(marker);
   if (idx === -1) return bar + reportHtml;
@@ -642,6 +661,39 @@ async function handleExport(req, res, job, format) {
 
   const filename = `${safeHost(j.url)}-${new Date().toISOString().slice(0, 10)}.${ext}`;
   send(res, 200, contentType, body, { 'content-disposition': `attachment; filename="${filename}"` });
+}
+
+// #55 (web): GET /audit/generate?job=<id>&file=<name> — regenerate one of the
+// EMITTED_FILES (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
+// sitemap.xml, jsonld-stubs.json) from the job's in-memory report and stream
+// it as an attachment. CRITICAL: nothing is written to disk — the file body
+// is produced fresh by entry.build(report, {lang}) on every single request.
+// Unknown/expired job, an unfinished/failed job, or a `file` not present in
+// EMITTED_FILES all 404 (mirrors handleExport's unknown-job convention: a
+// plain-text 404, no page chrome, since this is a raw download endpoint).
+async function handleGenerate(req, res, job) {
+  await ensureStarted(job);
+  const j = jobs.get(job.id);
+  if (!j || j.status !== 'done' || !j.report) {
+    send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.');
+    return;
+  }
+
+  const parsed = new URL(req.url, 'http://localhost');
+  const name = parsed.searchParams.get('file') ?? '';
+  // Exact match against the fixed EMITTED_FILES catalogue — no path
+  // traversal is possible since nothing derived from `name` ever touches the
+  // filesystem; basename() below only shapes the download's display name.
+  const entry = EMITTED_FILES.find((f) => f.filename === name);
+  if (!entry) {
+    send(res, 404, 'text/plain; charset=utf-8', 'Unknown file.');
+    return;
+  }
+
+  const body = entry.build(j.report, { lang: j.lang });
+  send(res, 200, `${entry.mime}; charset=utf-8`, body, {
+    'content-disposition': `attachment; filename="${basename(entry.filename)}"`,
+  });
 }
 
 async function handleResult(req, res, job) {
@@ -1246,6 +1298,15 @@ const server = http.createServer((req, res) => {
     if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
     handleExport(req, res, job, format).catch((err) => {
       console.error('unhandled /audit/export error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  if (pathname === '/audit/generate') {
+    const job = jobFromQuery(req);
+    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    handleGenerate(req, res, job).catch((err) => {
+      console.error('unhandled /audit/generate error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
     });
     return;
