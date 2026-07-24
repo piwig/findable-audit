@@ -3,7 +3,20 @@
 > Document de travail interne (2026-07-21). Base pour prioriser l'évolution de l'outil.
 > Source : recherche multi-agents (4 sweeps du marché SEO/GEO, juillet 2026) + vérification sur le code source. Snapshot daté — le marché GEO bouge vite (Semrush et Chrome Lighthouse ont ajouté des checks IA ces derniers mois).
 
-## 0. ▶️ PROCHAINS LOTS À LANCER (noté avant un /clear, 2026-07-24)
+## 0. ▶️ PROCHAINS LOTS À LANCER (mis à jour 2026-07-24 après livraison LOT 1 + LOT 2 + déploiement VPS/Cloudflare + redirect www)
+
+**Ordre validé par l'utilisateur (2026-07-24)** — même cycle que les lots précédents (spec → plan → TDD → tests → commit → push → déploiement VPS si web ; contraintes mémoire `[[findable-audit-report-ux-phase1]]` : zéro nouvelle dép, cross-platform, `process.exitCode` jamais `process.exit`, admin privé/gitignoré, SSH VPS resette → boucler) :
+
+1. **P0 Honnêteté & positionnement** (§7 P0, docs uniquement) : corriger « zéro dépendance » (3 deps runtime pur-JS : `fast-xml-parser`, `node-html-parser`, `picocolors` ; seul `apps/web` est zéro-dép), reformuler llms.txt en « signal de valeur non prouvée », documenter le set de bots exact (nombre + liste + tiers), section « vs alternatives » au README.
+2. **🐛 Bug prod : les CWV ne fonctionnent plus via le site web** (constat utilisateur 2026-07-24). Pistes : `PSI_KEY` expirée/quota, 429 keyless, régression LOT 1/2 (CSP/Turnstile ?), env VPS. Investiguer → fixer → redéployer.
+3. **LOT 3 « Largeur IA »** : #13 bots 27+ (tiering citation/entraînement conservé) + découverte `.well-known/` + `ai.json` (§7 P1).
+4. **LOT 4 « Adoption »** : #15 publication npm + GitHub Action + sortie JUnit (SARIF déjà livré), page GitHub soignée.
+5. **UX résultats web — dataviz** (demande utilisateur 2026-07-24) : page de résultats plus compréhensible — graphs/charts (radar par famille, jauges de score, barres par check…), SVG inline maison, zéro nouvelle dép.
+6. Ensuite : #16 CWV local (fallback Lighthouse sans clé PSI — lié au n°2), #14 famille agentic complète, `--fix`, #10 monitoring cron/alertes.
+
+**Livrés :** LOT 1 (#7 Turnstile, #8 hardening, #55 generate) · LOT 2 (#19 CSR parity, #20 AI serving parity, #47 link equity ; 109→112 checks) · best-features (store JSONL, admin+stats, /compare async, baseline/diff, --entity-graph) · corrections SEO/GEO prod + déploiement + redirect www.
+
+<details><summary>Archive — description originale LOT 1 / LOT 2 (livrés)</summary>
 
 Deux lots validés par l'utilisateur, à lancer **l'un après l'autre**, chacun en cycle complet **brainstorm (superpowers:brainstorming) → spec → writing-plans → exécution TDD → tests → commit → push → déploiement VPS si web** (voir la procédure de déploiement + les contraintes dans la mémoire `[[findable-audit-report-ux-phase1]]` : zéro nouvelle dép, cross-platform, `process.exitCode` jamais `process.exit`, **admin reste privé/gitignoré**, SSH VPS resette → boucler `for i in 1 2 3; do ssh … && break; done`).
 
@@ -18,6 +31,8 @@ Deux lots validés par l'utilisateur, à lancer **l'un après l'autre**, chacun 
 - **#47 Carte d'équité de liens internes** `H/M/✅` : réutiliser l'adjacency déjà construite par `buildLinkGraph` (zéro crawl en plus). Calculer (1) **in-degree** par URL interne découverte, (2) **PageRank sample-scoped** ; signaler **pages orphelines** + **fuites d'équité**. Quasi aucun outil gratuit ne le fait.
 
 *(Détails complets : LOT 1 = §11 items #7/#8 + §12 #55/#11 ; LOT 2 = §13 items #19/#20/#47. Après ces deux lots, prochains candidats : #13 bots 27+, #16 CWV local, #14 famille agentic complète, #10 suite monitoring cron/alertes, #15 adoption npm/API.)*
+
+</details>
 
 ## 1. Positionnement en une phrase
 
@@ -88,10 +103,10 @@ Presque **chaque check pris isolément existe ailleurs** : accès robots IA (Sem
 ## 7. Roadmap d'amélioration (priorisée)
 
 ### P0 — Honnêteté & positionnement (rapide, à faire avant de pousser le pitch)
-- [ ] **Corriger la revendication « zéro dépendance »** : la recherche a lu `package.json` et trouvé **3 deps runtime pur-JS** (`fast-xml-parser`, `node-html-parser`, `picocolors`) ; **seul `apps/web` est littéralement zéro-dép**. → **Vérifier**, puis reformuler partout (README, CLAUDE.md, mémoire, pitch) en : *« aucune dépendance lourde/navigateur/SDK-LLM, sans clé à fournir, audit hors-ligne sans fuite de données »*. (Toujours un argument fort, mais exact.)
-- [ ] **Reformuler la valeur de llms.txt** : études Ahrefs 137K, SE Ranking 300K, Otterly 62K, Trakkr 37.9K → **aucun gain de citation mesuré**, ~3,2 % d'adoption, crawlers IA le zappent ; Google Search dit « zéro impact ranking ». → Dans le rapport, présenter les checks llms.txt comme **« signal de valeur non prouvée »**, poids faible, avec la nuance. Défendre l'**audit combiné**, pas llms.txt seul.
-- [ ] **Documenter le set de bots exact** (nombre + liste + tiers) et l'assumer comme argument.
-- [ ] **Ajouter une section « vs alternatives »** au README (reprendre le §4 + le tableau §3.3) — l'honnêteté sur les forces/faiblesses est un atout pour la candidature OSS.
+- [x] (fait 2026-07-24) **Corriger la revendication « zéro dépendance »** : la recherche a lu `package.json` et trouvé **3 deps runtime pur-JS** (`fast-xml-parser`, `node-html-parser`, `picocolors`) ; **seul `apps/web` est littéralement zéro-dép**. → **Vérifier**, puis reformuler partout (README, CLAUDE.md, mémoire, pitch) en : *« aucune dépendance lourde/navigateur/SDK-LLM, sans clé à fournir, audit hors-ligne sans fuite de données »*. (Toujours un argument fort, mais exact.)
+- [x] (fait 2026-07-24) **Reformuler la valeur de llms.txt** : études Ahrefs 137K, SE Ranking 300K, Otterly 62K, Trakkr 37.9K → **aucun gain de citation mesuré**, ~3,2 % d'adoption, crawlers IA le zappent ; Google Search dit « zéro impact ranking ». → Dans le rapport, présenter les checks llms.txt comme **« signal de valeur non prouvée »**, poids faible, avec la nuance. Défendre l'**audit combiné**, pas llms.txt seul.
+- [x] (fait 2026-07-24) **Documenter le set de bots exact** (nombre + liste + tiers) et l'assumer comme argument.
+- [x] (fait 2026-07-24) **Ajouter une section « vs alternatives »** au README (reprendre le §4 + le tableau §3.3) — l'honnêteté sur les forces/faiblesses est un atout pour la candidature OSS.
 
 ### P1 — Combler les écarts réels (fort ROI)
 - [ ] **Élargir la couverture des bots IA** en gardant le tiering citation/entraînement : ajouter les bots récents (applebot-extended, Amazonbot, Bytespider, Meta-ExternalAgent, Google-CloudVertexBot, cohere-ai, Diffbot, etc.). Rattrape la largeur de geo-optimizer sans perdre notre avantage (sévérité par intention).

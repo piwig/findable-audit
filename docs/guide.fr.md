@@ -27,6 +27,12 @@ Les rapports HTML et Markdown s'ouvrent sur un verdict en une ligne et incluent 
 
 Le verrou : si les crawlers sont bloqués ou la page en `noindex`, rien d'autre ne compte.
 
+Le jeu de bots exact (14 agents IA + les crawlers de recherche, défini dans `packages/cli/src/robots.ts`) est hiérarchisé par *intention*, et le tier détermine la sévérité du constat :
+
+- **Fetchers de citation (5)** — OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, PerplexityBot : les bloquer vous fait disparaître des réponses IA en direct → **échec**.
+- **Crawlers d'entraînement (9)** — GPTBot, Google-Extended, ClaudeBot, CCBot, Applebot-Extended, Amazonbot, Bytespider, cohere-ai, meta-externalagent : les bloquer est un choix de politique légitime, pas une rupture d'accès → **avertissement**.
+- **Crawlers de recherche (2 + joker)** — Googlebot, Bingbot, `*` : les bloquer vous retire de la recherche classique → **échec** (check dédié `search-crawlers-allowed`).
+
 ### `homepage-ok` (6 pts)
 **Vérifie :** L'URL racine renvoie un HTTP 200 en HTML.
 **Pourquoi :** Si la page d'accueil renvoie une erreur, redirige vers un login ou exige JavaScript pour produire du HTML, les crawlers n'ont rien à indexer et les assistants rien à citer.
@@ -80,12 +86,12 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 
 ### `llms-txt` (10 pts)
 **Vérifie :** `/llms.txt` (text/plain) a un titre H1 + une ligne de résumé + ≥1 section `##` + ≥5 liens descriptifs absolus de même origine (avertissement si H1 seul ou moins de 5 liens ; échec si absent/HTML).
-**Pourquoi :** `llms.txt` donne aux modèles une carte de votre site, sélective et économe en tokens, pour répondre avec précision plutôt qu'en devinant depuis le HTML brut.
+**Pourquoi :** `llms.txt` donne aux modèles une carte de votre site, sélective et économe en tokens, pour répondre avec précision plutôt qu'en devinant depuis le HTML brut. Nuance honnête : traitez-le comme un **signal à la valeur non prouvée** — les grandes études 2025–26 (Ahrefs 137K sites, SE Ranking 300K, Otterly 62K, Trakkr 37,9K) ne mesurent **aucun gain de citation**, l'adoption est d'environ 3,2 %, et Google annonce un impact nul sur le classement. Le check reste un pari peu coûteux à faible poids ; la valeur vient de l'ensemble combiné des contrôles, pas de ce seul fichier.
 **Corriger :** Structurez-le en `# Site`, un résumé d'une ligne, puis des blocs `## Section` de `- [Titre](https://url-absolue) : note`.
 
 ### `llms-full-txt` (4 pts)
 **Vérifie :** `/llms-full.txt` (text/plain) contient un vrai corps — environ ≥2000 mots avec plusieurs titres (avertissement sous 500 ; échec si absent/HTML).
-**Pourquoi :** Si `llms.txt` est la carte, `llms-full.txt` est le territoire : votre texte intégral dans un fichier qu'un modèle ingère en une requête.
+**Pourquoi :** Si `llms.txt` est la carte, `llms-full.txt` est le territoire : votre texte intégral dans un fichier qu'un modèle ingère en une requête. Même nuance de valeur non prouvée que `llms.txt` — aucun gain de citation mesuré dans les grandes études 2025–26 — d'où son faible poids.
 **Corriger :** Concaténez le texte intégral des pages sous des titres au moment du build.
 
 ### `content-without-js` (6 pts)

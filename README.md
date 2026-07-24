@@ -97,6 +97,18 @@ node apps/web/server.mjs                                 # self-hosted web app o
 
 Every check is documented individually — what it verifies, why it matters, and how to fix a failure — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
 
+### The exact bot roster
+
+The AI-access checks test robots.txt (and serving parity) against a **named roster of 14 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The roster is tiered by *intention*, and the tier drives the severity of a finding — because *who* you block decides *what* you lose:
+
+| Tier | Agents | Blocking one means | Severity |
+|---|---|---|---|
+| **Citation-time fetchers** (5) | OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, PerplexityBot | the assistant cannot fetch your page while composing an answer — you disappear from live AI answers | **fail** |
+| **Training-time crawlers** (9) | GPTBot, Google-Extended, ClaudeBot, CCBot, Applebot-Extended, Amazonbot, Bytespider, cohere-ai, meta-externalagent | future models learn less about your site — a legitimate policy choice, not a findability break | **warn** |
+| **Search crawlers** (2 + wildcard) | Googlebot, Bingbot, `*` | you are removed from classic search, which most AI answers still lean on | **fail** (its own check, `search-crawlers-allowed`) |
+
+Some tools name more bots (geo-optimizer lists 27 over 3 tiers); this roster is deliberately curated, and the point is the **severity by intention**: a flat "N bots blocked" count treats opting out of model training (a policy decision) the same as hiding from live AI answers (a real findability break).
+
 ## Scoring
 
 findable-audit uses a **weighted per-family model**:
@@ -275,9 +287,33 @@ findable-audit ships as a Claude Code plugin with three skills:
 - **`geo-implement`** — implements the GEO / AI-visibility artifacts on a static site (Astro, Next, Hugo): generates `robots.txt`, `llms.txt`, `llms-full.txt`, JSON-LD, sitemap wiring and IndexNow, then verifies the result with `findable-audit`.
 - **`fix-technical-seo`** — fixes the technical-SEO and on-page findings: canonical, meta robots (`noindex`), redirect hygiene, broken internal links, duplicate titles, heading outline, Open Graph, viewport and hreflang.
 
+## How it compares (honestly)
+
+Almost every individual check here exists somewhere else. What no free/OSS/self-hostable tool offered as of mid-2026 is the *combination*: one deterministic crawl producing one weighted A–F grade across SEO + GEO + Core Web Vitals + accessibility + security — no account, no data sent to a third party (the optional PageSpeed Insights call is the only external API), and light by design. The CLI has **3 small pure-JS runtime dependencies** (`fast-xml-parser`, `node-html-parser`, `picocolors`): no headless browser, no LLM SDK, no API key required for the core audit. The web app (`apps/web`) itself is literally dependency-free.
+
+| Tool | AI/GEO layer | CWV | a11y | Security | Unified grade | Keyless |
+|---|---|---|---|---|---|---|
+| **findable-audit** | ✅ bots tiered by intention, `llms.txt`, SSR/CSR parity, JSON-LD entities | ✅ field CrUX + lab (one PSI call) | ✅ | ✅ headers | ✅ weighted A–F | ✅ (PSI key optional) |
+| geo-optimizer-skill (Python) | ✅ 27 bots / 3 tiers, llms.txt, prompt-injection & RAG-chunk checks, `geo fix --apply` auto-fix | ❌ | ❌ | ❌ | 0–100 (GEO only) | ⚠️ citation feature needs a key |
+| SEOmator (`@seomator/seo-audit`) | ✅ GPTBot/ClaudeBot, llms.txt, raw-vs-rendered DOM — no citation/training tiering, no PerplexityBot | ⚠️ lab only (Playwright) | ✅ | ✅ | ✅ (251 rules) | ✅ |
+| seo-geo-audit (lireking) | ✅ core signals | ✅ (Playwright) | ❌ | ❌ | ❌ | PSI/GSC need key/OAuth |
+| sitespeed.io / Lighthouse / Unlighthouse | ❌ no GEO layer | ✅ (real browser) | ✅ | ⚠️/✅ | — | ✅ |
+| axe-core / pa11y | ❌ | ❌ | ✅ | ❌ | — | ✅ |
+| Monitoring SaaS (Profound, Peec, Otterly, Semrush AI Visibility…) | tracks how AI answers cite you — the *opposite*, output-side job | — | — | — | — | ❌ paid |
+
+**Where alternatives beat us today** — honestly:
+
+- **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope; pair findable-audit (input side) with a monitor (output side) if you need it.
+- **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we don't confirm a visit happened.
+- **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API; the keyless endpoint is aggressively rate-limited.
+- **Named-bot breadth** — geo-optimizer names 27 bots to our 14 (we trade breadth for severity-by-intention).
+- **Raw rule count** — SEOmator advertises 251 rules to our 112 checks.
+- **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
+- **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
+
 ## Why GEO
 
-A growing share of product and local-business discovery now happens inside AI assistants instead of a search results page. Those assistants rely on their own crawlers (GPTBot, ClaudeBot, PerplexityBot), on machine-readable content (`llms.txt`, server-rendered text) and on structured data (JSON-LD) to decide what to cite. A site can rank fine on Google and still be invisible to AI answers — because a robots.txt rule blocks AI crawlers, or the content only exists after JavaScript runs. GEO is the practice of making a site legible and citable for answer engines; `findable-audit` measures it the way Lighthouse measures performance.
+A growing share of product and local-business discovery now happens inside AI assistants instead of a search results page. Those assistants rely on their own crawlers (GPTBot, ClaudeBot, PerplexityBot), on machine-readable content (server-rendered text and, for the engines that read it, `llms.txt`) and on structured data (JSON-LD) to decide what to cite. A site can rank fine on Google and still be invisible to AI answers — because a robots.txt rule blocks AI crawlers, or the content only exists after JavaScript runs. GEO is the practice of making a site legible and citable for answer engines; `findable-audit` measures it the way Lighthouse measures performance.
 
 ## Contributing
 

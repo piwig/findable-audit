@@ -80,12 +80,12 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 
 ### `llms-txt` (10 pts)
 **Verifies:** `/llms.txt` (text/plain) has an H1 title + a summary line + ≥1 `##` section + ≥5 descriptive absolute same-origin links (warn if H1-only or under 5 links; fail if missing/HTML).
-**Why:** `llms.txt` gives models a curated, token-efficient map of your site so they answer about it accurately instead of guessing from raw HTML.
+**Why:** `llms.txt` gives models a curated, token-efficient map of your site so they answer about it accurately instead of guessing from raw HTML. Honest caveat: treat it as a **signal of unproven value** — large 2025–26 studies (Ahrefs 137K sites, SE Ranking 300K, Otterly 62K, Trakkr 37.9K) measured **no citation gain**, adoption is ~3.2%, and Google says it has zero ranking impact. It stays in the audit as a cheap, low-weight bet; the value lies in the combined check set, not in this file alone.
 **Fix:** Structure it as `# Site`, a one-line summary, then `## Section` blocks of `- [Title](https://abs-url): note`.
 
 ### `llms-full-txt` (4 pts)
 **Verifies:** `/llms-full.txt` (text/plain) carries real body content — roughly ≥2000 words with multiple headings (warn under 500; fail if missing/HTML).
-**Why:** Where `llms.txt` is the map, `llms-full.txt` is the territory: your full text in one file a model can ingest in a single request.
+**Why:** Where `llms.txt` is the map, `llms-full.txt` is the territory: your full text in one file a model can ingest in a single request. The same unproven-value caveat as `llms.txt` applies — no measured citation gain in the large 2025–26 studies — hence its small weight.
 **Fix:** Concatenate full page text under headings at build time.
 
 ### `content-without-js` (6 pts)
