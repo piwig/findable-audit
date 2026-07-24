@@ -12,14 +12,18 @@ import { renderSarif } from './report/sarif.js';
 import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
+import { emitFiles } from './generate/index.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
 --fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
 --entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json, .dot (Graphviz), or .mmd (Mermaid).
+--emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
+  sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
+  especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
@@ -61,6 +65,7 @@ const parseCliArgs = () =>
       'fail-on-regression': { type: 'boolean', default: false },
       'regression-tolerance': { type: 'string', default: '0' },
       'entity-graph': { type: 'string' },
+      emit: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -158,6 +163,14 @@ if (entityGraphFile !== undefined) {
   }
 }
 
+// --emit <dir>: validate non-empty. Actual writing happens after the audit,
+// once report.entityGraph is available (see includeEntityGraph below).
+const emitDir = values.emit;
+if (emitDir !== undefined && emitDir.trim() === '') {
+  console.error(`findable-audit: --emit must not be empty\n\n${USAGE}`);
+  process.exit(2);
+}
+
 let baseline: AuditReport | undefined;
 if (values.baseline !== undefined) {
   let parsedBaseline: unknown;
@@ -177,7 +190,7 @@ if (values.baseline !== undefined) {
 
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', includeEntityGraph: entityGraphFile !== undefined };
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined };
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 
@@ -244,6 +257,22 @@ try {
   // keep-alive sockets are still closing crashes Node with a libuv assertion
   // ("!(handle->flags & UV_HANDLE_CLOSING)", src\win\async.c). Setting
   // process.exitCode lets the event loop drain and the process exit cleanly.
+  // --emit <dir>: write the generated indexing files (robots.txt, llms.txt,
+  // llms-full.txt, .well-known/ai.json, sitemap.xml, jsonld-stubs.json,
+  // GENERATED-README.md). Independent of --report/--no-report: emitFiles
+  // already uses writeFileSync, never process.exit.
+  if (emitDir !== undefined) {
+    try {
+      const written = emitFiles(report, emitDir, { lang: langTyped });
+      console.error(`generated indexing files in ${emitDir} (${written.length} files)`);
+      console.error(langTyped === 'fr'
+        ? '⚠ fichiers génériques — relire avant de déployer, surtout robots.txt'
+        : '⚠ generic files — review before deploying, especially robots.txt');
+    } catch (err) {
+      console.error(`findable-audit: cannot write generated files to "${emitDir}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
   // --entity-graph <file>: write the JSON-LD entity graph in the chosen format.
   if (entityGraphFile !== undefined && report.entityGraph) {
     const renderer = pickEntityGraphRenderer(entityGraphFile)!;
