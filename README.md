@@ -100,6 +100,7 @@ findable-audit uses a **weighted per-family model**:
 | `--fail-on-regression` | Exit `1` when the score drops below the baseline by more than `--regression-tolerance` points. Requires `--baseline`. The CI gate for "did this change hurt our findability?". |
 | `--regression-tolerance <n>` | Points the score may drop below the baseline before `--fail-on-regression` trips (default `0`). |
 | `--entity-graph <file>` | Write the JSON-LD entity graph across the sampled pages. Format by extension: `.json`, `.dot` (Graphviz), or `.mmd` (Mermaid). |
+| `--emit <dir>` | Write ready-to-deploy indexing files (`robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, `jsonld-stubs.json`, `GENERATED-README.md`) into `<dir>`. Content is generic — review before deploying, especially `robots.txt`. Works alongside `--report`/`--no-report` (independent flags); bilingual via `--lang`. |
 | `--json` | Output the full report as JSON (for scripts and CI). |
 | `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
 | `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
@@ -142,6 +143,22 @@ npx findable-audit https://your-site.com --report audit.md --report audit.html
 
 The `broken-internal-links` check ignores Cloudflare `/cdn-cgi/` endpoints (e.g. email protection) — they are infrastructure, not content pages.
 
+### Generated indexing files (`--emit`)
+
+Beyond the audit report, `findable-audit` can turn the same audit into a starter set of files you can drop straight onto your site:
+
+```bash
+npx findable-audit https://your-site.com --emit ./out
+# writes ./out/robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
+# sitemap.xml, jsonld-stubs.json, and GENERATED-README.md
+```
+
+`--emit` works independently of `--report`/`--no-report` — combine it with either (or neither). Use `--lang fr` to get the French wording (bot names and URLs are unaffected).
+
+⚠️ **These files are generic starting points, not a finished product — review every one before deploying, especially `robots.txt`.** The generated `robots.txt` allows every AI crawler by default with a commented-out `Disallow: /` under each one, so opting a bot out of training or citation is a deliberate, visible edit rather than an accident; `jsonld-stubs.json` only stubs the schema.org types (`Organization` / `WebSite` / `BreadcrumbList` / `FAQPage`) missing from the site's existing entity graph, and is meant to be merged into your real JSON-LD, not deployed as-is. `GENERATED-README.md` in the output directory explains where each file belongs.
+
+The same six files are also available as one-off downloads from the web app's result page (see [Web app](#web-app) below) — regenerated on demand from the in-memory report, nothing is written to disk server-side.
+
 ## Core Web Vitals
 
 The `performance` family always runs its static heuristics (HTML weight, render-blocking JS/CSS, image dimensions, text compression, caching headers, DOM size…) with no key and no network cost beyond the pages already fetched.
@@ -156,7 +173,19 @@ This makes a single PageSpeed Insights call (shared across all CWV checks) that 
 
 ## Web app
 
-`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site") and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies) and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
+`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site"), a **"generate indexing files" section** (the same `robots.txt` / `llms.txt` / `llms-full.txt` / `.well-known/ai.json` / `sitemap.xml` / `jsonld-stubs.json` that `--emit` writes, regenerated on demand and streamed as a download — nothing is written to disk server-side), and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies), rejects oversized request URLs (>2048 chars) before any routing as a cheap defense-in-depth measure, and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
+
+### Cloudflare Turnstile (optional CAPTCHA)
+
+The web app can put its audit and comparison forms behind [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) to slow down automated abuse. It is **off by default** and fully **env-gated**: set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (e.g. in the systemd service's `EnvironmentFile`) to turn it on — leave either unset and the form, CSP, and audit flow stay byte-identical to today (no captcha; local/dev/tests unaffected).
+
+```
+# systemd EnvironmentFile (or a drop-in) for findable-web.service
+Environment=TURNSTILE_SITE_KEY=<public site key>
+Environment=TURNSTILE_SECRET_KEY=<secret key>
+```
+
+When enabled, the widget renders on the landing form (the CSP is relaxed to allow-list `challenges.cloudflare.com` for script/frame/connect on that page only — the widget script is loaded by `src`, so no inline script and no nonce are needed) and the server verifies the token against Cloudflare's `siteverify` endpoint **before creating an audit job**, for both the single-URL and comparison forms. A missing or failed verification is rejected with a generic error; the secret key is only ever sent to Cloudflare, never logged or echoed back to the client.
 
 ## GitHub Action & CI
 

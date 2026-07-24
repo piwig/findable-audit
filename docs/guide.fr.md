@@ -608,4 +608,22 @@ Posture de confiance : HTTPS de bout en bout, en-têtes de sécurité, pas de co
 **Vérifie :** Un `Permissions-Policy` (ou l'ancien Feature-Policy) est présent (échec si absent).
 **Pourquoi :** Il restreint les fonctionnalités navigateur puissantes (caméra, micro, géolocalisation) que la page et ses cadres peuvent utiliser.
 **Corriger :** Ajoutez `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+
+---
+
+## Générer des fichiers d'indexation
+
+Corriger plusieurs des checks ci-dessus (`llms-txt`, `llms-full-txt`, `robots-wellformed`, `ai-crawlers-allowed`, ou l'absence de balisage `Organization` / `WebSite` / `BreadcrumbList` / `FAQPage`) commence par avoir *quelque chose* à publier. `findable-audit` peut générer un jeu de fichiers de départ directement à partir de l'audit qu'il vient d'exécuter :
+
+```bash
+npx findable-audit https://your-site.com --emit ./out
+```
+
+Cela écrit `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, `jsonld-stubs.json`, et un `GENERATED-README.md` dans `./out`, construits à partir des pages effectivement échantillonnées pendant l'audit. `--emit` fonctionne en complément de `--report`/`--no-report` (options indépendantes) et respecte `--lang` pour le texte généré.
+
+Ces mêmes six fichiers (hors `GENERATED-README.md`) sont aussi téléchargeables un par un depuis la page de résultat du site web, sous **« Générer les fichiers d'indexation »** — régénérés à la volée à partir du rapport en mémoire ; rien n'est écrit sur disque côté serveur.
+
+⚠️ **Ce sont des ébauches génériques, pas du contenu fini — relisez chaque fichier avant de le déployer, surtout `robots.txt`.** Il autorise par défaut tous les crawlers IA, avec une ligne `Disallow: /` commentée sous chacun, pour qu'exclure un bot de l'entraînement ou de la citation soit une modification délibérée et visible. `jsonld-stubs.json` ne fournit une ébauche que pour les types schema.org absents du graphe d'entités déjà présent sur le site (`Organization`, `WebSite`, `BreadcrumbList`, `FAQPage`) et est destiné à être fusionné dans votre JSON-LD réel, pas publié tel quel.
+
+Le formulaire d'audit et de comparaison du site web peut optionnellement se placer derrière un CAPTCHA Cloudflare Turnstile (activé via variables d'environnement, désactivé sinon) — voir le [README principal](../README.md#cloudflare-turnstile-optional-captcha) pour la configuration.
 </content>

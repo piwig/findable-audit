@@ -608,4 +608,22 @@ Trust posture: HTTPS end-to-end, security headers, no mixed content.
 **Verifies:** A `Permissions-Policy` (or legacy Feature-Policy) is present (fail if absent).
 **Why:** It restricts which powerful browser features (camera, mic, geolocation) the page and its frames may use.
 **Fix:** Add `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+
+---
+
+## Generating indexing files
+
+Fixing several of the checks above (`llms-txt`, `llms-full-txt`, `robots-wellformed`, `ai-crawlers-allowed`, or missing `Organization` / `WebSite` / `BreadcrumbList` / `FAQPage` markup) starts with having *something* to publish. `findable-audit` can generate a starter set of those files directly from the audit it just ran:
+
+```bash
+npx findable-audit https://your-site.com --emit ./out
+```
+
+This writes `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, `jsonld-stubs.json`, and a `GENERATED-README.md` into `./out`, built from the pages actually sampled during the audit. `--emit` works alongside `--report`/`--no-report` (independent flags) and honors `--lang` for the generated wording.
+
+The same six files (minus `GENERATED-README.md`) are also downloadable one at a time from the web app's result page, under **"Generate indexing files"** — regenerated on demand from the in-memory report; nothing is written to disk server-side.
+
+⚠️ **These are generic starting points, not finished content — review every file before deploying, especially `robots.txt`.** It ships with every AI crawler allowed and a commented-out `Disallow: /` under each one, so opting a bot out of training or citation is a deliberate, visible edit. `jsonld-stubs.json` only stubs the schema.org types missing from the site's existing entity graph (`Organization`, `WebSite`, `BreadcrumbList`, `FAQPage`) and is meant to be merged into your real JSON-LD, not published verbatim.
+
+The web app's audit and comparison forms can optionally sit behind a Cloudflare Turnstile CAPTCHA (env-gated, off unless configured) — see the [main README](../README.md#cloudflare-turnstile-optional-captcha) for setup.
 </content>
