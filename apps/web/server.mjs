@@ -40,6 +40,7 @@ import { renderLangSelector } from './lib/lang-selector.mjs';
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT !== undefined ? Number(process.env.PORT) : 3021;
 const HOST = '127.0.0.1'; // behind nginx; never bind publicly.
+const MAX_URL_LEN = 2048; // reject request lines longer than this before any parsing/dispatch (#8: cheap DoS bound; well above any real link we generate).
 const MAX_CONCURRENT = 10; // at most N audits at once. Audits are I/O-bound (~0.6s CPU each), so this is generous without stressing CPU; memory is the real limit and each audit is only a few MB.
 const RATE_LIMIT = 20; // audits per IP...
 const RATE_WINDOW_MS = 60_000; // ...per rolling minute.
@@ -1161,6 +1162,14 @@ const server = http.createServer((req, res) => {
   // Only GET (and HEAD) are supported.
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     send(res, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', { allow: 'GET' });
+    return;
+  }
+
+  // #8: reject absurdly long request URLs before any parsing/route dispatch —
+  // a cheap bound against a trivial DoS vector. Generic short body, no crash,
+  // nothing of the (oversized, possibly attacker-controlled) input is echoed.
+  if (req.url && req.url.length > MAX_URL_LEN) {
+    send(res, 414, 'text/plain; charset=utf-8', 'URI Too Long');
     return;
   }
 
