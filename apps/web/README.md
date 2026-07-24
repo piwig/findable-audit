@@ -264,6 +264,18 @@ distribution, top domains, per-domain history) — a pure function with no I/O.
 Set `PUBLIC_ORIGIN` to the deployment host (e.g. `https://findable.bordebat.fr`)
 so canonical, Open Graph, sitemap and robots URLs are correct.
 
+> **systemd hardening gotcha.** If the service runs under `ProtectSystem=strict`
+> (recommended), the whole filesystem is read-only, so writes to `DATA_DIR` fail
+> with `EROFS` — and because the store is best-effort, they fail *silently*.
+> Grant it explicitly:
+>
+> ```ini
+> [Service]
+> Environment=DATA_DIR=/var/lib/findable
+> Environment=PUBLIC_ORIGIN=https://your-host
+> ReadWritePaths=/var/lib/findable
+> ```
+
 ## Environment variables
 
 | Var | Default | Purpose |
