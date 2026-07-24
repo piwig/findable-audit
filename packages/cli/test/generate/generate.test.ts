@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { existsSync, mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { XMLValidator } from 'fast-xml-parser';
 import { stubCtx } from '../helpers/stub.js';
 import { llmsTxt as llmsTxtCheck, llmsFullTxt as llmsFullTxtCheck } from '../../src/checks/llm-content.js';
 import { TRAINING_BOTS, CITATION_BOTS } from '../../src/robots.js';
@@ -10,7 +11,7 @@ import type { AuditReport } from '../../src/runner.js';
 import type { EntityGraph } from '../../src/report/entity-graph.js';
 import {
   generateRobotsTxt, generateLlmsTxt, generateLlmsFullTxt, generateAiJson,
-  generateSitemapXml, generateJsonLdStubs, EMITTED_FILES, emitFiles,
+  generateSitemapXml, generateJsonLdStubs, generateReadme, EMITTED_FILES, emitFiles,
 } from '../../src/generate/index.js';
 
 function makeReport(over: Partial<AuditReport> = {}): AuditReport {
@@ -76,6 +77,22 @@ describe('generateRobotsTxt', () => {
     expect(txt).toMatch(/relire avant de déployer/i);
     expect(txt).not.toMatch(/review before deploying/i);
   });
+
+  it('carries a "to complete" guidance comment block mentioning Disallow and Sitemap', () => {
+    const txt = generateRobotsTxt(report, { lang: 'en' });
+    expect(txt).toMatch(/^#.*to complete/im);
+    expect(txt).toMatch(/^#.*disallow/im);
+    expect(txt).toMatch(/^#.*sitemap/im);
+    expect(txt).not.toMatch(/à compléter/i);
+  });
+
+  it('guidance comment block is in French when lang is fr, and stays well-formed', () => {
+    const txt = generateRobotsTxt(report, { lang: 'fr' });
+    expect(txt).toMatch(/^#.*à compléter/im);
+    expect(txt).not.toMatch(/to complete/i);
+    const wf = robotsWellformed({ status: 200, ok: true, body: txt, contentType: 'text/plain', finalUrl: 'https://example.com/robots.txt', headers: {} });
+    expect(wf.status).toBe('pass');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -106,6 +123,24 @@ describe('generateLlmsTxt', () => {
     const txt = generateLlmsTxt(report, { lang: 'fr' });
     expect(txt).toMatch(/relire avant de déployer/i);
   });
+
+  it('carries a "to complete" guidance note about the summary and section links', () => {
+    const txt = generateLlmsTxt(report, { lang: 'en' });
+    expect(txt).toMatch(/to complete/i);
+    expect(txt).toMatch(/summary/i);
+  });
+
+  it('guidance note is in French when lang is fr', () => {
+    const txt = generateLlmsTxt(report, { lang: 'fr' });
+    expect(txt).toMatch(/à compléter/i);
+  });
+
+  it('still round-trips through the llms-txt check as a pass (fr) with the guidance note added', async () => {
+    const txt = generateLlmsTxt(report, { lang: 'fr' });
+    const ctx = stubCtx({ '/llms.txt': { body: txt } }, 'https://example.com/');
+    const result = await llmsTxtCheck.run(ctx);
+    expect(result.status).toBe('pass');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -128,6 +163,17 @@ describe('generateLlmsFullTxt', () => {
     const ctx = stubCtx({ '/llms-full.txt': { body: txt } }, 'https://example.com/');
     const result = await llmsFullTxtCheck.run(ctx);
     expect(result.status).not.toBe('pass'); // structural stub only, real content still missing
+  });
+
+  it('marks each per-page section with a "to complete" note', () => {
+    const txt = generateLlmsFullTxt(report, { lang: 'en' });
+    expect(txt).toMatch(/to complete/i);
+  });
+
+  it('uses the French "à compléter" marker when lang is fr', () => {
+    const txt = generateLlmsFullTxt(report, { lang: 'fr' });
+    expect(txt).toMatch(/à compléter/i);
+    expect(txt).not.toMatch(/to complete/i);
   });
 });
 
@@ -152,6 +198,20 @@ describe('generateAiJson', () => {
     const obj = JSON.parse(generateAiJson(report, { lang: 'fr' }));
     expect(obj._note).toMatch(/relire avant de déployer/i);
   });
+
+  it('carries a bilingual _to_complete array mentioning contact and policy', () => {
+    const obj = JSON.parse(generateAiJson(report, { lang: 'en' }));
+    expect(Array.isArray(obj._to_complete)).toBe(true);
+    expect(obj._to_complete.length).toBeGreaterThan(0);
+    expect(obj._to_complete.join(' ')).toMatch(/contact/i);
+    expect(obj._to_complete.join(' ')).toMatch(/polic/i);
+  });
+
+  it('localizes _to_complete to French', () => {
+    const obj = JSON.parse(generateAiJson(report, { lang: 'fr' }));
+    expect(obj._to_complete.join(' ')).toMatch(/contact/i);
+    expect(obj._to_complete.join(' ')).toMatch(/politique/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -172,6 +232,13 @@ describe('generateSitemapXml', () => {
   it('carries a review-before-deploying comment', () => {
     const xml = generateSitemapXml(makeReport());
     expect(xml).toMatch(/<!--.*review before deploying.*-->/is);
+  });
+
+  it('carries a bilingual "to complete" XML comment mentioning lastmod, and stays valid XML', () => {
+    const xml = generateSitemapXml(makeReport());
+    expect(xml).toMatch(/<!--.*to complete.*lastmod.*-->/is);
+    expect(xml).toMatch(/<!--.*à compléter.*lastmod.*-->/is);
+    expect(XMLValidator.validate(xml)).toBe(true);
   });
 });
 
@@ -212,6 +279,26 @@ describe('generateJsonLdStubs', () => {
     const fr = JSON.parse(generateJsonLdStubs(makeReport(), { lang: 'fr' }));
     expect(fr._note).toMatch(/relire avant de déployer/i);
   });
+
+  it('carries a _to_complete array mentioning Wikidata and REPLACE_ME when Organization is stubbed', () => {
+    const obj = JSON.parse(generateJsonLdStubs(makeReport(), { lang: 'en' }));
+    expect(Array.isArray(obj._to_complete)).toBe(true);
+    expect(obj._to_complete.length).toBeGreaterThan(0);
+    expect(obj._to_complete.join(' ')).toMatch(/wikidata/i);
+    expect(obj._to_complete.join(' ')).toMatch(/REPLACE_ME/);
+  });
+
+  it('localizes _to_complete to French', () => {
+    const obj = JSON.parse(generateJsonLdStubs(makeReport(), { lang: 'fr' }));
+    expect(obj._to_complete.join(' ')).toMatch(/wikidata/i);
+    expect(obj._to_complete.join(' ')).not.toMatch(/\bto fill in\b/i);
+  });
+
+  it('has no Organization-specific _to_complete item when Organization is already present', () => {
+    const report = makeReport({ entityGraph: graphWith(['Organization', 'WebSite', 'BreadcrumbList', 'FAQPage']) });
+    const obj = JSON.parse(generateJsonLdStubs(report, { lang: 'en' }));
+    expect(obj._to_complete).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -228,6 +315,35 @@ describe('EMITTED_FILES', () => {
       expect(typeof f.mime).toBe('string');
       expect(typeof f.build(makeReport(), { lang: 'en' })).toBe('string');
     }
+  });
+});
+
+describe('generateReadme "to complete" section', () => {
+  const report = makeReport();
+
+  it('mentions every generated filename with at least one concrete tip per file', () => {
+    const readme = generateReadme(report, { lang: 'en' });
+    for (const f of EMITTED_FILES) expect(readme).toContain(f.filename);
+    expect(readme).toMatch(/disallow/i); // robots.txt tip
+    expect(readme).toMatch(/lastmod/i); // sitemap.xml tip
+    expect(readme).toMatch(/wikidata/i); // jsonld-stubs.json tip
+    expect(readme).toMatch(/to complete/i);
+  });
+
+  it('mentions the greppable placeholder markers', () => {
+    const readme = generateReadme(report, { lang: 'en' });
+    expect(readme).toMatch(/to fill in/i);
+    expect(readme).toMatch(/REPLACE_ME/);
+  });
+
+  it('is in French when lang is fr, with the same per-file coverage', () => {
+    const readme = generateReadme(report, { lang: 'fr' });
+    for (const f of EMITTED_FILES) expect(readme).toContain(f.filename);
+    expect(readme).toMatch(/à compléter/i);
+    expect(readme).toMatch(/disallow/i);
+    expect(readme).toMatch(/lastmod/i);
+    expect(readme).toMatch(/wikidata/i);
+    expect(readme).not.toMatch(/to complete/i);
   });
 });
 

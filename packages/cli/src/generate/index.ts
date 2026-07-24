@@ -41,6 +41,60 @@ function warnNote(lang: Lang): string {
 }
 
 // ---------------------------------------------------------------------------
+// Shared bilingual "to complete" guidance — a consistent, greppable marker
+// convention: `<... à compléter>` (fr) / `<... to fill in>` (en) placeholders,
+// plus `REPLACE_ME` / `Q00000000` for opaque IDs. Every generated file also
+// carries a short guidance block, in its own native format, that says what
+// its OWN gaps are and how to fill them; GENERATED-README.md repeats the
+// same guidance once per file so it can be read without opening each file.
+// ---------------------------------------------------------------------------
+
+/** Per-file "what to complete" tip, one sentence, reused by both the README and (where relevant) the file body. */
+function toCompleteTip(filename: string, lang: Lang): string {
+  const tips: Record<string, { fr: string; en: string }> = {
+    'robots.txt': {
+      fr: 'vérifiez la liste des bots ci-dessous ; pour BLOQUER un robot, décommentez la ligne `Disallow: /` sous son bloc `User-agent` ; confirmez l’URL de la ligne `Sitemap:`.',
+      en: 'review the bot list below; to BLOCK a crawler, uncomment the `Disallow: /` line under its `User-agent` block; confirm the `Sitemap:` URL.',
+    },
+    'llms.txt': {
+      fr: 'remplacez le résumé générique par votre vraie description (1-2 phrases) ; complétez/curatez les liens de chaque section `##`.',
+      en: 'replace the generic summary with your real description (1-2 sentences); complete/curate each `##` section’s links.',
+    },
+    'llms-full.txt': {
+      fr: 'squelette : remplissez chaque section avec votre vrai contenu (visez ≥2000 mots au total pour être utile aux LLM).',
+      en: 'stub: fill each section with your real content (aim for ≥2000 words total to be useful to LLMs).',
+    },
+    '.well-known/ai.json': {
+      fr: 'renseignez un contact réel et confirmez la politique d’accès des bots (`ai_access.policy`).',
+      en: 'fill in a real contact and confirm the bots access policy (`ai_access.policy`).',
+    },
+    'sitemap.xml': {
+      fr: 'ajoutez les pages absentes de cet échantillon et renseignez les dates `lastmod`.',
+      en: 'add the pages missing from this sample and fill in the `lastmod` dates.',
+    },
+    'jsonld-stubs.json': {
+      fr: 'remplacez `<… à compléter>`, `REPLACE_ME` (URL Wikipédia), `Q00000000` (ID Wikidata) et l’URL du logo ; fusionnez le `@graph` dans votre JSON-LD existant.',
+      en: 'replace `<… to fill in>`, `REPLACE_ME` (Wikipedia URL), `Q00000000` (Wikidata ID) and the logo URL; merge the `@graph` into your existing JSON-LD.',
+    },
+  };
+  const tip = tips[filename];
+  return lang === 'fr' ? tip.fr : tip.en;
+}
+
+/** The GENERATED-README.md "to complete" section: one bullet per generated file, plus the greppable markers. */
+function toCompleteSection(lang: Lang): string {
+  const header = lang === 'fr' ? '## À compléter' : '## To complete';
+  const intro = lang === 'fr'
+    ? 'Avant de déployer, remplissez ces fichiers un par un :'
+    : 'Before deploying, fill in these files one by one:';
+  const list = EMITTED_FILES.map((f) => `- \`${f.filename}\`: ${toCompleteTip(f.filename, lang)}`).join('\n');
+  const footer = lang === 'fr'
+    ? 'Cherchez les marqueurs `à compléter`, `REPLACE_ME` et `Q00000000` dans les fichiers pour retrouver tout ce qui reste à remplir.'
+    : 'Search for the `to fill in`, `REPLACE_ME` and `Q00000000` markers across the files to find everything left to fill in.';
+  return [header, '', intro, '', list, '', footer].join('\n');
+}
+
+// ---------------------------------------------------------------------------
 // generateRobotsTxt
 // ---------------------------------------------------------------------------
 
@@ -49,6 +103,17 @@ export function generateRobotsTxt(report: AuditReport, { lang }: GenerateOptions
   const lines: string[] = [];
   lines.push(`# ${warnText(lang)}`);
   lines.push(`# ${warnDetail(lang)}`);
+  lines.push('');
+  lines.push(lang === 'fr' ? '# À COMPLÉTER :' : '# TO COMPLETE:');
+  lines.push(lang === 'fr'
+    ? '# - Vérifiez la liste de bots ci-dessous (entraînement / citation).'
+    : '# - Review the bot list below (training / citation).');
+  lines.push(lang === 'fr'
+    ? '# - Pour BLOQUER un robot, décommentez la ligne "Disallow: /" sous son bloc "User-agent".'
+    : '# - To BLOCK a crawler, uncomment the "Disallow: /" line under its "User-agent" block.');
+  lines.push(lang === 'fr'
+    ? '# - Confirmez que la ligne "Sitemap:" en bas de ce fichier pointe vers votre vrai sitemap.'
+    : '# - Confirm the "Sitemap:" line at the bottom of this file points at your real sitemap.');
   lines.push('');
   lines.push('User-agent: *');
   lines.push('Allow: /');
@@ -135,6 +200,13 @@ export function generateLlmsTxt(report: AuditReport, { lang }: GenerateOptions):
     lines.push(`- [${pageTitle(p, host, lang)}](${abs})`);
   }
   lines.push('');
+  // Guidance appended AFTER the real sections/links, as an HTML comment, so it
+  // cannot be mistaken for a "## Section" or a descriptive link by the
+  // llms-txt check (H1 + summary + >=1 "## " section + >=5 same-origin links).
+  lines.push(lang === 'fr'
+    ? '<!-- À COMPLÉTER : remplacez le résumé ci-dessus par votre vraie description (1-2 phrases) ; complétez/curatez les liens de chaque section "##". -->'
+    : '<!-- TO COMPLETE: replace the summary above with your real description (1-2 sentences); complete/curate each "##" section\'s links. -->');
+  lines.push('');
   return lines.join('\n');
 }
 
@@ -157,15 +229,15 @@ export function generateLlmsFullTxt(report: AuditReport, { lang }: GenerateOptio
     ? "pour les systèmes IA qui récupèrent un document consolidé unique. Ci-dessous,"
     : 'headings, for AI systems that fetch a single consolidated document. Below is');
   lines.push(lang === 'fr'
-    ? "une ébauche structurelle : remplacez chaque TODO par le vrai contenu de page."
-    : 'a structural stub — replace each TODO with the real page content.');
+    ? 'une ébauche structurelle : remplacez chaque commentaire "À COMPLÉTER" par le vrai contenu de la page (visez ≥2000 mots au total).'
+    : 'a structural stub — replace each "TO COMPLETE" comment with the real page content (aim for ≥2000 words total).');
   lines.push('');
   for (const p of samplePagesOrRoot(report)) {
     lines.push(`## ${pageTitle(p, host, lang)}`);
     lines.push('');
     lines.push(lang === 'fr'
-      ? `<!-- TODO : collez ici le texte complet de la page ${p}. -->`
-      : `<!-- TODO: paste the full text content of ${p} here. -->`);
+      ? `<!-- À COMPLÉTER : collez ici le texte complet de la page ${p}. -->`
+      : `<!-- TO COMPLETE: paste the full text content of ${p} here. -->`);
     lines.push('');
   }
   return lines.join('\n');
@@ -189,6 +261,15 @@ export function generateAiJson(report: AuditReport, { lang }: GenerateOptions): 
       policy: 'allow',
     },
     _note: warnNote(lang),
+    _to_complete: lang === 'fr'
+      ? [
+        "Renseignez un contact réel (email, formulaire...) à la place de l'URL par défaut ci-dessus.",
+        "Confirmez que ai_access.policy reflète votre politique réelle d'accès aux bots (vous pouvez aussi la préciser bot par bot).",
+      ]
+      : [
+        'Fill in a real contact (email, form…) instead of the default URL above.',
+        'Confirm ai_access.policy reflects your actual bot access policy (you can also refine it bot by bot).',
+      ],
   };
   return `${JSON.stringify(obj, null, 2)}\n`;
 }
@@ -204,8 +285,13 @@ function escapeXml(s: string): string {
 export function generateSitemapXml(report: AuditReport): string {
   const urls = samplePagesOrRoot(report).map((p) => new URL(p, report.url).toString());
   const body = urls.map((u) => `  <url>\n    <loc>${escapeXml(u)}</loc>\n  </url>`).join('\n');
+  // XML comments carry raw text (entities are not expanded inside them), so this
+  // is not escapeXml()'d — only "--" is disallowed in a comment, and there is none here.
+  const toComplete = 'TO COMPLETE: add the page(s) missing from this sample and fill in real lastmod dates per URL.'
+    + ' / À COMPLÉTER : ajoutez la ou les pages absentes de cet échantillon et renseignez de vraies dates lastmod par URL.';
   return `<?xml version="1.0" encoding="UTF-8"?>\n`
     + `<!-- ${warnText('en')} / ${warnText('fr')} -->\n`
+    + `<!-- ${toComplete} -->\n`
     + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
@@ -297,10 +383,38 @@ export function generateJsonLdStubs(report: AuditReport, { lang }: GenerateOptio
       ? ' Fusionnez ce @graph avec votre JSON-LD existant, ou ajoutez-le comme nouveau <script type="application/ld+json">.'
       : ' Merge this @graph into your existing JSON-LD, or add it as a new <script type="application/ld+json">.');
 
+  const toComplete: string[] = [];
+  if (missing.includes('Organization')) {
+    toComplete.push(lang === 'fr'
+      ? "Organization : remplacez <Nom de l'organisation à compléter>, l'URL Wikipédia REPLACE_ME, l'ID Wikidata Q00000000 et l'URL du logo par les vraies valeurs."
+      : 'Organization: replace <Organization name to fill in>, the REPLACE_ME Wikipedia URL, the Q00000000 Wikidata ID and the logo URL with real values.');
+  }
+  if (missing.includes('WebSite')) {
+    toComplete.push(lang === 'fr'
+      ? '<Nom du site à compléter> : remplacez-le par le vrai nom du site.'
+      : '<Site name to fill in>: replace it with the real site name.');
+  }
+  if (missing.includes('BreadcrumbList')) {
+    toComplete.push(lang === 'fr'
+      ? '<Page actuelle à compléter> : remplacez-le par le nom réel de la page courante.'
+      : '<Current page to fill in>: replace it with the real name of the current page.');
+  }
+  if (missing.includes('FAQPage')) {
+    toComplete.push(lang === 'fr'
+      ? '<Question exemple à compléter> / <Réponse exemple à compléter> : remplacez-les par une vraie question et sa vraie réponse.'
+      : '<Example question to fill in> / <Example answer to fill in>: replace them with a real question and its real answer.');
+  }
+  if (toComplete.length > 0) {
+    toComplete.push(lang === 'fr'
+      ? 'Fusionnez ensuite ce @graph dans le JSON-LD existant de vos pages.'
+      : "Then merge this @graph into your pages' existing JSON-LD.");
+  }
+
   const out = {
     '@context': 'https://schema.org',
     '@graph': graph,
     _note: `${warnNote(lang)}${extra}`,
+    _to_complete: toComplete,
   };
   return `${JSON.stringify(out, null, 2)}\n`;
 }
@@ -350,6 +464,8 @@ export function generateReadme(report: AuditReport, { lang }: GenerateOptions): 
     list,
     '',
     placement,
+    '',
+    toCompleteSection(lang),
     '',
   ].join('\n');
 }
