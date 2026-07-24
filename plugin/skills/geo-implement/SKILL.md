@@ -11,6 +11,19 @@ artifact below, adapted to the user's framework, then verify with
 redirect hygiene, broken internal links, duplicate titles, hreflang), use the
 `fix-technical-seo` skill instead.
 
+## 0. Shortcut: generate starters from a live audit
+
+```bash
+npx findable-audit <url> --emit ./out
+```
+
+writes generic starter versions of `robots.txt`, `llms.txt`, `llms-full.txt`,
+`.well-known/ai.json`, `sitemap.xml` and `jsonld-stubs.json` (plus a
+`GENERATED-README.md` explaining each file) based on what the audit saw. Use
+them as a starting point, then adapt per framework with the sections below —
+**review everything before deploying, especially `robots.txt`**, and replace
+placeholder/stub values with real business data.
+
 ## 1. Gather inputs
 
 Ask (or infer from the repo) before generating anything:
@@ -55,7 +68,9 @@ Adjust the sitemap filename to what the framework integration actually emits (se
 - **One-line summary** right under the H1 (a `>` blockquote works well)
 - **Page list**: `- [Page title](https://example.com/path): one-line description` for each important page
 
-`llms-full.txt` at the site root — the expanded version: same header, then the full text content of the key pages (services, pricing, about, contact) concatenated as Markdown so an LLM can answer from a single fetch.
+`llms-full.txt` at the site root — the expanded version: same header, then the full text content of the key pages (services, pricing, about, contact) concatenated as Markdown so an LLM can answer from a single fetch. Make it substantial — the audit checks it carries real page content, not a stub.
+
+Also ship `.well-known/ai.json` (machine-readable site/business summary for AI agents; `--emit` generates a starter).
 
 ## 4. JSON-LD structured data
 
@@ -98,6 +113,7 @@ After deploying:
 curl -sI https://example.com/robots.txt
 curl -s  https://example.com/llms.txt
 curl -s  https://example.com/llms-full.txt
+curl -s  https://example.com/.well-known/ai.json
 curl -sI https://example.com/sitemap-index.xml   # or sitemap.xml
 curl -s  https://example.com/<key>.txt
 ```
