@@ -1,15 +1,15 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **108 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **112 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
-| Accès crawlers IA | 0,16 | 8 |
-| Contenu pour moteurs de réponse | 0,18 | 12 |
-| Données structurées et métadonnées | 0,15 | 19 |
-| SEO technique | 0,15 | 21 |
+| Accès crawlers IA | 0,16 | 9 |
+| Contenu pour moteurs de réponse | 0,18 | 13 |
+| Données structurées et métadonnées | 0,15 | 20 |
+| SEO technique | 0,15 | 22 |
 | On-page et contenu | 0,12 | 11 |
 | Performance et Core Web Vitals | 0,10 | 19 |
 | Accessibilité | 0,07 | 9 |
@@ -62,6 +62,11 @@ Le verrou : si les crawlers sont bloqués ou la page en `noindex`, rien d'autre 
 **Pourquoi :** Une page en noindex est invisible pour les moteurs comme pour les crawlers IA — le contenu voulu trouvable disparaît en silence.
 **Corriger :** Retirez `noindex`/`none` des pages qui doivent être découvrables ; ne le gardez que sur les pages réellement privées, exclues du sitemap.
 
+### `ai-serving-parity` (8 pts)
+**Vérifie :** Recharge l'accueil (plus jusqu'à deux pages échantillonnées) sous les identités GPTBot, ClaudeBot et un navigateur mobile, en comparant le code HTTP, la taille du corps, le `<title>` et le contenu principal à la récupération par défaut. Échec sur un 403/451/5xx ou un contenu principal absent pour un user-agent IA ; avertissement sur une divergence plus douce (titre différent, écart de taille >30 %, différence propre au mobile). Ignoré sans la capacité de récupération par UA ou si l'accueil est injoignable.
+**Pourquoi :** Si un CDN/WAF remet aux crawlers IA un document bloqué, redirigé ou allégé, votre contenu n'atteint jamais les assistants susceptibles de vous citer — alors même qu'un navigateur voit la page normalement. Un 403 envoyé à GPTBot peut relever d'une gestion de robots délibérée : le libellé reste descriptif, sans accusation.
+**Corriger :** Faites en sorte que GPTBot et ClaudeBot reçoivent le même document qu'un navigateur ; passez en revue toute règle de gestion de robots qui bloque ou réécrit les requêtes des crawlers IA.
+
 ### `snippet-preview-directives` (4 pts)
 **Vérifie :** Aucune page ne pose `nosnippet`, `max-snippet:0`, `max-image-preview:none` ou `max-video-preview:0` (avertissement si simplement absent ; `max-image-preview:large` compte positivement).
 **Pourquoi :** Ces directives affament les aperçus (snippets et vignettes) que les moteurs de réponse affichent.
@@ -87,6 +92,11 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** Chaque page échantillonnée a ≥200 caractères de texte visible statique (sans JS) après suppression de script/style/noscript (avertissement si une minorité est maigre ; échec si la plupart sont vides).
 **Pourquoi :** Les crawlers IA n'exécutent pas JavaScript ; une page rendue côté client est une coquille vide pour eux.
 **Corriger :** Rendez le contenu principal côté serveur ou en statique (Astro, Hugo, export statique Next, SSR).
+
+### `csr-content-parity` (4 pts)
+**Vérifie :** Signale les pages échantillonnées dont l'unique point de montage (`#root`, `#__next`, `#app`, `<app-root>`, `[data-reactroot]`, `[ng-version]`…) est vide dans le HTML brut *et* qui embarquent quasiment aucun texte rendu côté serveur (avertissement pour une minorité ; échec si la plupart). Un rendu SSR/SSG authentique portant aussi du balisage d'hydratation — dont `data-server-rendered="true"` — passe.
+**Pourquoi :** Un contenu qui n'apparaît qu'après l'hydratation côté client est invisible pour les crawlers IA, qui n'exécutent généralement pas JavaScript : un point de montage vide se lit comme une page blanche. Complète `content-without-js` en désignant la coquille SPA comme cause.
+**Corriger :** Rendez le HTML initial côté serveur (SSR/SSG) pour `#root`/`#__next`/`#app` et les points de montage similaires, afin que le contenu principal soit présent avant toute exécution de JavaScript.
 
 ### `content-depth` (5 pts)
 **Vérifie :** Le nombre de mots du contenu principal atteint un seuil par type — Article/Blog ≥300 mots, autres pages de contenu ≥150, habillage retiré (avertissement si une minorité est sous le seuil ; échec si la plupart sont maigres).
@@ -224,6 +234,11 @@ Identité lisible par machine et éligibilité aux résultats enrichis.
 **Pourquoi :** Des coordonnées incohérentes érodent la confiance nécessaire pour qu'un assistant recommande une entreprise.
 **Corriger :** Restituez un NAP canonique unique depuis une source unique et faites-le correspondre au JSON-LD.
 
+### `entity-graph-connectivity` (4 pts)
+**Vérifie :** Construit le graphe d'entités JSON-LD à travers les pages échantillonnées et vérifie sa cohérence — chaque référence `@id` résout vers un nœud défini, et les entités racines nommées (Organization/WebSite/Person/LocalBusiness) sont reliées en un seul graphe connexe (avertissement si aucune entité JSON-LD n'existe, ou si les entités racines forment plusieurs groupes déconnectés ; échec sur toute référence `@id` pendante).
+**Pourquoi :** Un graphe d'entités propre et connecté permet aux moteurs d'IA de comprendre qui vous êtes et de relier vos pages, votre marque et vos auteurs.
+**Corriger :** Utilisez un seul `@graph` avec un `@id` stable par entité, définissez chaque `@id` référencé, et reliez Organization ↔ WebSite (et Person/LocalBusiness) par `@id`.
+
 ### `open-graph` (5 pts)
 **Vérifie :** Les balises OG de base sont non vides — og:title, og:description, og:image (absolue https), og:type, og:url ; bonus og:site_name/og:locale (avertissement si bonus manquants ; échec si og:image ou og:title manque).
 **Pourquoi :** Open Graph est le format d'aperçu de fait des messageries et de plus en plus des citations IA ; sans lui, des liens nus.
@@ -279,6 +294,11 @@ Hygiène de crawlabilité et d'indexation.
 **Vérifie :** Chaque page de contenu échantillonnée a ≥1 lien interne sortant, profondeur de clics BFS depuis l'accueil ≤3, aucune page non-accueil non référencée (avertissement sur pages isolées/profondes).
 **Pourquoi :** Des pages peu profondes et bien liées sont mieux crawlées et se transmettent de l'autorité.
 **Corriger :** Ajoutez des liens internes contextuels via des pages pivots ; gardez les pages clés à ≤3 clics.
+
+### `link-equity-map` (3 pts)
+**Vérifie :** Sur le graphe de liens internes de l'échantillon, calcule le degré entrant de chaque page et un PageRank limité à l'échantillon (amortissement 0,85, 20 itérations fixes, déterministe), nomme les pages les mieux classées avec leur part et signale les pages orphelines (aucun lien entrant depuis d'autres pages échantillonnées) et en impasse (aucun lien interne sortant). Ignoré en dessous de 3 pages échantillonnées.
+**Pourquoi :** Là où `internal-linking` signale la profondeur et le sous-maillage sous forme de booléens, ce contrôle cartographie la *répartition* réelle du jus de lien — révélant quelles pages accaparent l'autorité et lesquelles en sont privées.
+**Corriger :** Reliez chaque page depuis au moins une autre page et donnez à chaque page au moins un lien interne sortant, pour que le jus de lien circule dans tout le site au lieu de se concentrer sur quelques pages.
 
 ### `crawlable-nav` (4 pts)
 **Vérifie :** La part des ancres de navigation qui nécessitent JavaScript — ancres sans `href`, `href="#"` ou `href="javascript:…"` — sur les pages échantillonnées. Les fragments internes `#section` et les ancres-cibles sans `href` sont ignorés ; garde-fou par ratio (avertissement >20 %, échec >50 % de liens dépendant du JS).

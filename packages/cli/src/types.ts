@@ -84,6 +84,20 @@ export interface CrawlContext {
    * always does. When the SSRF guard is on it re-validates EVERY hop.
    */
   fetchChain?(path: string, opts?: { maxHops?: number }): Promise<FetchChainResult | null>;
+  /**
+   * Same-origin fetch under an explicit User-Agent, for cloaking / dynamic-
+   * serving probes (#20 `ai-serving-parity`: does the server hand AI crawlers
+   * the same document as browsers?). Optional so lightweight in-memory
+   * contexts need not implement it — dependent checks MUST skip when it is
+   * absent. The real Crawler implements it via the same plain/guarded (SSRF)
+   * code paths as `fetch()`, but caches separately (keyed by `(userAgent,
+   * url)`, never sharing or evicting the default-UA cache) and never re-pins
+   * `baseUrl` to a redirect's origin. Enforces the same-origin contract:
+   * an absolute cross-origin `path` returns `null` without fetching. Caches
+   * only successful (2xx) responses, so a probe that hit a transient error can
+   * be retried with a genuinely fresh request.
+   */
+  fetchWithUA?(path: string, userAgent: string): Promise<FetchedResource | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
   /** JSON-LD entity graph across the sampled pages. Attached by the runner; absent in unit tests. */

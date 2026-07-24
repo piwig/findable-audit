@@ -444,6 +444,71 @@ export const contentUniqueness: Check = {
 };
 
 // ---------------------------------------------------------------------------
+// csr-content-parity (#19: mount roots that stay empty until client-side JS
+// runs — "what GPTBot actually sees" when it does not execute JavaScript).
+// Complements (does not replace) content-without-js.
+// ---------------------------------------------------------------------------
+
+/** SPA "mount root" elements: the DOM hook a client-side framework renders into. */
+const MOUNT_ROOT_SELECTOR = '#root, #__next, div#app, section#app, main#app, app-root, [data-reactroot], [ng-version]';
+
+/** A mount root counts as populated once it holds one of these, not just loose whitespace/text. */
+const CONTENT_BEARING_SELECTOR = 'p, li, h1, h2, h3, h4, h5, h6, table, article, section, img, form, blockquote';
+
+const MOUNT_ROOT_EMPTY_CHARS = 50;
+const THIN_PAGE_TEXT_CHARS = 200;
+
+/**
+ * Vue's `data-server-rendered="true"` is a hard proof that this exact node was produced
+ * by the SSR renderer — unlike `[data-reactroot]` (React sets it whether or not the root
+ * actually holds server-rendered content), so it is trusted regardless of measured text.
+ * The other framework hydration/state blobs (script#__NEXT_DATA__, window.__NUXT__,
+ * __INITIAL_STATE__, __APOLLO_STATE__, #___gatsby) ship on CSR-only shells just as often
+ * as on genuine SSR/SSG output, so — per spec — their mere presence is deliberately NOT
+ * checked here: only actual rendered text/children (or this one attribute) count.
+ */
+function isConfirmedServerRendered(el: HTMLElement): boolean {
+  return (el.getAttribute('data-server-rendered') ?? '').trim().toLowerCase() === 'true';
+}
+
+/** true when a candidate mount root has no confirmed-SSR marker, thin inner text, and no content-bearing children. */
+function isEmptyMountRoot(el: HTMLElement): boolean {
+  if (isConfirmedServerRendered(el)) return false;
+  const text = el.textContent.replace(/\s+/g, ' ').trim();
+  if (text.length >= MOUNT_ROOT_EMPTY_CHARS) return false;
+  return !el.querySelector(CONTENT_BEARING_SELECTOR);
+}
+
+/**
+ * Offender = an empty mount root AND thin server-rendered text page-wide (script/style/
+ * noscript stripped, same measurement as content-without-js). Substantial text anywhere
+ * on the page — inside or outside the mount root — means SSR/SSG was done right and the
+ * page must NOT be penalized just for also carrying SPA framework markup.
+ */
+function isCsrOffender(res: FetchedResource): boolean {
+  const root = parsePage(res);
+  if (!root.querySelectorAll(MOUNT_ROOT_SELECTOR).some(isEmptyMountRoot)) return false;
+  root.querySelectorAll('script, style, noscript').forEach((n) => n.remove());
+  const text = root.textContent.replace(/\s+/g, ' ').trim();
+  return text.length < THIN_PAGE_TEXT_CHARS;
+}
+
+export const csrContentParity: Check = {
+  id: 'csr-content-parity', family: 'llm-content', maxPoints: 4,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
+    const offenders = pages.filter(isCsrOffender).map(pathOf);
+    if (offenders.length === 0) {
+      return makeResult(this, 'pass', `server-rendered main content on ${pages.length} sampled page(s), no empty CSR mount roots`);
+    }
+    const agg = aggregate(pages.length, offenders);
+    return makeResult(this, agg.status, `CSR-only content (empty mount root, no server-rendered text) on: ${agg.detail}`,
+      'Server-render (SSR/SSG) the initial HTML for #root/#__next/#app and similar mount points: AI crawlers do not execute JavaScript, so an empty mount root is invisible to them.');
+  },
+};
+
+// ---------------------------------------------------------------------------
 // about-contact (MP: reachable About + Contact + a contact method)
 // ---------------------------------------------------------------------------
 

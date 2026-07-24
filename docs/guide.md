@@ -1,15 +1,15 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **108 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **112 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
-| AI crawler access | 0.16 | 8 |
-| Answer-engine content | 0.18 | 12 |
-| Structured data & metadata | 0.15 | 19 |
-| Technical SEO | 0.15 | 21 |
+| AI crawler access | 0.16 | 9 |
+| Answer-engine content | 0.18 | 13 |
+| Structured data & metadata | 0.15 | 20 |
+| Technical SEO | 0.15 | 22 |
 | On-page & content | 0.12 | 11 |
 | Performance & Core Web Vitals | 0.10 | 19 |
 | Accessibility | 0.07 | 9 |
@@ -62,6 +62,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Why:** A noindexed page is invisible to search engines and AI crawlers alike — content you meant to be found silently isn't.
 **Fix:** Remove `noindex`/`none` from pages that should be discoverable; keep it only on genuinely private pages and exclude those from the sitemap.
 
+### `ai-serving-parity` (8 pts)
+**Verifies:** Refetches the homepage (plus up to two sampled pages) as GPTBot, ClaudeBot and a mobile browser, comparing HTTP status, body size, `<title>` and main content against the default fetch. Fails on a 403/451/5xx or missing main content for an AI user-agent; warns on softer divergence (title mismatch, >30% size delta, mobile-only difference). Skips without the per-UA fetch capability or when the homepage is unreachable.
+**Why:** If a CDN/WAF hands AI crawlers a blocked, redirected or stripped-down document, your content never reaches the assistants that would cite it — even though a browser sees the page fine. A 403 to GPTBot may be deliberate bot management, so the wording stays descriptive, not accusatory.
+**Fix:** Make sure GPTBot and ClaudeBot receive the same document a browser gets; review any bot-management rule that blocks or rewrites AI-crawler requests.
+
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).
 **Why:** Preview-starving directives suppress the very snippets and thumbnails answer engines surface.
@@ -87,6 +92,11 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** Each sampled page has ≥200 chars of static (no-JS) visible body text after stripping script/style/noscript (warn a minority thin; fail if most are empty).
 **Why:** AI crawlers do not execute JavaScript, so a client-rendered page is an empty shell to them.
 **Fix:** Server-render or statically generate the main content (Astro, Hugo, Next static export, SSR).
+
+### `csr-content-parity` (4 pts)
+**Verifies:** Flags sampled pages whose only mount root (`#root`, `#__next`, `#app`, `<app-root>`, `[data-reactroot]`, `[ng-version]`…) is empty in the raw HTML *and* that ship almost no server-rendered text (warn a minority; fail if most). Genuine SSR/SSG output that also carries framework hydration markup — including `data-server-rendered="true"` — passes.
+**Why:** Content that appears only after client-side hydration is invisible to AI crawlers, which generally don't run JavaScript: an empty mount root reads as a blank page. This complements `content-without-js` by pinpointing the SPA shell as the cause.
+**Fix:** Server-render (SSR/SSG) the initial HTML for `#root`/`#__next`/`#app` and similar mount points so the main content is present before any JavaScript runs.
 
 ### `content-depth` (5 pts)
 **Verifies:** Main-content word count meets a per-type threshold — Article/Blog ≥300 words, other content pages ≥150, with chrome stripped (warn a minority below; fail if most are thin).
@@ -224,6 +234,11 @@ Machine-readable identity and rich-result eligibility.
 **Why:** Inconsistent contact details erode the trust needed for an assistant to recommend a business.
 **Fix:** Render one canonical NAP from a single source and match it in JSON-LD.
 
+### `entity-graph-connectivity` (4 pts)
+**Verifies:** Builds the JSON-LD entity graph across sampled pages and checks it is coherent — every `@id` reference resolves to a defined node, and named root entities (Organization/WebSite/Person/LocalBusiness) are linked into one connected graph (warn if no JSON-LD entities exist at all, or if root entities form separate disconnected clusters; fail on any dangling `@id` reference).
+**Why:** A clean, connected entity graph is how AI engines resolve who you are and tie your pages, brand and authors together.
+**Fix:** Use one `@graph` with a stable `@id` per entity, define every referenced `@id`, and cross-link Organization ↔ WebSite (and Person/LocalBusiness) by `@id`.
+
 ### `open-graph` (5 pts)
 **Verifies:** Core OG tags are non-empty — og:title, og:description, og:image (absolute https), og:type, og:url; bonus og:site_name/og:locale (warn on missing bonus; fail on missing og:image or og:title).
 **Why:** Open Graph is the de facto preview format for chat apps and increasingly AI citations; missing tags produce bare links.
@@ -279,6 +294,11 @@ Crawlability and indexation hygiene.
 **Verifies:** Each sampled content page has ≥1 internal outlink, BFS click-depth from home ≤3, no sampled non-home page unreferenced (warn on isolated/deep pages).
 **Why:** Shallow, well-linked pages are crawled more fully and pass authority to one another.
 **Fix:** Add contextual internal links via hub pages; keep key pages ≤3 clicks from home.
+
+### `link-equity-map` (3 pts)
+**Verifies:** Over the internal link graph of the sample, computes each page's in-degree and a sample-scoped PageRank (damping 0.85, 20 fixed iterations, deterministic), names the top-ranked pages with their share and flags orphans (no inbound links from other sampled pages) and dead-ends (no internal outlinks). Skips on fewer than 3 sampled pages.
+**Why:** Where `internal-linking` flags depth and underlinking as booleans, this maps how link equity is actually *distributed* — revealing which pages hoard authority and which are starved of it.
+**Fix:** Link every page from at least one other page and give every page at least one internal outlink, so equity flows across the whole site instead of pooling on a few pages.
 
 ### `crawlable-nav` (4 pts)
 **Verifies:** Share of navigation anchors that need JavaScript to work — anchors with no `href`, `href="#"`, or `href="javascript:…"` — across the sampled pages. In-page `#section` fragments are ignored; a ratio guard passes the odd UI-toggle link (warn >20 %, fail >50 % JS-dependent).

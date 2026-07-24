@@ -67,7 +67,7 @@ export const WEB_MESSAGES = {
       urlLabel: 'Website URL',
       cta: 'Audit',
       hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
-      familiesTitle: '8 weighted families · 109 checks',
+      familiesTitle: '8 weighted families · 112 checks',
       families: ['AI access', 'Answer-engine content', 'Structured data', 'Technical SEO', 'On-page', 'Performance / CWV', 'Accessibility', 'Security'],
       howTitle: 'How it works',
       steps: [
@@ -148,7 +148,7 @@ export const WEB_MESSAGES = {
       urlLabel: 'URL du site',
       cta: 'Auditer',
       hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
-      familiesTitle: '8 familles pondérées · 109 vérifications',
+      familiesTitle: '8 familles pondérées · 112 vérifications',
       families: ['Accès IA', 'Contenu pour moteurs de réponse', 'Données structurées', 'SEO technique', 'On-page', 'Performance / CWV', 'Accessibilité', 'Sécurité'],
       howTitle: 'Comment ça marche',
       steps: [

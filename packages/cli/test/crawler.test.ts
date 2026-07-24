@@ -90,4 +90,143 @@ describe('Crawler', () => {
     expect(seen[0]).toMatch(/^findable-audit/);
     expect(seen[1]).toBe('GPTBot/1.0');
   });
+
+  describe('fetchWithUA', () => {
+    it('sends the given UA header, independent of the constructor default', async () => {
+      const seen: string[] = [];
+      const url = await listen(http.createServer((req, res) => {
+        seen.push(req.headers['user-agent'] ?? '');
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('ok');
+      }));
+      const crawler = new Crawler(url); // default UA, never overridden per-call
+      const res = await crawler.fetchWithUA('/', 'GPTBot/1.2 (+https://openai.com/gptbot)');
+      expect(res?.status).toBe(200);
+      expect(seen[0]).toBe('GPTBot/1.2 (+https://openai.com/gptbot)');
+    });
+
+    it('caches per (userAgent, url): a second call for the same UA makes no request', async () => {
+      let hits = 0;
+      const url = await listen(http.createServer((_req, res) => {
+        hits++;
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('ok');
+      }));
+      const crawler = new Crawler(url);
+      const first = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      const second = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      expect(hits).toBe(1);
+      expect(second).toBe(first); // same cached object, no second request
+    });
+
+    it('does not share or evict the default-UA fetch() cache (separate Map)', async () => {
+      let hits = 0;
+      const url = await listen(http.createServer((_req, res) => {
+        hits++;
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('ok');
+      }));
+      const crawler = new Crawler(url);
+      await crawler.fetch('/'); // populates the default-UA cache: 1 request
+      await crawler.fetchWithUA('/', 'GPTBot/1.2'); // different cache: 1 more request
+      expect(hits).toBe(2);
+      await crawler.fetch('/'); // still cached
+      await crawler.fetchWithUA('/', 'GPTBot/1.2'); // still cached
+      await crawler.fetchWithUA('/', 'ClaudeBot/1.0'); // new UA -> new request
+      expect(hits).toBe(3);
+    });
+
+    it('returns null on a transport error (unreachable host)', async () => {
+      const crawler = new Crawler('http://127.0.0.1:1', 500);
+      expect(await crawler.fetchWithUA('/', 'GPTBot/1.2')).toBeNull();
+    });
+
+    it('does not cache a non-2xx response, so a retry re-requests (finding #3)', async () => {
+      let hits = 0;
+      const url = await listen(http.createServer((_req, res) => {
+        hits++;
+        res.writeHead(503, { 'content-type': 'text/plain' });
+        res.end('busy');
+      }));
+      const crawler = new Crawler(url);
+      const a = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      const b = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      expect(a?.status).toBe(503);
+      expect(b?.status).toBe(503);
+      expect(hits).toBe(2); // the failed response was NOT cached; the second call re-requested
+    });
+
+    it('refuses an absolute cross-origin path without fetching it (same-origin contract, finding #8)', async () => {
+      let otherHits = 0;
+      const other = await listen(http.createServer((_req, res) => {
+        otherHits++;
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('secret');
+      }));
+      const base = await listen(http.createServer((_req, res) => {
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('ok');
+      }));
+      const crawler = new Crawler(base);
+      const res = await crawler.fetchWithUA(`${other}/`, 'GPTBot/1.2');
+      expect(res).toBeNull();          // cross-origin input refused
+      expect(otherHits).toBe(0);       // and never actually fetched
+    });
+
+    it('does NOT re-pin baseUrl to a redirect target origin (unlike fetch())', async () => {
+      const target = await serveFixture(path.join(fixtures, 'perfect-site'));
+      closers.push(target.close);
+      const entryUrl = await listen(http.createServer((req, res) => {
+        if (req.url === '/') {
+          res.writeHead(301, { location: `${target.url}/` });
+          res.end();
+        } else {
+          res.writeHead(404, { 'content-type': 'text/plain' });
+          res.end('not here');
+        }
+      }));
+      const crawler = new Crawler(entryUrl);
+      const res = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      expect(res?.status).toBe(200); // redirect still followed for this one call
+      expect(crawler.baseUrl.origin).toBe(new URL(entryUrl).origin); // but NOT re-pinned
+    });
+
+    it('enforces the SSRF guard in guarded mode: a blocked target -> null, never fetched', async () => {
+      let hits = 0;
+      const target = await listen(http.createServer((_req, res) => {
+        hits++;
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('reached');
+      }));
+      const targetPort = new URL(target).port;
+      // Same seam pattern as crawler-guard.test.ts: neutralise the real loopback
+      // block, then use allowPort as the "is this host blocked" decision so the
+      // target's own port is refused.
+      const crawler = new Crawler(target, 2000, undefined, {
+        blockPrivateHosts: true,
+        isBlocked: () => false,
+        allowPort: (p) => p !== targetPort,
+      });
+      const res = await crawler.fetchWithUA('/', 'GPTBot/1.2');
+      expect(res).toBeNull();
+      expect(hits).toBe(0); // guard rejected before any connection was made
+    });
+
+    it('guarded mode allows a permitted target through, under the given UA', async () => {
+      const seen: string[] = [];
+      const target = await listen(http.createServer((req, res) => {
+        seen.push(req.headers['user-agent'] ?? '');
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end('reached');
+      }));
+      const crawler = new Crawler(target, 2000, undefined, {
+        blockPrivateHosts: true,
+        isBlocked: () => false,
+        allowPort: () => true,
+      });
+      const res = await crawler.fetchWithUA('/', 'ClaudeBot/1.0');
+      expect(res?.status).toBe(200);
+      expect(seen[0]).toBe('ClaudeBot/1.0');
+    });
+  });
 });

@@ -3,7 +3,7 @@ import { makeResult } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { parsePage, isValidBcp47 } from './dom.js';
 import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
-import { buildLinkGraph, pageOutLinks } from './link-graph.js';
+import { buildLinkGraph, pageOutLinks, pagerank } from './link-graph.js';
 import { isLocalOrPrivateHost } from './fundamentals.js';
 import { robotsDirectiveSet, hasDirectiveToken } from '../robots.js';
 
@@ -502,3 +502,86 @@ export const crawlableNav: Check = {
 function safePath(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }
 }
+
+// ---------------------------------------------------------------------------
+// link-equity-map
+// ---------------------------------------------------------------------------
+
+const MIN_EQUITY_SAMPLE = 3;
+const TOP_PAGES_SHOWN = 3;
+
+/** A PageRank share as a percentage with 2 decimals (toFixed is locale/platform-stable). */
+function sharePct(rank: number): string {
+  return `${(rank * 100).toFixed(2)}%`;
+}
+
+/**
+ * Internal link-equity distribution over the sample (spec #47): reuses
+ * `buildLinkGraph` (zero extra crawl) to compute in-degree, an orphan/dead-end
+ * census, and a sample-scoped PageRank so the report can name winners and
+ * losers, not just flag "underlinked". Distinct from `internal-linking`
+ * (depth/underlinked booleans): this shows the *distribution* of equity.
+ */
+export const linkEquityMap: Check = {
+  id: 'link-equity-map', family: 'technical-seo', maxPoints: 3,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length < MIN_EQUITY_SAMPLE) {
+      return makeResult(this, 'skip', 'fewer than 3 sampled pages — link-equity distribution is not meaningful');
+    }
+    const graph = buildLinkGraph(pages, ctx.baseUrl);
+    const homeId = canonicalIdentity(new URL('/', ctx.baseUrl).toString());
+    const ranks = pagerank(graph);
+
+    // In-degree membership by CANONICAL identity, exactly like `internal-linking`
+    // (finding #1): a nav link to `/about` whose page 301s to `/about/` must
+    // count as an inbound link, not a false orphan. Canonical self-links do not
+    // endorse a page, so they are excluded ("in-degree 0 from OTHER pages").
+    const referencedByOthers = new Set<string>();
+    for (const [from, targets] of graph.outLinks) {
+      const fromId = canonicalIdentity(from);
+      for (const t of targets) {
+        const toId = canonicalIdentity(t);
+        if (toId !== fromId) referencedByOthers.add(toId);
+      }
+    }
+
+    const offenders: string[] = [];
+    let anyDeadEnd = false;
+    for (const url of graph.pageUrls) {
+      const label = safePath(url);
+      const isHome = canonicalIdentity(url) === homeId;
+      const reasons: string[] = [];
+      if (!isHome && !referencedByOthers.has(canonicalIdentity(url))) reasons.push('orphan');
+      if ((graph.outLinks.get(url)?.size ?? 0) === 0) { reasons.push('dead-end'); anyDeadEnd = true; }
+      if (reasons.length > 0) offenders.push(`${label} (${reasons.join(', ')})`);
+    }
+
+    // Printed shares are renormalized over the sampled pages' ranks (finding #9):
+    // PageRank runs over sampled pages ∪ discovered-but-unsampled targets, so raw
+    // sampled-page ranks sum to < 1 (mass leaks off-sample). Dividing by the
+    // sampled total makes the reported shares a meaningful split of the sample's
+    // own equity rather than a fraction of an unseen larger graph. Ordering is
+    // unchanged (a positive constant divisor), so message stability holds.
+    const sampledTotal = graph.pageUrls.reduce((s, url) => s + (ranks.get(url) ?? 0), 0) || 1;
+    const top = [...graph.pageUrls]
+      .map((url) => ({ url, rank: ranks.get(url) ?? 0 }))
+      .sort((a, b) => b.rank - a.rank)
+      .slice(0, TOP_PAGES_SHOWN)
+      .map(({ url, rank }) => `${safePath(url)} (${sharePct(rank / sampledTotal)})`)
+      .join(', ');
+
+    if (offenders.length === 0) {
+      return makeResult(this, 'pass', `link equity well-distributed across ${graph.pageUrls.length} page(s) — top: ${top}`);
+    }
+    const agg = aggregate(graph.pageUrls.length, offenders);
+    // Sampling-induced uncertainty (finding #2): an orphan can be a false positive
+    // when the page was pulled from the sitemap but the hub linking to it wasn't
+    // sampled, so its true in-degree is unobservable. A dead-end (zero outlinks) is
+    // observed directly on the fetched page, no such uncertainty. So when EVERY
+    // offender is an orphan (no dead-ends), cap the verdict at warn rather than fail.
+    const status = !anyDeadEnd && agg.status === 'fail' ? 'warn' : agg.status;
+    return makeResult(this, status, `orphan/dead-end page(s): ${agg.detail} — top: ${top}`,
+      'Link every sampled page from at least one other page, and give every page at least one internal outlink, so link equity flows across the whole site.');
+  },
+};

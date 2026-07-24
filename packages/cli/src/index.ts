@@ -31,7 +31,7 @@ By default, two report files are written to the current directory: <host>-<date>
   (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
   by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), anything else -> Markdown.
---lang selects the report chrome language (en or fr; default en). The 109 checks stay in English.
+--lang selects the report chrome language (en or fr; default en). The 112 checks stay in English.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
 --cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
 --psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).

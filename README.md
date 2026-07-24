@@ -8,7 +8,7 @@ Audit any URL right in your browser — no install: **[findable.bordebat.fr](htt
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **108 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
+AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **112 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
 
 ## Quick start
 
@@ -64,14 +64,14 @@ More real-site case studies (before/after scores) will be published in `examples
 
 ## What it checks
 
-**109 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**112 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
-| **AI crawler access** | 0.16 | 8 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives — the gate: if crawlers are blocked, nothing else matters |
-| **Answer-engine content** | 0.18 | 12 | `llms.txt` / `llms-full.txt`, server-rendered text, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness |
-| **Structured data & metadata** | 0.15 | 19 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
-| **Technical SEO** | 0.15 | 21 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, IndexNow |
+| **AI crawler access** | 0.16 | 9 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
+| **Answer-engine content** | 0.18 | 13 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness |
+| **Structured data & metadata** | 0.15 | 20 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
+| **Technical SEO** | 0.15 | 22 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution, IndexNow |
 | **On-page & content** | 0.12 | 11 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
 | **Performance & Core Web Vitals** | 0.10 | 19 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching) + opt-in field/lab Core Web Vitals |
 | **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |

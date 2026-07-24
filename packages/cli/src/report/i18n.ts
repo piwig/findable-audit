@@ -9,7 +9,7 @@ type CwvAssessKey = 'passed' | 'average' | 'slow' | 'inconclusive';
 type CwvMetricKey = 'lcp' | 'inp' | 'cls' | 'ttfb';
 type EffortKey = 'quick' | 'moderate' | 'involved';
 
-/** Every report-chrome label. The 108 checks' own message/fix text is NOT here. */
+/** Every report-chrome label. The 112 checks' own message/fix text is NOT here. */
 export interface ReportMessages {
   // document chrome
   reportTitle: string;   // HTML <h1> + <title> prefix

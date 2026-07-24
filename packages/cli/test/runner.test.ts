@@ -19,17 +19,19 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(109);
+    expect(report.results).toHaveLength(112);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
     // The 8 CWV checks (cwv-*, lab-*, lighthouse-perf) skip without --cwv (no PSI call).
+    // link-equity-map skips because llm-good only samples the homepage (< 3 pages);
+    // csr-content-parity and ai-serving-parity both run and pass on this fixture.
     expect(skipped.map((r) => r.id).sort()).toEqual([
       'alt-descriptive', 'answer-headings', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
       'extractable-structure', 'figure-caption', 'form-labels', 'hreflang',
       'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexnow', 'internal-linking',
-      'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'mixed-content',
+      'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content',
       'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',
       'robots-wellformed', 'schema-coverage', 'sd-article', 'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity',
       'sd-localbusiness', 'sd-product', 'sd-special-types', 'sd-video', 'sd-website-searchaction',

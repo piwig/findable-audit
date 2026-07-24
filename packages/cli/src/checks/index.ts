@@ -1,10 +1,10 @@
 import type { Check } from '../types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives,
+  homepageOk, robotsDirectives, aiServingParity,
 } from './ai-access.js';
 import {
-  llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
+  llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
   aboutContact,
 } from './llm-content.js';
@@ -22,6 +22,7 @@ import { brokenInternalLinks, redirectHygiene, hreflang } from './links.js';
 import {
   canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
   urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
+  linkEquityMap,
 } from './technical-seo.js';
 import {
   metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
@@ -45,8 +46,8 @@ import { entityGraphConnectivity } from './entity-graph.js';
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-    homepageOk, robotsDirectives, snippetPreviewDirectives,
-    llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
+    homepageOk, robotsDirectives, aiServingParity, snippetPreviewDirectives,
+    llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, imagesAlt,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
@@ -58,7 +59,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,
     sdConsistency, napConsistency, entityGraphConnectivity,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
-    urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
+    urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,

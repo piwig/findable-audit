@@ -79,3 +79,80 @@ export function buildLinkGraph(pages: FetchedResource[], baseUrl: URL): LinkGrap
   }
   return { pageUrls, outLinks, depth };
 }
+
+/**
+ * In-degree of every internal URL discovered in the graph: how many distinct
+ * sampled pages link to it (spec #47 link-equity-map). Targets may lie
+ * outside the sample (a URL the crawler discovered but never fetched) — those
+ * still get counted. Self-links are excluded: a page linking to itself does
+ * not endorse itself.
+ */
+export function inDegree(graph: LinkGraph): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const [from, targets] of graph.outLinks) {
+    for (const to of targets) {
+      if (to === from) continue;
+      counts.set(to, (counts.get(to) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+/**
+ * Sample-scoped PageRank over the link graph (spec #47 link-equity-map):
+ * damping 0.85, 50 fixed iterations by default. Nodes are the union of
+ * sampled pages and every discovered link target (even targets outside the
+ * sample, so rank mass that leaves the sample is accounted for rather than
+ * vanishing). Dangling mass — rank held by nodes with no internal outlinks —
+ * is redistributed uniformly across all nodes every iteration, so the total
+ * stays ≈1 throughout. Self-links are excluded from the outbound edge set,
+ * consistent with `inDegree`. Node order is the graph's own deterministic
+ * insertion order (sample order, then first-seen target order) and the
+ * iteration count is fixed, so results are identical across runs. The default
+ * of 50 iterations (raised from 20, finding #6) damps the residual period-2
+ * oscillation of hub<->leaf graphs well below any margin that would flip a
+ * ranking or a 2-decimal printed share.
+ */
+export function pagerank(graph: LinkGraph, damping = 0.85, iterations = 50): Map<string, number> {
+  const nodes: string[] = [];
+  const seen = new Set<string>();
+  const addNode = (u: string): void => {
+    if (!seen.has(u)) { seen.add(u); nodes.push(u); }
+  };
+  for (const p of graph.pageUrls) addNode(p);
+  for (const targets of graph.outLinks.values()) for (const t of targets) addNode(t);
+
+  const n = nodes.length;
+  let rank = new Map<string, number>();
+  if (n === 0) return rank;
+  for (const node of nodes) rank.set(node, 1 / n);
+
+  const outEdges = new Map<string, string[]>();
+  for (const node of nodes) {
+    const targets = graph.outLinks.get(node);
+    outEdges.set(node, targets ? [...targets].filter((t) => t !== node) : []);
+  }
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const next = new Map<string, number>();
+    for (const node of nodes) next.set(node, (1 - damping) / n);
+
+    let danglingMass = 0;
+    for (const node of nodes) {
+      if (outEdges.get(node)!.length === 0) danglingMass += rank.get(node)!;
+    }
+    if (danglingMass > 0) {
+      const danglingShare = (damping * danglingMass) / n;
+      for (const node of nodes) next.set(node, next.get(node)! + danglingShare);
+    }
+
+    for (const node of nodes) {
+      const out = outEdges.get(node)!;
+      if (out.length === 0) continue;
+      const share = (damping * rank.get(node)!) / out.length;
+      for (const t of out) next.set(t, next.get(t)! + share);
+    }
+    rank = next;
+  }
+  return rank;
+}

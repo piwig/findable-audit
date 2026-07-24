@@ -117,6 +117,8 @@ export class Crawler implements CrawlContext {
   /** JSON-LD entity graph, attached by the runner after sampling. */
   entityGraph?: import('./report/entity-graph.js').EntityGraph;
   private cache = new Map<string, FetchedResource | null>();
+  /** Separate cache for fetchWithUA, keyed `${userAgent} ${url}`. Never shared with `cache`. */
+  private uaCache = new Map<string, FetchedResource | null>();
   private originResolved = false;
 
   constructor(
@@ -138,37 +140,80 @@ export class Crawler implements CrawlContext {
     const target = new URL(path, this.baseUrl).toString();
     if (this.cache.has(target)) return this.cache.get(target)!;
     const signal = this.buildSignal();
-    let out: FetchedResource | null = null;
-    try {
-      if (this.opts.blockPrivateHosts) {
-        out = await this.guardedFetch(target, signal);
-      } else {
-        const res = await fetch(target, {
-          redirect: 'follow',
-          signal,
-          headers: { 'user-agent': this.userAgent },
-        });
-        out = {
-          status: res.status,
-          ok: res.ok,
-          body: await readBody(res),
-          contentType: res.headers.get('content-type') ?? '',
-          finalUrl: res.url,
-          headers: Object.fromEntries(res.headers.entries()),
-        };
-      }
-      // After the very first successful fetch (the homepage), pin every later
-      // request to the origin we actually landed on after redirections.
-      if (out && !this.originResolved) {
-        this.originResolved = true;
-        const final = new URL(out.finalUrl || target);
-        if (final.origin !== this.baseUrl.origin) this.baseUrl = new URL(`${final.origin}/`);
-      }
-    } catch {
-      out = null;
+    const out = await this.performFetch(target, signal, this.userAgent);
+    // After the very first successful fetch (the homepage), pin every later
+    // request to the origin we actually landed on after redirections.
+    if (out && !this.originResolved) {
+      this.originResolved = true;
+      const final = new URL(out.finalUrl || target);
+      if (final.origin !== this.baseUrl.origin) this.baseUrl = new URL(`${final.origin}/`);
     }
     this.cache.set(target, out);
     return out;
+  }
+
+  /**
+   * Same-origin fetch under an explicit User-Agent (see `CrawlContext.fetchWithUA`
+   * for the contract). Reuses the exact plain/guarded code path `fetch()` uses
+   * (via `performFetch`), just parameterised on `userAgent` instead of the
+   * instance default, so SSRF guarding, redirect handling, gzip decoding, etc.
+   * all behave identically. Cached separately from `fetch()`'s cache, and does
+   * NOT re-pin `baseUrl` — that pin is a one-time, default-UA-only optimisation
+   * tied to the homepage fetch, not something a probe fetch should trigger.
+   */
+  async fetchWithUA(path: string, userAgent: string): Promise<FetchedResource | null> {
+    const target = new URL(path, this.baseUrl).toString();
+    // Same-origin contract (finding #8): `new URL(path, base)` will honor an
+    // absolute cross-origin URL, so a caller could otherwise point a probe
+    // off-origin. Refuse — without connecting — when the resolved origin differs.
+    if (new URL(target).origin !== this.baseUrl.origin) return null;
+    // Unambiguous cache key (finding #7): a UA string can contain spaces, so a
+    // single-space separator could alias distinct (userAgent, url) pairs
+    // (`"a b" + " " + url` vs `"a" + " " + "b url"`). A newline appears in
+    // neither a header value nor a URL, so it is a collision-proof delimiter.
+    const key = `${userAgent}\n${target}`;
+    if (this.uaCache.has(key)) return this.uaCache.get(key)!;
+    const signal = this.buildSignal();
+    const out = await this.performFetch(target, signal, userAgent);
+    // Cache only successful (2xx) responses (finding #3): within one parity audit
+    // every (userAgent, url) is probed at most once EXCEPT the deliberate
+    // transient-retry, so caching a null / 4xx / 5xx would defeat that retry and
+    // buys no dedup here. A recovered retry then repopulates the cache with the 2xx.
+    if (out && out.ok) this.uaCache.set(key, out);
+    return out;
+  }
+
+  /**
+   * One fetch attempt (plain or guarded, per `blockPrivateHosts`) under
+   * `userAgent`. No caching, no origin re-pin — shared core for both `fetch()`
+   * and `fetchWithUA()`, which layer their own cache + (for `fetch()` only)
+   * origin-pinning on top.
+   */
+  private async performFetch(
+    target: string,
+    signal: AbortSignal,
+    userAgent: string,
+  ): Promise<FetchedResource | null> {
+    try {
+      if (this.opts.blockPrivateHosts) {
+        return await this.guardedFetch(target, signal, userAgent);
+      }
+      const res = await fetch(target, {
+        redirect: 'follow',
+        signal,
+        headers: { 'user-agent': userAgent },
+      });
+      return {
+        status: res.status,
+        ok: res.ok,
+        body: await readBody(res),
+        contentType: res.headers.get('content-type') ?? '',
+        finalUrl: res.url,
+        headers: Object.fromEntries(res.headers.entries()),
+      };
+    } catch {
+      return null;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -220,7 +265,7 @@ export class Crawler implements CrawlContext {
         if (this.opts.blockPrivateHosts) {
           const guard = await this.resolveGuard(url);
           if (!guard.ok) return null; // blocked host/port -> refuse the whole chain
-          res = await this.nodeRequest(url, guard.address, guard.family, signal);
+          res = await this.nodeRequest(url, guard.address, guard.family, signal, this.userAgent);
         } else {
           res = await this.nodeRequestPlain(url, signal);
         }
@@ -317,7 +362,11 @@ export class Crawler implements CrawlContext {
    * Returns null on any rejection or transport error (checks treat null as
    * unreachable); logs nothing sensitive.
    */
-  private async guardedFetch(target: string, signal: AbortSignal): Promise<FetchedResource | null> {
+  private async guardedFetch(
+    target: string,
+    signal: AbortSignal,
+    userAgent: string,
+  ): Promise<FetchedResource | null> {
     let currentUrl = target;
     for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop++) {
       let url: URL;
@@ -333,7 +382,7 @@ export class Crawler implements CrawlContext {
 
       let res: http.IncomingMessage;
       try {
-        res = await this.nodeRequest(url, guard.address, guard.family, signal);
+        res = await this.nodeRequest(url, guard.address, guard.family, signal, userAgent);
       } catch {
         return null;
       }
@@ -379,6 +428,7 @@ export class Crawler implements CrawlContext {
     address: string,
     family: number,
     signal: AbortSignal,
+    userAgent: string,
   ): Promise<http.IncomingMessage> {
     const mod = url.protocol === 'https:' ? https : http;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -393,7 +443,7 @@ export class Crawler implements CrawlContext {
           method: 'GET',
           signal,
           headers: {
-            'user-agent': this.userAgent,
+            'user-agent': userAgent,
             'accept-encoding': 'gzip, deflate, br',
             accept: '*/*',
           },
