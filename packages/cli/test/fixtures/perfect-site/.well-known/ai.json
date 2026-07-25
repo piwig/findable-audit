@@ -1,0 +1,6 @@
+{
+  "name": "Perfect Site",
+  "description": "Fixture site demonstrating every findable-audit best practice.",
+  "contact": "mailto:hello@perfect.example",
+  "policies": { "training": "allowed", "citation": "allowed" }
+}

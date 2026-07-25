@@ -571,3 +571,31 @@ export const aboutContact: Check = {
       'Publish linked /about and /contact pages; add a ContactPoint (tel/email) to your Organization JSON-LD.');
   },
 };
+
+/**
+ * LOT 3 §B — /.well-known/ai.json discovery manifest (emerging convention).
+ * Advisory check: the convention is not yet standardized, so absence is a
+ * `warn`, never a `fail`. A 200 answer must be a JSON *object* — SPA fallbacks
+ * that return the HTML app shell with a 200 are the common false positive.
+ */
+export const wellKnownAiJson: Check = {
+  id: 'well-known-ai-json', family: 'llm-content', maxPoints: 1,
+  async run(ctx) {
+    const res = await ctx.fetch('/.well-known/ai.json');
+    if (!res || res.status !== 200) {
+      return makeResult(this, 'warn', 'no /.well-known/ai.json manifest (emerging AI-discovery convention)',
+        'Publish a small JSON object at /.well-known/ai.json (name, description, contact, policies) so AI agents can discover how to interact with the site.');
+    }
+    let parsed: unknown;
+    try { parsed = JSON.parse(res.body); } catch { parsed = undefined; }
+    if (parsed === undefined) {
+      return makeResult(this, 'warn', '/.well-known/ai.json answers 200 but is not valid JSON (SPA fallback shell?)',
+        'Serve real JSON at /.well-known/ai.json (or return 404) instead of the HTML app shell.');
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return makeResult(this, 'warn', '/.well-known/ai.json is valid JSON but not an object',
+        'The manifest root must be a JSON object describing the site (name, description, contact).');
+    }
+    return makeResult(this, 'pass', '/.well-known/ai.json serves a JSON object manifest');
+  },
+};

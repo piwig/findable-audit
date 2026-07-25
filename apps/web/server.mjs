@@ -258,7 +258,7 @@ function llmsTxt() {
     '## Pages',
     `- [Run an audit (English)](${PUBLIC_ORIGIN}/en/): the audit form — paste a URL, get an A–F scorecard with a prioritized fix plan.`,
     `- [Lancer un audit (français)](${PUBLIC_ORIGIN}/fr/): le formulaire d’audit — collez une URL, obtenez une note A–F et un plan d’action.`,
-    `- [About the project](${PUBLIC_ORIGIN}/en/about/): what the 112 checks cover and how the 8 weighted families are scored.`,
+    `- [About the project](${PUBLIC_ORIGIN}/en/about/): what the 113 checks cover and how the 8 weighted families are scored.`,
     `- [Contact the team](${PUBLIC_ORIGIN}/en/contact/): how to report bugs, propose checks or reach us securely.`,
     `- [Full content for LLMs](${PUBLIC_ORIGIN}/llms-full.txt): the complete check catalogue and tool documentation in one plain-text file.`,
     '',

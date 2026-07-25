@@ -6,7 +6,7 @@ import {
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-  aboutContact,
+  aboutContact, wellKnownAiJson,
 } from './llm-content.js';
 import {
   jsonLd, jsonLdEntity, twitterCard, jsonLdValid, sdOrganization, sdEntityGrounding,
@@ -49,7 +49,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     homepageOk, robotsDirectives, aiServingParity, snippetPreviewDirectives,
     llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-    aboutContact, imagesAlt,
+    aboutContact, wellKnownAiJson, imagesAlt,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,
     metaRobotsNoindex, uniqueTitles, brokenInternalLinks, redirectHygiene, hreflang,

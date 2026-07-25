@@ -8,7 +8,7 @@ import type { CrawlContext, FetchedResource } from '../../src/types.js';
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-  aboutContact,
+  aboutContact, wellKnownAiJson,
 } from '../../src/checks/llm-content.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -51,6 +51,45 @@ function contentPage(pathname: string, h1: string, minWords: number, extra = '')
 function articleHead(fields: Record<string, unknown>): string {
   return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'BlogPosting', ...fields })}</script>`;
 }
+
+// ---------------------------------------------------------------------------
+// well-known-ai-json (LOT 3: /.well-known/ discovery)
+// ---------------------------------------------------------------------------
+
+describe('well-known-ai-json', () => {
+  it('warns (never fails) when /.well-known/ai.json is missing', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: doc('<h1>Hi</h1>') } });
+    const r = await wellKnownAiJson.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('.well-known/ai.json');
+  });
+  it('passes on a 200 JSON object manifest', async () => {
+    const c = stubCtx({
+      '/.well-known/ai.json': { contentType: 'application/json', body: '{"name":"Example","contact":"mailto:x@example.com"}' },
+    });
+    expect((await wellKnownAiJson.run(c)).status).toBe('pass');
+  });
+  it('warns when the path answers 200 with HTML (SPA fallback)', async () => {
+    const c = stubCtx({
+      '/.well-known/ai.json': { contentType: 'text/html', body: '<html><body>app shell</body></html>' },
+    });
+    const r = await wellKnownAiJson.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/JSON/i);
+  });
+  it('warns when the body parses to JSON but is not an object', async () => {
+    const c = stubCtx({
+      '/.well-known/ai.json': { contentType: 'application/json', body: '[1,2,3]' },
+    });
+    const r = await wellKnownAiJson.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/object/i);
+  });
+  it('passes on the perfect-site fixture', async () => {
+    const ctx = await crawler('perfect-site');
+    expect((await wellKnownAiJson.run(ctx)).status).toBe('pass');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // llms-txt (upgrade)

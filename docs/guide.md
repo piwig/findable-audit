@@ -1,13 +1,13 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **112 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **113 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
-| Answer-engine content | 0.18 | 13 |
+| Answer-engine content | 0.18 | 14 |
 | Structured data & metadata | 0.15 | 20 |
 | Technical SEO | 0.15 | 22 |
 | On-page & content | 0.12 | 11 |
@@ -142,6 +142,11 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** About + Contact pages are reachable and expose ≥1 contact method (tel/email/ContactPoint) — warn if one is missing, fail if neither.
 **Why:** About/Contact pages are core trust and entity signals assistants use to ground and recommend a business.
 **Fix:** Publish linked `/about` and `/contact`; add a ContactPoint to Organization JSON-LD.
+
+### `well-known-ai-json` (1 pt)
+**Verifies:** `/.well-known/ai.json` answers 200 with a JSON **object** manifest. Missing file, invalid JSON (typically a SPA fallback shell answering 200), or a non-object root all produce a warn — never a fail, because the convention is still emerging.
+**Why:** `/.well-known/ai.json` is an emerging AI-discovery convention: a small manifest telling agents what the site is and how to interact with it (name, description, contact, policies). It is advisory-weighted (1 pt) since it is not yet standardized.
+**Fix:** Publish a small JSON object at `/.well-known/ai.json` (name, description, contact, policies) — and make sure your SPA fallback doesn't answer that path with 200 HTML.
 
 ---
 

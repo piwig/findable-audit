@@ -1,13 +1,13 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **112 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **113 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
-| Contenu pour moteurs de réponse | 0,18 | 13 |
+| Contenu pour moteurs de réponse | 0,18 | 14 |
 | Données structurées et métadonnées | 0,15 | 20 |
 | SEO technique | 0,15 | 22 |
 | On-page et contenu | 0,12 | 11 |
@@ -27,11 +27,13 @@ Les rapports HTML et Markdown s'ouvrent sur un verdict en une ligne et incluent 
 
 Le verrou : si les crawlers sont bloqués ou la page en `noindex`, rien d'autre ne compte.
 
-Le jeu de bots exact (14 agents IA + les crawlers de recherche, défini dans `packages/cli/src/robots.ts`) est hiérarchisé par *intention*, et le tier détermine la sévérité du constat :
+Le jeu de bots exact (28 agents IA + les crawlers de recherche, défini dans `packages/cli/src/robots.ts`) est hiérarchisé par *intention*, et le tier détermine la sévérité du constat :
 
-- **Fetchers de citation (5)** — OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, PerplexityBot : les bloquer vous fait disparaître des réponses IA en direct → **échec**.
-- **Crawlers d'entraînement (9)** — GPTBot, Google-Extended, ClaudeBot, CCBot, Applebot-Extended, Amazonbot, Bytespider, cohere-ai, meta-externalagent : les bloquer est un choix de politique légitime, pas une rupture d'accès → **avertissement**.
+- **Fetchers de citation (13)** — OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, Claude-SearchBot, PerplexityBot, DuckAssistBot, MistralAI-User, Meta-ExternalFetcher, YouBot, iAskBot, LinerBot, Google-CloudVertexBot : les bloquer vous fait disparaître des réponses IA en direct → **échec**.
+- **Crawlers d'entraînement (15)** — GPTBot, Google-Extended, ClaudeBot, anthropic-ai, CCBot, Applebot-Extended, Amazonbot, Bytespider, PanguBot, cohere-ai, cohere-training-data-crawler, meta-externalagent, Diffbot, Timpibot, omgilibot : les bloquer est un choix de politique légitime, pas une rupture d'accès → **avertissement**.
 - **Crawlers de recherche (2 + joker)** — Googlebot, Bingbot, `*` : les bloquer vous retire de la recherche classique → **échec** (check dédié `search-crawlers-allowed`).
+
+Nuance utile (d'après la doc Perplexity) : PerplexityBot est le crawler *d'indexation* — il respecte robots.txt et ne nourrit pas l'entraînement — tandis que Perplexity-User est le fetcher *au moment de la question*, qui ignore généralement robots.txt. Bloquer les agents `-User` dans robots.txt est surtout déclaratif ; c'est le blocage des crawlers d'index qui change réellement la visibilité dans les moteurs de réponse.
 
 ### `homepage-ok` (6 pts)
 **Vérifie :** L'URL racine renvoie un HTTP 200 en HTML.
@@ -148,6 +150,11 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** Les pages À propos + Contact sont accessibles et exposent ≥1 moyen de contact (tél/email/ContactPoint) — avertissement si l'une manque, échec si les deux.
 **Pourquoi :** Ces pages sont des signaux de confiance et d'entité essentiels que les assistants utilisent pour ancrer et recommander une entreprise.
 **Corriger :** Publiez des `/about` et `/contact` liés ; ajoutez un ContactPoint au JSON-LD Organization.
+
+### `well-known-ai-json` (1 pt)
+**Vérifie :** `/.well-known/ai.json` répond 200 avec un manifeste JSON de type **objet**. Fichier absent, JSON invalide (typiquement une coquille SPA qui répond 200), ou racine non-objet produisent un avertissement — jamais un échec, car la convention est encore émergente.
+**Pourquoi :** `/.well-known/ai.json` est une convention émergente de découverte IA : un petit manifeste indiquant aux agents ce qu'est le site et comment interagir avec lui (nom, description, contact, politiques). Pondération consultative (1 pt) car non encore standardisée.
+**Corriger :** Publiez un petit objet JSON à `/.well-known/ai.json` (nom, description, contact, politiques) — et vérifiez que le fallback SPA ne répond pas 200 HTML sur ce chemin.
 
 ---
 

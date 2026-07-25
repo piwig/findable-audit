@@ -8,7 +8,7 @@ Audit any URL right in your browser — no install: **[findable.bordebat.fr](htt
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **112 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
+AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **113 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
 
 ## Quick start
 
@@ -82,12 +82,12 @@ node apps/web/server.mjs                                 # self-hosted web app o
 
 ## What it checks
 
-**112 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**113 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
 | **AI crawler access** | 0.16 | 9 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
-| **Answer-engine content** | 0.18 | 13 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness |
+| **Answer-engine content** | 0.18 | 14 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json` |
 | **Structured data & metadata** | 0.15 | 20 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
 | **Technical SEO** | 0.15 | 22 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution, IndexNow |
 | **On-page & content** | 0.12 | 11 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
@@ -99,15 +99,17 @@ Every check is documented individually — what it verifies, why it matters, and
 
 ### The exact bot roster
 
-The AI-access checks test robots.txt (and serving parity) against a **named roster of 14 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The roster is tiered by *intention*, and the tier drives the severity of a finding — because *who* you block decides *what* you lose:
+The AI-access checks test robots.txt (and serving parity) against a **named roster of 28 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The roster is tiered by *intention*, and the tier drives the severity of a finding — because *who* you block decides *what* you lose:
 
 | Tier | Agents | Blocking one means | Severity |
 |---|---|---|---|
-| **Citation-time fetchers** (5) | OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, PerplexityBot | the assistant cannot fetch your page while composing an answer — you disappear from live AI answers | **fail** |
-| **Training-time crawlers** (9) | GPTBot, Google-Extended, ClaudeBot, CCBot, Applebot-Extended, Amazonbot, Bytespider, cohere-ai, meta-externalagent | future models learn less about your site — a legitimate policy choice, not a findability break | **warn** |
+| **Citation-time fetchers** (13) | OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, Claude-SearchBot, PerplexityBot, DuckAssistBot, MistralAI-User, Meta-ExternalFetcher, YouBot, iAskBot, LinerBot, Google-CloudVertexBot | the assistant cannot fetch your page while composing an answer — you disappear from live AI answers | **fail** |
+| **Training-time crawlers** (15) | GPTBot, Google-Extended, ClaudeBot, anthropic-ai, CCBot, Applebot-Extended, Amazonbot, Bytespider, PanguBot, cohere-ai, cohere-training-data-crawler, meta-externalagent, Diffbot, Timpibot, omgilibot | future models learn less about your site — a legitimate policy choice, not a findability break | **warn** |
 | **Search crawlers** (2 + wildcard) | Googlebot, Bingbot, `*` | you are removed from classic search, which most AI answers still lean on | **fail** (its own check, `search-crawlers-allowed`) |
 
-Some tools name more bots (geo-optimizer lists 27 over 3 tiers); this roster is deliberately curated, and the point is the **severity by intention**: a flat "N bots blocked" count treats opting out of model training (a policy decision) the same as hiding from live AI answers (a real findability break).
+One nuance worth knowing (per Perplexity's docs): PerplexityBot is the *index-time* crawler — it respects robots.txt and doesn't feed training — while Perplexity-User is the *query-time* fetcher fired by a user's question, which generally ignores robots.txt. Blocking `-User` agents in robots.txt is mostly declarative; blocking the index crawlers is what reliably changes answer-engine visibility.
+
+The roster is still deliberately curated (geo-optimizer lists 27 bots over 3 tiers), and the point is the **severity by intention**: a flat "N bots blocked" count treats opting out of model training (a policy decision) the same as hiding from live AI answers (a real findability break).
 
 ## Scoring
 
@@ -306,8 +308,7 @@ Almost every individual check here exists somewhere else. What no free/OSS/self-
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope; pair findable-audit (input side) with a monitor (output side) if you need it.
 - **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we don't confirm a visit happened.
 - **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API; the keyless endpoint is aggressively rate-limited.
-- **Named-bot breadth** — geo-optimizer names 27 bots to our 14 (we trade breadth for severity-by-intention).
-- **Raw rule count** — SEOmator advertises 251 rules to our 112 checks.
+- **Raw rule count** — SEOmator advertises 251 rules to our 113 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 
