@@ -1,5 +1,9 @@
 name: 'findable-audit'
-description: 'Audit a URL for SEO + GEO (AI findability), Core Web Vitals, accessibility and security. Emits SARIF for code-scanning and can gate on a minimum score.'
+description: >-
+  SEO & GEO audit gate: score how findable a site is by search engines and AI
+  assistants (113 checks, 8 families). Fails the job below min-score or on
+  regression vs a baseline; writes SARIF/JUnit/JSON/HTML/Markdown reports.
+author: 'piwig'
 branding:
   icon: 'search'
   color: 'green'
@@ -9,21 +13,46 @@ inputs:
     description: 'The public http(s) URL to audit.'
     required: true
   min-score:
-    description: 'Fail the job if the overall score is below this (0-100). Default 0 = never fail on score.'
+    description: 'Fail the job when the overall score is below this floor (0-100). Default 0 = never fail on score.'
     required: false
     default: '0'
   max-pages:
-    description: 'Maximum number of same-origin pages to crawl.'
+    description: 'Max same-origin pages sampled (homepage included). Empty = CLI default.'
     required: false
     default: '5'
-  sarif-file:
-    description: 'Path (relative to the workspace) to write the SARIF report to.'
-    required: false
-    default: 'findable-audit.sarif'
-  args:
-    description: 'Extra CLI arguments, e.g. "--cwv --psi-key ${{ secrets.PSI_KEY }}".'
+  baseline:
+    description: 'Path to a prior `--report *.json` audit to diff against (regression gate).'
     required: false
     default: ''
+  fail-on-regression:
+    description: 'Fail the job when the score drops below the baseline by more than regression-tolerance. Requires baseline.'
+    required: false
+    default: 'false'
+  regression-tolerance:
+    description: 'Allowed score drop (points) before fail-on-regression triggers. Empty = 0.'
+    required: false
+    default: ''
+  report:
+    description: >-
+      Additional report file(s) to write, space-separated; the extension picks
+      the format: .md / .html / .json / .sarif / .xml (JUnit).
+    required: false
+    default: ''
+  sarif-file:
+    description: 'SARIF file to write (for github/codeql-action/upload-sarif). Empty string to disable.'
+    required: false
+    default: 'findable-audit.sarif'
+  lang:
+    description: 'Report chrome language: en or fr.'
+    required: false
+    default: ''
+  version:
+    description: >-
+      findable-audit version to run via `npx findable-audit@<version>`, or
+      `local` to build the CLI from this action''s own checkout (default until
+      the npm package is published).
+    required: false
+    default: 'local'
 
 outputs:
   score:
@@ -32,6 +61,9 @@ outputs:
   grade:
     description: 'Letter grade, A-F.'
     value: ${{ steps.audit.outputs.grade }}
+  json:
+    description: 'Path to the full JSON report (usable as the next run''s baseline).'
+    value: ${{ steps.audit.outputs.json }}
   sarif-file:
     description: 'Path to the written SARIF report.'
     value: ${{ inputs.sarif-file }}
@@ -42,24 +74,60 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: '22'
-    - name: Build findable-audit
-      shell: bash
-      run: |
-        cd "$GITHUB_ACTION_PATH"
-        npm ci --workspaces --include-workspace-root
-        npm run build --workspace packages/cli
     - name: Run audit
       id: audit
       shell: bash
+      # Inputs flow in via env (never interpolated into the script body) so a
+      # crafted input cannot inject shell code.
+      env:
+        FINDABLE_URL: ${{ inputs.url }}
+        FINDABLE_MIN_SCORE: ${{ inputs.min-score }}
+        FINDABLE_MAX_PAGES: ${{ inputs.max-pages }}
+        FINDABLE_BASELINE: ${{ inputs.baseline }}
+        FINDABLE_FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        FINDABLE_REGRESSION_TOLERANCE: ${{ inputs.regression-tolerance }}
+        FINDABLE_REPORT: ${{ inputs.report }}
+        FINDABLE_SARIF: ${{ inputs.sarif-file }}
+        FINDABLE_LANG: ${{ inputs.lang }}
+        FINDABLE_VERSION: ${{ inputs.version }}
       run: |
+        set -u
+        if [ "$FINDABLE_VERSION" = "local" ]; then
+          # Fallback while the npm package is unpublished: build the CLI from
+          # the action's own checkout ($GITHUB_ACTION_PATH = this repo).
+          echo "::group::Build findable-audit from the action checkout"
+          (cd "$GITHUB_ACTION_PATH" \
+            && npm ci --workspaces --include-workspace-root --no-audit --no-fund \
+            && npm run build --workspace packages/cli)
+          echo "::endgroup::"
+          CLI=(node "$GITHUB_ACTION_PATH/packages/cli/dist/index.js")
+        else
+          CLI=(npx -y "findable-audit@$FINDABLE_VERSION")
+        fi
+
+        JSON_OUT="$RUNNER_TEMP/findable.json"
+        ARGS=("$FINDABLE_URL" --report "$JSON_OUT" --min-score "$FINDABLE_MIN_SCORE")
+        [ -n "$FINDABLE_SARIF" ] && ARGS+=(--report "$FINDABLE_SARIF")
+        for f in $FINDABLE_REPORT; do ARGS+=(--report "$f"); done
+        [ -n "$FINDABLE_MAX_PAGES" ] && ARGS+=(--max-pages "$FINDABLE_MAX_PAGES")
+        [ -n "$FINDABLE_BASELINE" ] && ARGS+=(--baseline "$FINDABLE_BASELINE")
+        [ "$FINDABLE_FAIL_ON_REGRESSION" = "true" ] && ARGS+=(--fail-on-regression)
+        [ -n "$FINDABLE_REGRESSION_TOLERANCE" ] && ARGS+=(--regression-tolerance "$FINDABLE_REGRESSION_TOLERANCE")
+        [ -n "$FINDABLE_LANG" ] && ARGS+=(--lang "$FINDABLE_LANG")
+
         set +e
-        node "$GITHUB_ACTION_PATH/packages/cli/dist/index.js" "${{ inputs.url }}" \
-          --json \
-          --report "$GITHUB_WORKSPACE/${{ inputs.sarif-file }}" \
-          --min-score "${{ inputs.min-score }}" \
-          --max-pages "${{ inputs.max-pages }}" \
-          ${{ inputs.args }} > "$RUNNER_TEMP/findable.json"
-        code=$?
-        node -e "const r=require('$RUNNER_TEMP/findable.json'); console.log('score='+r.score); console.log('grade='+r.grade)" >> "$GITHUB_OUTPUT" || true
-        node -e "const r=require('$RUNNER_TEMP/findable.json'); console.log('findable-audit: '+r.score+'/100 (grade '+r.grade+')')" || true
-        exit $code
+        "${CLI[@]}" "${ARGS[@]}"
+        CODE=$?
+        set -e
+
+        # Expose outputs even when the gate fails (the step still fails below).
+        if [ -f "$JSON_OUT" ]; then
+          JSON_OUT="$JSON_OUT" node -e '
+            const fs = require("fs");
+            const r = JSON.parse(fs.readFileSync(process.env.JSON_OUT, "utf8"));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,
+              `score=${r.score}\ngrade=${r.grade}\njson=${process.env.JSON_OUT}\n`);
+            console.log(`findable-audit: ${r.score}/100 (grade ${r.grade})`);
+          '
+        fi
+        exit "$CODE"

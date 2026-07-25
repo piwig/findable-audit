@@ -1,0 +1,66 @@
+# Example CI gate built on ./action.yml — copy into your own repo and adapt.
+#
+# What it shows:
+#   - score floor (min-score)
+#   - regression gate: committed baseline + fail-on-regression + tolerance
+#   - JUnit report artifact (GitLab/Jenkins-style test output, kept as artifact)
+#   - SARIF upload to GitHub code-scanning (Security > Code scanning)
+#
+# One-time setup for the regression gate — capture and commit a baseline:
+#   npx findable-audit https://your-site.com --report findable-baseline.json --no-report
+#   git add findable-baseline.json
+#
+# Trigger is workflow_dispatch only (never runs unattended). In your repo you
+# would typically also gate merges with:  on: { pull_request: {} }  or run
+# nightly with:  on: { schedule: [{ cron: '0 6 * * *' }] }
+name: findable-gate
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to audit'
+        required: true
+        default: 'https://your-site.com'
+
+permissions:
+  contents: read
+  security-events: write   # required by upload-sarif
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: findable
+        # From another repo use:  uses: piwig/findable-audit@main  (or a tag)
+        uses: ./
+        with:
+          url: ${{ github.event.inputs.url }}
+          min-score: '80'
+          max-pages: '5'
+          # Regression gate — remove these three lines if you have no committed baseline yet:
+          baseline: findable-baseline.json
+          fail-on-regression: 'true'
+          regression-tolerance: '2'
+          # Extra reports by extension (.xml = JUnit for GitLab CI / Jenkins):
+          report: 'findable-report.junit.xml'
+          # 'local' builds the CLI from the action checkout; once the npm package
+          # is published, pin a version instead, e.g.  version: '0.2.0'
+          version: 'local'
+
+      - if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: findable-audit.sarif
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: findable-reports
+          path: |
+            findable-report.junit.xml
+            findable-audit.sarif
+
+      - if: always()
+        run: echo "Score ${{ steps.findable.outputs.score }} — grade ${{ steps.findable.outputs.grade }}"
