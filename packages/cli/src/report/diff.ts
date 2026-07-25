@@ -119,6 +119,15 @@ const LABELS: Record<Lang, DiffLabels> = {
 
 function sign(n: number): string { return n > 0 ? `+${n}` : `${n}`; }
 
+// Delta indicator: a decorative glyph (▲ up / ▼ down / = flat) next to the
+// signed number — direction is carried by BOTH shape and text, never by color
+// alone. The glyph is aria-hidden; the number stays the accessible channel.
+function glyph(n: number): string { return n > 0 ? '▲' : n < 0 ? '▼' : '='; }
+function glyphColor(n: number): string { return n > 0 ? '#0f766e' : n < 0 ? '#b91c1c' : '#6b7280'; }
+function deltaMark(n: number): string {
+  return `<span style="font-weight:700;color:${glyphColor(n)}" aria-hidden="true">${glyph(n)}</span> ${sign(n)}`;
+}
+
 export function renderDiffTerminal(d: ReportDiff, lang: Lang = 'en'): string {
   const L = LABELS[lang];
   const lines: string[] = [];
@@ -164,15 +173,14 @@ function esc(s: string): string {
 
 export function renderDiffHtmlSection(d: ReportDiff, lang: Lang = 'en'): string {
   const L = LABELS[lang];
-  const cls = d.scoreDelta > 0 ? 'up' : d.scoreDelta < 0 ? 'down' : 'flat';
   const famRows = d.familyDeltas.map((f) =>
     `<tr><td>${esc(f.family)}</td><td>${f.baseline ?? '—'}</td><td>${f.current ?? '—'}</td>`
-    + `<td>${f.delta === null ? '—' : sign(f.delta)}</td></tr>`).join('');
+    + `<td>${f.delta === null ? '—' : deltaMark(f.delta)}</td></tr>`).join('');
   const idList = (items: string[]) => items.length ? items.map((i) => `<code>${esc(i)}</code>`).join(', ') : L.none;
   return `<section class="diff" style="max-width:960px;margin:1.5rem auto;padding:1rem;border:1px solid #e2e8e2;border-radius:10px">`
     + `<h2 style="margin:0 0 .5rem">${esc(L.title)}</h2>`
     + `<p><strong>${esc(L.overall)}:</strong> ${d.currentScore}/100 — ${esc(L.baseline)} ${d.baselineScore} `
-    + `<span class="${cls}" style="font-weight:700;color:${d.scoreDelta >= 0 ? '#0f766e' : '#b91c1c'}">(${sign(d.scoreDelta)})</span></p>`
+    + `(${deltaMark(d.scoreDelta)})</p>`
     + `<table style="width:100%;border-collapse:collapse"><thead><tr>`
     + `<th style="text-align:left">${esc(L.family)}</th><th>${esc(L.baseline)}</th><th>${lang === 'fr' ? 'actuel' : 'current'}</th><th>Δ</th>`
     + `</tr></thead><tbody>${famRows}</tbody></table>`

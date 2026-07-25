@@ -1,6 +1,7 @@
 import type { AuditReport } from '../runner.js';
 import type { Family } from '../types.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
+import { renderCompareChart } from './charts.js';
 
 /** Escape text for safe inclusion in HTML. */
 function esc(text: string): string {
@@ -92,6 +93,11 @@ const COMPARE_STYLE = `
   td.lead::after { content: " 🏆"; }
   .s.good { color: #1a7f37; } .s.ok { color: #9a6700; } .s.bad { color: #b42318; }
   .cwv-note { color: #666; font-size: .85rem; margin: .5rem 0 0; }
+  .cmp-viz { margin: 1.25rem 0 1.5rem; }
+  .cmp-viz svg { width: 100%; height: auto; display: block; }
+  .cmp-legend { color: #444; font-size: .85rem; margin: 0 0 .4rem; }
+  .cmp-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 .35rem 0 1rem; }
+  .cmp-legend .sw:first-child { margin-left: 0; }
   .gaps { margin: 1.25rem 0; } .gaps li { margin: .2rem 0; }
   .gap-n { font-weight: 700; color: #b42318; }
   footer { margin-top: 2rem; color: #888; font-size: .8rem; border-top: 1px solid #e5e5e5; padding-top: .75rem; }
@@ -130,6 +136,7 @@ export function renderCompareHtml(reports: AuditReport[], now: Date = new Date()
 <body>
 <h1>${esc(m.compareTitle)}</h1>
 <div class="meta">${cols.map((c) => esc(c.host)).join(' · ')} — ${date}</div>
+${renderCompareChart(reports, lang)}
 <div class="cmp-wrap"><table>
 <thead><tr><th></th>${headCells}</tr></thead>
 <tbody>${overall}${famRows}</tbody>

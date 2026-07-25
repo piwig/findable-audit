@@ -6,6 +6,7 @@ import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix } from './check-i18n.js';
 import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
+import { renderScoreGauge, renderPriorityBars } from './charts.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -69,6 +70,12 @@ const STYLE = `
   .hero-score.good { background: #1a7f37; } .hero-score.ok { background: #9a6700; } .hero-score.bad { background: #b42318; }
   .hero-meta .verdict { color: #555; font-size: .95rem; margin-top: .3rem; }
   .stats { color: #666; font-size: .85rem; margin: 0 0 .25rem; }
+  .viz { display: flex; gap: 1.25rem; align-items: center; margin: 1rem 0;
+    padding: 1rem; border: 1px solid #ececec; border-radius: 12px; background: #fbfbfb; }
+  .viz-gauge { flex: 0 0 auto; display: block; }
+  .viz-bars { flex: 1; min-width: 0; }
+  .viz-bars h2 { margin: 0 0 .4rem; border-bottom: none; font-size: 1rem; }
+  .viz-bars svg { width: 100%; height: auto; display: block; }
   table { width: 100%; border-collapse: collapse; margin: .25rem 0; }
   td { padding: .4rem .5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
   td.st { white-space: nowrap; font-weight: 700; font-size: .8rem; width: 3.5rem; }
@@ -159,6 +166,7 @@ const STYLE = `
     h2 { font-size: 1.05rem; }
     .fam-sum { font-size: 1.05rem; }
     .hero { flex-direction: column; align-items: flex-start; gap: .6rem; }
+    .viz { flex-direction: column; align-items: flex-start; }
     .hero-score { font-size: 1.7rem; }
     .subscore-table td { padding: .3rem .25rem; }
     .fam-label { width: auto; }
@@ -243,6 +251,19 @@ export function renderHtml(
       </tr>`;
   }).join('\n');
 
+  // Dataviz panel (score gauge + priority bars). Same presence rule as the
+  // subscore section: no familyScores -> no panel. The subscore TABLE below
+  // stays untouched — it is the accessible table view of the same data.
+  const vizSection = report.familyScores.length > 0
+    ? `<section class="viz">
+${renderScoreGauge(report.score, report.grade, lang)}
+<div class="viz-bars">
+<h2>${m.vizTitle}</h2>
+${renderPriorityBars(report.familyScores, lang)}
+</div>
+</section>`
+    : '';
+
   const subscoreSection = report.familyScores.length > 0
     ? `<section class="subscores">
 <h2>${m.categorySubscores}</h2>
@@ -305,6 +326,7 @@ ${recs.length > CAP ? `<p class="ap-more-note">${m.moreRecs(recs.length - CAP)}<
 </header>
 <p class="stats">${m.stats(passed, toFix, report.sampledPages.length)}</p>
 <p class="pages">${m.pagesAudited} ${pages}</p>
+${vizSection}
 ${subscoreSection}
 ${cwvSection}
 ${diff ? renderDiffHtmlSection(diff, lang) : ''}

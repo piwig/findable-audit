@@ -69,6 +69,10 @@ export interface ReportMessages {
   compareCwvNote: string; // shown when the compared audits skipped Core Web Vitals (lightweight mode)
   // collapsible family summary status (accessible name for the color dot)
   famStatus: { bad: string; ok: string; good: string };
+  // dataviz (server-rendered inline SVG: gauge, priority bars, compare chart)
+  vizScoreLabel: (score: number, grade: string) => string; // gauge aria-label/<title>
+  vizTitle: string;          // priority-bars panel heading + aria-label
+  compareChartLabel: string; // compare grouped-bars aria-label/<title>
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -135,6 +139,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     compareBehind: 'behind the leader',
     compareCwvNote: 'Core Web Vitals are not measured in comparison mode (lightweight audits).',
     famStatus: { bad: 'Needs fixes', ok: 'Warnings only', good: 'All passing' },
+    vizScoreLabel: (score, grade) => `Overall score: ${score} out of 100 — grade ${grade}`,
+    vizTitle: 'Where to regain points',
+    compareChartLabel: 'Family scores by site',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -199,6 +206,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     compareBehind: 'sous le leader',
     compareCwvNote: 'Core Web Vitals non mesurés en mode comparaison (audits allégés).',
     famStatus: { bad: 'À corriger', ok: 'Avertissements', good: 'Tout passe' },
+    vizScoreLabel: (score, grade) => `Score global : ${score} sur 100 — note ${grade}`,
+    vizTitle: 'Où regagner des points',
+    compareChartLabel: 'Scores par famille et par site',
   },
 };
 
