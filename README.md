@@ -246,6 +246,15 @@ jobs:
       - run: echo "Score ${{ steps.findable.outputs.score }} — grade ${{ steps.findable.outputs.grade }}"
 ```
 
+The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`,
+`regression-tolerance`, extra `report` files (extension picks the format —
+`.md` / `.html` / `.json` / `.sarif` / `.xml` JUnit) and `lang`. By default
+(`version: 'local'`) it builds the CLI from the action's own checkout — once
+the package is published on npm, pin `version: '0.2.0'` to run
+`npx findable-audit@0.2.0` instead. A complete gate example (baseline
+regression gate + SARIF upload + JUnit artifact) lives in
+[`.github/workflows/findable-gate.yml`](.github/workflows/findable-gate.yml).
+
 ### Regression gate (`--baseline`)
 
 Beyond a fixed `--min-score` floor, you can fail CI when a change **lowers** your
@@ -261,6 +270,9 @@ npx findable-audit https://your-site.com \
   --baseline baseline.json --fail-on-regression --regression-tolerance 2 --no-report
 # exit 1 on regression; the terminal + md/html reports show the per-check diff.
 ```
+
+In the action, the same gate is three inputs: `baseline: baseline.json`,
+`fail-on-regression: 'true'`, `regression-tolerance: '2'`.
 
 Export the entity graph for inspection or diagrams:
 

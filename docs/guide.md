@@ -651,4 +651,14 @@ The same six files (minus `GENERATED-README.md`) are also downloadable one at a 
 ⚠️ **These are generic starting points, not finished content — review every file before deploying, especially `robots.txt`.** It ships with every AI crawler allowed and a commented-out `Disallow: /` under each one, so opting a bot out of training or citation is a deliberate, visible edit. `jsonld-stubs.json` only stubs the schema.org types missing from the site's existing entity graph (`Organization`, `WebSite`, `BreadcrumbList`, `FAQPage`) and is meant to be merged into your real JSON-LD, not published verbatim.
 
 The web app's audit and comparison forms can optionally sit behind a Cloudflare Turnstile CAPTCHA (env-gated, off unless configured) — see the [main README](../README.md#cloudflare-turnstile-optional-captcha) for setup.
+
+---
+
+## Running in CI
+
+The audit is designed as a CI gate — the exit code is `0` at/above `--min-score`, `1` below it (or on regression), `2` when the site is unreachable.
+
+- **GitHub Actions** — the repo root ships a composite [`action.yml`](../action.yml): `uses: piwig/findable-audit@main` with `url` and `min-score`, then upload the emitted `findable-audit.sarif` to code scanning. A complete example (baseline regression gate + SARIF upload + JUnit artifact) is in [`.github/workflows/findable-gate.yml`](../.github/workflows/findable-gate.yml).
+- **GitLab CI / Jenkins** — write a JUnit report with `--report findable.junit.xml` (the extension picks the format; one `<testcase>` per check, fail → `<failure>`, warn/skip → `<skipped>`) and declare it as a JUnit artifact so failures land in the tests tab.
+- **Regression gate** — commit a `--report *.json` baseline, then run with `--baseline <file> --fail-on-regression [--regression-tolerance <n>]` to fail only when the score drops.
 </content>

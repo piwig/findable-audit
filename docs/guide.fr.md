@@ -659,4 +659,14 @@ Ces mêmes six fichiers (hors `GENERATED-README.md`) sont aussi téléchargeable
 ⚠️ **Ce sont des ébauches génériques, pas du contenu fini — relisez chaque fichier avant de le déployer, surtout `robots.txt`.** Il autorise par défaut tous les crawlers IA, avec une ligne `Disallow: /` commentée sous chacun, pour qu'exclure un bot de l'entraînement ou de la citation soit une modification délibérée et visible. `jsonld-stubs.json` ne fournit une ébauche que pour les types schema.org absents du graphe d'entités déjà présent sur le site (`Organization`, `WebSite`, `BreadcrumbList`, `FAQPage`) et est destiné à être fusionné dans votre JSON-LD réel, pas publié tel quel.
 
 Le formulaire d'audit et de comparaison du site web peut optionnellement se placer derrière un CAPTCHA Cloudflare Turnstile (activé via variables d'environnement, désactivé sinon) — voir le [README principal](../README.md#cloudflare-turnstile-optional-captcha) pour la configuration.
+
+---
+
+## Utiliser en CI
+
+L'audit est conçu comme un gate CI — le code de sortie vaut `0` au-dessus de `--min-score`, `1` en dessous (ou en cas de régression), `2` si le site est injoignable.
+
+- **GitHub Actions** — la racine du dépôt fournit une [`action.yml`](../action.yml) composite : `uses: piwig/findable-audit@main` avec `url` et `min-score`, puis envoyez le `findable-audit.sarif` émis vers le code scanning. Un exemple complet (gate de régression avec baseline + upload SARIF + artefact JUnit) se trouve dans [`.github/workflows/findable-gate.yml`](../.github/workflows/findable-gate.yml).
+- **GitLab CI / Jenkins** — écrivez un rapport JUnit avec `--report findable.junit.xml` (l'extension choisit le format ; un `<testcase>` par check, fail → `<failure>`, warn/skip → `<skipped>`) et déclarez-le comme artefact JUnit pour que les échecs apparaissent dans l'onglet tests.
+- **Gate de régression** — committez une baseline `--report *.json`, puis lancez avec `--baseline <fichier> --fail-on-regression [--regression-tolerance <n>]` pour n'échouer que si le score baisse.
 </content>
