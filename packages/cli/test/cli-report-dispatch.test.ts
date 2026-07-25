@@ -60,3 +60,18 @@ test('--lang xx is rejected with exit code 2', async () => {
   expect(r.status).toBe(2);
   expect(r.stderr).toMatch(/--lang/);
 });
+
+test('--report *.junit.xml writes a JUnit XML report', async () => {
+  await withFixture(async (base) => {
+    const out = path.join(process.cwd(), 'tmp-cli-report.junit.xml');
+    rmSync(out, { force: true });
+    const r = await runCli([DIST, base, '--report', out, '--min-score', '0']);
+    expect(r.status).toBe(0);
+    expect(existsSync(out)).toBe(true);
+    const body = readFileSync(out, 'utf8');
+    expect(body.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+    expect(body).toContain('<testsuites');
+    expect(body).toContain('classname="findable-audit.');
+    rmSync(out, { force: true });
+  });
+});
