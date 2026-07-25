@@ -6,10 +6,12 @@
   "license": "MIT",
   "engines": { "node": ">=20.3" },
   "bin": { "findable": "./dist/index.js" },
-  "files": ["dist"],
+  "files": ["dist", "README.md", "LICENSE"],
   "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "git+https://github.com/piwig/findable-audit.git" },
-  "keywords": ["seo", "geo", "llms.txt", "ai-search", "audit", "lint"],
+  "repository": { "type": "git", "url": "git+https://github.com/piwig/findable-audit.git", "directory": "packages/cli" },
+  "homepage": "https://github.com/piwig/findable-audit#readme",
+  "bugs": { "url": "https://github.com/piwig/findable-audit/issues" },
+  "keywords": ["seo", "geo", "llms.txt", "ai-search", "audit", "lint", "junit", "sarif", "ci", "github-actions", "structured-data", "json-ld"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
