@@ -72,7 +72,7 @@ export const aiCrawlersAllowed: Check = {
     const citationBlocked = blocked.filter((b) => CITATION_BOTS.includes(b));
     if (citationBlocked.length > 0) {
       return makeResult(this, 'fail', `AI crawlers blocked: ${blocked.join(', ')}`,
-        'Never "Disallow: /" a citation-time fetcher (OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, PerplexityBot) — it hides the site from live AI answers.');
+        'Never "Disallow: /" a citation-time fetcher (e.g. OAI-SearchBot, Claude-User, PerplexityBot — any of the 13 in the roster) — it hides the site from live AI answers.');
     }
     return makeResult(this, 'warn', `AI crawlers blocked: ${blocked.join(', ')}`,
       'These are training-time crawlers only; blocking them is a valid policy choice, but allow them if you want future model training coverage.');

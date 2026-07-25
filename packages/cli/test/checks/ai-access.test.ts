@@ -6,6 +6,7 @@ import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
 import {
   parseRobots, isBlocked, robotsWellformed, robotsDirectiveSet, directiveValue, hasDirectiveToken,
+  AI_BOTS, TRAINING_BOTS, CITATION_BOTS,
 } from '../../src/robots.js';
 import type { FetchedResource } from '../../src/types.js';
 import {
@@ -242,5 +243,41 @@ describe('ai-access checks', () => {
   it('robots-directives passes on a clean homepage', async () => {
     const c = await ctx('blocked-ai');
     expect((await robotsDirectives.run(c)).status).toBe('pass');
+  });
+});
+
+describe('2026 roster (LOT 3 — 28 agents, tiering par intention)', () => {
+  it('names at least 27 AI agents with duplicate-free, disjoint tiers', () => {
+    expect(AI_BOTS.length).toBeGreaterThanOrEqual(27);
+    expect(new Set(AI_BOTS.map((b) => b.toLowerCase())).size).toBe(AI_BOTS.length);
+    const training = new Set(TRAINING_BOTS);
+    expect(CITATION_BOTS.filter((b) => training.has(b))).toEqual([]);
+    expect(AI_BOTS).toEqual([...TRAINING_BOTS, ...CITATION_BOTS]);
+  });
+  it('ai-crawlers-allowed fails when a NEW citation-time bot (DuckAssistBot) is blocked', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: DuckAssistBot\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('DuckAssistBot');
+  });
+  it('ai-crawlers-allowed fails when MistralAI-User is blocked via a versioned UA token', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: MistralAI-User/1.0\nDisallow: /\n' },
+    });
+    expect((await aiCrawlersAllowed.run(c)).status).toBe('fail');
+  });
+  it('ai-crawlers-allowed warns (not fails) when only NEW training-time bots are blocked', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: Diffbot\nUser-agent: PanguBot\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('Diffbot');
+    expect(r.message).toContain('PanguBot');
   });
 });

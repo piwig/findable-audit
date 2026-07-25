@@ -76,15 +76,57 @@ export function isBlocked(groups: RobotsGroups, agent: string, path = '/'): bool
 // Tiered 2026 AI-agent roster (spec §3.1 ai-crawlers-allowed)
 // ---------------------------------------------------------------------------
 
-/** Agents that fetch pages to train future models — blocking them is a policy choice, not a crawl-access break. */
+/**
+ * Agents that fetch pages to train future models — blocking them is a policy
+ * choice, not a crawl-access break (15 agents, LOT 3 spec §A).
+ * Deliberate omissions: PetalBot (a regional *search* crawler by intention),
+ * FacebookBot (superseded by meta-externalagent), Applebot (search tier stays
+ * deliberately mainstream-minimal) — see the LOT 3 design doc.
+ */
 export const TRAINING_BOTS = [
-  'GPTBot', 'Google-Extended', 'ClaudeBot', 'CCBot', 'Applebot-Extended',
-  'Amazonbot', 'Bytespider', 'cohere-ai', 'meta-externalagent',
+  'GPTBot',                       // OpenAI model training
+  'Google-Extended',              // Gemini training opt-out token
+  'ClaudeBot',                    // Anthropic training crawler
+  'anthropic-ai',                 // legacy Anthropic training UA, still honoured in robots.txt files
+  'CCBot',                        // Common Crawl (feeds many LLM corpora)
+  'Applebot-Extended',            // Apple Intelligence training opt-out
+  'Amazonbot',                    // Amazon/Alexa model training
+  'Bytespider',                   // ByteDance training crawler
+  'PanguBot',                     // Huawei Pangu model training
+  'cohere-ai',                    // legacy Cohere training UA
+  'cohere-training-data-crawler', // current Cohere training crawler
+  'meta-externalagent',           // Meta AI model training
+  'Diffbot',                      // knowledge-graph extraction resold into AI datasets
+  'Timpibot',                     // Timpi index/data collection
+  'omgilibot',                    // Omgili/Webz.io — data resold for LLM training
 ];
 
-/** Agents an assistant dispatches live, at answer/citation time — blocking these hides the site from live AI answers. */
+/**
+ * Agents an assistant dispatches live, at answer/citation time (or the index a
+ * live answer engine reads) — blocking these hides the site from live AI
+ * answers (13 agents, LOT 3 spec §A).
+ *
+ * Index-time vs query-time (per docs.perplexity.ai): PerplexityBot is the
+ * *index-time* crawler — it respects robots.txt and does not feed model
+ * training — while Perplexity-User is the *query-time* fetcher fired by a
+ * user's question, which generally IGNORES robots.txt. Blocking the -User
+ * agents in robots.txt is therefore mostly declarative; only blocking the
+ * index crawlers reliably changes answer-engine visibility.
+ */
 export const CITATION_BOTS = [
-  'OAI-SearchBot', 'ChatGPT-User', 'Perplexity-User', 'Claude-User', 'PerplexityBot',
+  'OAI-SearchBot',         // ChatGPT search index
+  'ChatGPT-User',          // user-triggered live fetch (ChatGPT)
+  'Perplexity-User',       // query-time live fetch (Perplexity) — generally ignores robots.txt
+  'Claude-User',           // user-triggered live fetch (Claude)
+  'Claude-SearchBot',      // Anthropic search index (mirrors OAI-SearchBot)
+  'PerplexityBot',         // index-time Perplexity answer-engine crawler — respects robots.txt, no training
+  'DuckAssistBot',         // DuckDuckGo AI answers (DuckAssist)
+  'MistralAI-User',        // user-triggered live fetch (Le Chat, Mistral)
+  'Meta-ExternalFetcher',  // user-requested link fetch (Meta AI)
+  'YouBot',                // You.com answer engine
+  'iAskBot',               // iAsk.ai answer engine
+  'LinerBot',              // Liner AI research assistant (sourced citations)
+  'Google-CloudVertexBot', // Vertex AI Search grounding / customer agents
 ];
 
 /** Full 2026 roster: training-time crawlers + citation-time fetchers. */
