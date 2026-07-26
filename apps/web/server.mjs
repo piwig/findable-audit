@@ -23,6 +23,7 @@ import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
 import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
 import { EMITTED_FILES } from '../../packages/cli/dist/generate/index.js';
+import { TRAINING_BOTS, CITATION_BOTS } from '../../packages/cli/dist/robots.js';
 
 import { assertPublicUrl, BlockedUrlError } from './lib/ssrf.mjs';
 import { createRateLimiter } from './lib/rate-limit.mjs';
@@ -147,6 +148,13 @@ const PAGE_STYLE = `
   .ld-cta:hover::before { opacity: 1; }
   .ld-cta > span { position: relative; }
   .ld-sec { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eef1f3; }
+  /* Chips and steps are real <ul>/<ol> (semantics + extractability): drop the
+     list marker and default spacing so the visual is identical to the old divs. */
+  .ld-chips, .ld-steps { list-style: none; margin: 0; padding: 0; }
+  /* Prose lists (About families, outbound citation lists) keep their markers. */
+  .ld-list { margin: .2rem 0 .9rem; padding-left: 1.25rem; color: #555; }
+  .ld-list li { margin: 0 0 .35rem; }
+  .ld-q { font-size: 1rem; font-weight: 700; color: #1c2230; margin: 1.1rem 0 0; }
   .ld-chips { display: flex; flex-wrap: wrap; gap: .55rem; }
   .ld-chip { font-size: .85rem; font-weight: 600; color: #2b3240; background: #fff; border: 1px solid #e2e7ea; border-radius: 999px; padding: .42rem .8rem; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 1px 2px rgb(20 60 40 / .05), 0 10px 26px -14px rgb(20 60 40 / .16); }
   .ld-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
@@ -226,13 +234,18 @@ function robotsTxt() {
 // the corresponding copy changes — sitemap-lastmod wants real, distinct,
 // non-future values, never a synthetic build date).
 const SITE_PAGES = [
-  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-24T14:20:00+02:00' },
-  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-24T14:20:00+02:00' },
-  { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-24T15:05:00+02:00' },
-  { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-24T15:05:00+02:00' },
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-26T03:00:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-26T03:00:00+02:00' },
+  { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-26T03:00:00+02:00' },
+  { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-26T03:00:00+02:00' },
   { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
   { path: '/fr/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
 ];
+
+// Same hand-maintained dates, reused as JSON-LD `dateModified` on every WebPage.
+// Two agreeing freshness sources (sitemap <lastmod> + on-page dateModified) is
+// what our own `freshness-coherence` check wants; a single source makes it skip.
+const LASTMOD_BY_PATH = new Map(SITE_PAGES.map((p) => [p.path, p.lastmod]));
 
 function sitemapXml() {
   const body = SITE_PAGES.map((u) =>
@@ -346,6 +359,31 @@ function llmsFullTxt() {
   return llmsFullCache;
 }
 
+// /.well-known/ai.json — the emerging AI-discovery manifest our own
+// `well-known-ai-json` check looks for (and that `--emit` generates a stub of).
+// This is the REAL manifest for this deployment, not the stub: the bot roster
+// comes from the same source of truth as robots.txt and the generator
+// (packages/cli robots.ts), so it can never drift from what we tell auditees.
+function aiJson() {
+  return `${JSON.stringify({
+    name: 'findable-audit',
+    description: 'Free, open-source SEO + GEO audit: checks whether search engines and AI crawlers '
+      + 'can reach, extract and cite a website, then grades it A–F across 8 weighted families.',
+    url: `${PUBLIC_ORIGIN}/`,
+    contact: `${REPO_URL}/issues`,
+    license: 'MIT',
+    source: REPO_URL,
+    documentation: [`${PUBLIC_ORIGIN}/llms.txt`, `${PUBLIC_ORIGIN}/llms-full.txt`],
+    ai_access: {
+      policy: 'allow',
+      training_bots: [...TRAINING_BOTS],
+      citation_bots: [...CITATION_BOTS],
+      notes: 'All AI crawlers are welcome. Only the ephemeral /audit/ and /compare/ result '
+        + 'paths are disallowed in robots.txt — they expire minutes after they are created.',
+    },
+  }, null, 2)}\n`;
+}
+
 function securityTxt() {
   const expires = new Date(Date.now() + 365 * 86_400_000).toISOString();
   return [
@@ -422,9 +460,12 @@ ${bodyHtml}
 function landingPage(lang = 'en') {
   const s = t(lang).landing;
   const c = t(lang).compare;
-  const chips = s.families.map((f) => `<span class="ld-chip">${escapeHtml(f)}</span>`).join('');
+  // Real list markup (<ul>/<ol>), not <div>/<span>: screen readers announce the
+  // count, and `extractable-structure` counts lists in main content. The chip and
+  // step visuals are unchanged — the CSS just resets the list marker.
+  const chips = s.families.map((f) => `<li class="ld-chip">${escapeHtml(f)}</li>`).join('');
   const steps = s.steps.map((st, i) =>
-    `<div class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></div>`).join('');
+    `<li class="ld-step"><span class="n">${i + 1}</span><span><b>${escapeHtml(st.t)}</b>${escapeHtml(st.d)}</span></li>`).join('');
   // #7: only when Turnstile is env-gated ON — never on a plain dev/local/test
   // server, which keeps the default (script-src 'none') CSP and an unchanged
   // form. Read at REQUEST time (turnstileEnabled() defaults to process.env),
@@ -455,11 +496,11 @@ function landingPage(lang = 'en') {
 <p class="hint">${escapeHtml(s.hint)}</p>
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(s.familiesTitle)}</p>
-  <div class="ld-chips">${chips}</div>
+  <ul class="ld-chips">${chips}</ul>
 </section>
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
-  <div class="ld-steps">${steps}</div>
+  <ol class="ld-steps">${steps}</ol>
 </section>
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(c.heading)}</p>
@@ -476,6 +517,8 @@ function landingPage(lang = 'en') {
 <section class="ld-sec">
   <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.geoTitle)}</h2>
   ${s.geoBody.map((p) => `<p class="lead" style="margin:.1rem 0 .7rem">${escapeHtml(p)}</p>`).join('\n  ')}
+  <h3 class="ld-eyebrow" style="font-size:.72rem;margin-top:1.2rem">${escapeHtml(s.sourcesTitle)}</h3>
+  ${citationList(s.sources)}
 </section>
 <hr class="ld-rule">
 `, { lang, alternates: { en: '/en/', fr: '/fr/' }, meta: landingMeta(lang) });
@@ -510,6 +553,7 @@ function landingMeta(lang) {
       {
         '@type': 'WebPage', '@id': `${url}#webpage`, url, isPartOf: { '@id': site },
         about: { '@id': app }, inLanguage: lang, breadcrumb: { '@id': crumbs },
+        dateModified: LASTMOD_BY_PATH.get(`/${lang}/`),
       },
       {
         '@type': 'BreadcrumbList', '@id': crumbs,
@@ -523,7 +567,7 @@ function landingMeta(lang) {
 // Shared @graph scaffolding for the interior pages (About / Contact):
 // Organization + WebSite + WebPage + BreadcrumbList, connected via @id — the
 // same dogfooding constraint as the landing (entity-graph-connectivity).
-function pageMeta(lang, slug, { description, crumbName, orgExtras = {} }) {
+function pageMeta(lang, slug, { description, crumbName, orgExtras = {}, webPageExtras = {} }) {
   const org = `${PUBLIC_ORIGIN}/#org`;
   const site = `${PUBLIC_ORIGIN}/#website`;
   const path = `/${lang}/${slug}/`;
@@ -538,8 +582,13 @@ function pageMeta(lang, slug, { description, crumbName, orgExtras = {} }) {
       },
       { '@type': 'WebSite', '@id': site, url: `${PUBLIC_ORIGIN}/`, name: 'findable-audit', inLanguage: lang, publisher: { '@id': org } },
       {
+        // `webPageExtras` widens this single node rather than adding a second one
+        // (the About page becomes ["WebPage","FAQPage"] with its Questions inline),
+        // so the graph keeps one connected component and no dangling @id refs.
         '@type': 'WebPage', '@id': `${url}#webpage`, url, isPartOf: { '@id': site },
         inLanguage: lang, breadcrumb: { '@id': crumbs },
+        dateModified: LASTMOD_BY_PATH.get(path),
+        ...webPageExtras,
       },
       {
         '@type': 'BreadcrumbList', '@id': crumbs,
@@ -559,17 +608,69 @@ function interiorBlocks(blocks) {
     + `<p class="lead" style="margin:.2rem 0 .8rem">${escapeHtml(b.p)}</p>`).join('\n');
 }
 
+function interiorHeading(text) {
+  return `<h2 class="ld-eyebrow" style="font-size:.8rem;margin-top:1.4rem">${escapeHtml(text)}</h2>`;
+}
+
+/** Real <ul> markup — what `extractable-structure` looks for in main content. */
+function bulletList(items) {
+  return `<ul class="ld-list">\n${items.map((i) => `<li>${escapeHtml(i)}</li>`).join('\n')}\n</ul>`;
+}
+
+/**
+ * Outbound citations to primary sources ({label, url}), rendered as a list so a
+ * single block satisfies both `extractable-structure` and `outbound-citations`.
+ * Plain editorial links: no `nofollow`, since telling auditees to cite their
+ * sources and then nofollow-ing our own would be incoherent.
+ */
+function citationList(sources) {
+  const items = sources
+    .map((s) => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.label)}</a></li>`)
+    .join('\n');
+  return `<ul class="ld-list">\n${items}\n</ul>`;
+}
+
+/**
+ * Q/A pairs as <h3> immediately followed by <p>. The adjacency matters twice:
+ * `sd-faq` only counts an on-page pair when the heading's next sibling is a <p>,
+ * and `chunk-boundary` flags a question heading detached from its answer.
+ */
+function faqBlocks(faq) {
+  return faq.map((item) =>
+    `<h3 class="ld-q">${escapeHtml(item.q)}</h3>\n`
+    + `<p class="lead" style="margin:.2rem 0 .9rem">${escapeHtml(item.a)}</p>`).join('\n');
+}
+
 function aboutPage(lang) {
   const a = t(lang).about;
   const body = `
 <h1 class="ld-h1" style="font-size:clamp(1.6rem,4vw,2.3rem)">${escapeHtml(a.h1)}</h1>
 ${interiorBlocks(a.blocks)}
+${interiorHeading(a.familiesHeading)}
+${bulletList(a.families)}
+${interiorHeading(a.faqHeading)}
+${faqBlocks(a.faq)}
+${interiorHeading(a.sourcesHeading)}
+${citationList(a.sources)}
 <hr class="ld-rule">
 `;
   return shell(a.title, body, {
     lang,
     alternates: { en: '/en/about/', fr: '/fr/about/' },
-    meta: pageMeta(lang, 'about', { description: a.description, crumbName: t(lang).nav.about }),
+    meta: pageMeta(lang, 'about', {
+      description: a.description,
+      crumbName: t(lang).nav.about,
+      // The on-page FAQ, mirrored into schema from the SAME i18n source, so the
+      // markup can never drift from the copy a reader sees.
+      webPageExtras: {
+        '@type': ['WebPage', 'FAQPage'],
+        mainEntity: a.faq.map((item) => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      },
+    }),
   });
 }
 
@@ -1522,6 +1623,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/.well-known/security.txt' || pathname === '/security.txt') {
     send(res, 200, 'text/plain; charset=utf-8', securityTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/.well-known/ai.json') {
+    send(res, 200, 'application/json; charset=utf-8', aiJson(), { 'cache-control': 'public, max-age=86400' });
     return;
   }
   if (pathname === '/audit') {

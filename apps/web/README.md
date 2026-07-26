@@ -65,6 +65,33 @@ and sitemap URLs use `PUBLIC_ORIGIN` (default `https://findable.bordebat.fr`;
 set it to match the deployment host). Every other (ephemeral) page stays
 `noindex`.
 
+### Dogfooding: this site must pass its own checks
+
+`test/dogfooding.test.mjs` boots the app and runs the **real engine** against it,
+asserting on check results rather than re-implementing their heuristics. It is the
+gate that keeps the recommendations honest, and it covers the discovery manifest
+(`/.well-known/ai.json`), direct-answer leads, list markup, outbound citations, the
+FAQ↔`FAQPage` mirror, and `dateModified` agreeing with the sitemap `<lastmod>`.
+
+Two findings are **knowingly left as warnings** rather than papered over. Faking
+either would mean shipping markup we tell auditees not to ship:
+
+| Finding | Why it stays a warning |
+|---|---|
+| `sd-entity-grounding` — *only 1 sameAs profile URL* | Clearing it needs a second **official** profile plus a Wikipedia/Wikidata anchor. The project has neither (the npm package is unpublished, and there is no knowledge-graph entity). `sameAs` means *same entity*, so pointing it at the maintainer's personal GitHub account would be simply false. |
+| `sd-website-searchaction` — *no SearchAction* | A sitelinks searchbox promises **site search**. This site has none: the landing form audits an external URL, it does not search this site. Declaring a `SearchAction` would hand Google a searchbox that cannot work. |
+
+The dogfooding suite asserts both are still `warn`, so if either ever becomes
+genuinely fixable the test fails and points back at this table.
+
+A third finding, `www-consolidation`, was a **false positive in our own check** and
+has been fixed in the engine (`packages/cli/src/checks/technical-seo.ts`): the check
+read `hops[0].status`, so an apex whose `/` 301s to a localized path (`/en/`) looked
+unconsolidated. It now classifies each host variant by where its chain *lands*.
+Separately, `www.findable.bordebat.fr` fails the TLS handshake — Cloudflare Universal
+SSL does not cover a third-level subdomain — so the www variant is simply not live,
+which is a valid consolidated configuration.
+
 ## Competitive comparison (`/compare`)
 
 `/compare/start?url=<you>&compare=<rival1,rival2>` audits your URL against up to
