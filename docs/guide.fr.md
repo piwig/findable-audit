@@ -1,13 +1,13 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **113 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **117 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
-| Contenu pour moteurs de réponse | 0,18 | 14 |
+| Contenu pour moteurs de réponse | 0,18 | 18 |
 | Données structurées et métadonnées | 0,15 | 20 |
 | SEO technique | 0,15 | 22 |
 | On-page et contenu | 0,12 | 11 |
@@ -155,6 +155,26 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** `/.well-known/ai.json` répond 200 avec un manifeste JSON de type **objet**. Fichier absent, JSON invalide (typiquement une coquille SPA qui répond 200), ou racine non-objet produisent un avertissement — jamais un échec, car la convention est encore émergente.
 **Pourquoi :** `/.well-known/ai.json` est une convention émergente de découverte IA : un petit manifeste indiquant aux agents ce qu'est le site et comment interagir avec lui (nom, description, contact, politiques). Pondération consultative (1 pt) car non encore standardisée.
 **Corriger :** Publiez un petit objet JSON à `/.well-known/ai.json` (nom, description, contact, politiques) — et vérifiez que le fallback SPA ne répond pas 200 HTML sur ce chemin.
+
+### `freshness-coherence` (4 pts)
+**Vérifie :** Recoupe les trois signaux de fraîcheur qu'une page peut émettre — l'en-tête HTTP `Last-Modified`, le `dateModified` JSON-LD (ou `article:modified_time`) et le `<lastmod>` du sitemap. Avertit lorsqu'ils se contredisent de plus de 24 h ; échoue uniquement sur une date *future*. Ignore une page comptant moins de deux des trois sources.
+**Pourquoi :** Quand les signaux de fraîcheur d'un site divergent — ou annoncent une date dans le futur — les moteurs cessent de leur faire confiance. Un déploiement qui rend simplement `Last-Modified` plus récent que les dates annoncées est bénin et n'est pas signalé.
+**Corriger :** Alignez l'en-tête HTTP `Last-Modified`, le `dateModified` JSON-LD et le `<lastmod>` du sitemap sur la vraie date de dernière modification, jamais dans le futur.
+
+### `hedging-rate` (3 pts)
+**Vérifie :** Sur les pages substantielles (≥150 mots), compte les formules évasives (*peut-être, il semble, maybe, it seems*…) dans les deux premiers paragraphes ; avertit (n'échoue jamais) à partir de deux. Une seule formule évasive dans le chapô est tolérée.
+**Pourquoi :** Les moteurs génératifs citent de préférence les affirmations nettes et assumées : un chapô évasif réduit donc les chances d'être cité. L'effet varie selon le domaine — c'est une heuristique consultative, pas une garantie.
+**Corriger :** Commencez par une affirmation nette et assumée et déplacez les nuances prudentes sous le chapô.
+
+### `answer-units` (4 pts)
+**Vérifie :** Sur les pages piliers (≥300 mots), recherche au moins une « unité de réponse » : un bloc court (8 à 40 mots) portant un chiffre, une date ou une entité nommée, qui commence de façon autosuffisante (sans anaphore ni connecteur) et sans formule évasive. Avertit (n'échoue jamais) si une page pilier n'en contient aucune.
+**Pourquoi :** Les unités de réponse sont les passages qu'un moteur génératif peut reprendre et citer tels quels. Une page longue sans énoncé autosuffisant et ancré sur un fait ne lui offre rien de propre à citer.
+**Corriger :** Ajoutez des énoncés courts et autosuffisants (8 à 40 mots) portant un chiffre, une date ou une entité nommée.
+
+### `chunk-boundary` (3 pts)
+**Vérifie :** Sur les pages substantielles (≥150 mots), signale les structures DOM qui se disloquent lorsque la page est découpée en fragments de retrieval : tableaux longs (>10 lignes) sans cellules d'en-tête, réponses de FAQ détachées de leur question par du balisage décoratif, et listes de 3+ éléments orphelines de tout titre. Avertit (n'échoue jamais). Les listes imbriquées sont exemptées.
+**Pourquoi :** Les pipelines de retrieval découpent la page et perdent le contexte situé en dehors de chaque fragment. Une ligne de tableau sans en-tête, une réponse éloignée de sa question ou une liste sans titre parvient au modèle dépouillée du sens qui l'entourait.
+**Corriger :** Donnez aux tableaux longs des en-têtes `<thead>`/`<th>`, gardez les réponses de FAQ directement sous leur question, et titrez chaque liste.
 
 ---
 

@@ -1,13 +1,13 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **113 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **117 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
-| Answer-engine content | 0.18 | 14 |
+| Answer-engine content | 0.18 | 18 |
 | Structured data & metadata | 0.15 | 20 |
 | Technical SEO | 0.15 | 22 |
 | On-page & content | 0.12 | 11 |
@@ -147,6 +147,26 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** `/.well-known/ai.json` answers 200 with a JSON **object** manifest. Missing file, invalid JSON (typically a SPA fallback shell answering 200), or a non-object root all produce a warn — never a fail, because the convention is still emerging.
 **Why:** `/.well-known/ai.json` is an emerging AI-discovery convention: a small manifest telling agents what the site is and how to interact with it (name, description, contact, policies). It is advisory-weighted (1 pt) since it is not yet standardized.
 **Fix:** Publish a small JSON object at `/.well-known/ai.json` (name, description, contact, policies) — and make sure your SPA fallback doesn't answer that path with 200 HTML.
+
+### `freshness-coherence` (4 pts)
+**Verifies:** Cross-checks the three freshness signals a page can emit — the HTTP `Last-Modified` header, the JSON-LD `dateModified` (or `article:modified_time`), and the sitemap `<lastmod>`. Warns when they contradict each other by more than 24h; fails only on a *future* claimed date. Skips a page with fewer than two of the three sources.
+**Why:** When a site's freshness signals disagree — or claim a date in the future — engines stop trusting any of them. A deploy that merely bumps `Last-Modified` newer than the claimed dates is benign and not flagged.
+**Fix:** Align HTTP `Last-Modified`, JSON-LD `dateModified` and sitemap `<lastmod>` on the real last-edit date, never in the future.
+
+### `hedging-rate` (3 pts)
+**Verifies:** On substantial pages (≥150 words), counts hedging phrases (*maybe, it seems, peut-être, il semble*…) in the first two paragraphs; warns (never fails) at two or more. One hedge in the lead is tolerated.
+**Why:** Generative engines preferentially quote confident, committed statements, so an evasive lead lowers the odds of being cited. The effect varies by domain — this is an advisory heuristic, not a guarantee.
+**Fix:** Open with one crisp, committed claim and move hedged nuance below the lead.
+
+### `answer-units` (4 pts)
+**Verifies:** On pillar pages (≥300 words), looks for at least one "answer unit": a short block (8–40 words) that carries a number, date or named entity, opens self-sufficiently (no anaphora/connector) and hedges nothing. Warns (never fails) when a pillar page has none.
+**Why:** Answer units are the passages a generative engine can lift and quote verbatim. A long page with no self-contained, fact-anchored statement gives an engine nothing clean to cite.
+**Fix:** Add short, self-contained statements (8–40 words) carrying a number, date or named entity.
+
+### `chunk-boundary` (3 pts)
+**Verifies:** On substantial pages (≥150 words), flags DOM structures that fall apart when the page is split into retrieval chunks: long tables (>10 rows) without header cells, FAQ answers detached from their question by decorative markup, and 3+-item lists orphaned from any title. Warns (never fails). Nested lists are exempt.
+**Why:** Retrieval pipelines chunk a page and lose the context outside each chunk. A headerless table row, an answer far from its question, or an untitled list reaches the model stripped of the meaning that sat around it.
+**Fix:** Give long tables `<thead>`/`<th>` headers, keep FAQ answers directly under their question, and title every list.
 
 ---
 

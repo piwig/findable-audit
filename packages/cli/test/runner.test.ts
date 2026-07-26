@@ -19,17 +19,20 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(113);
+    expect(report.results).toHaveLength(117);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
     // The 8 CWV checks (cwv-*, lab-*, lighthouse-perf) skip without --cwv (no PSI call).
     // link-equity-map skips because llm-good only samples the homepage (< 3 pages);
     // csr-content-parity and ai-serving-parity both run and pass on this fixture.
+    // The 4 GEO-advanced checks skip on this homepage-only fixture: freshness-coherence
+    // (< 2 freshness sources), hedging-rate/chunk-boundary (no substantial page) and
+    // answer-units (no pillar page ≥300 words).
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'content-author-eeat',
+      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'chunk-boundary', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
-      'extractable-structure', 'figure-caption', 'form-labels', 'hreflang',
+      'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
       'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexnow', 'internal-linking',
       'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content',
       'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',
