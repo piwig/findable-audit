@@ -72,7 +72,32 @@ export const WEB_MESSAGES = {
       urlLabel: 'Website URL',
       cta: 'Audit',
       hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
+      // Two modes, one form (L2): the tabs are <a href="#…"> + :target, so the
+      // landing keeps `script-src 'none'`.
+      modeSingle: 'One site',
+      modeCompare: 'Compare',
+      // Three axes lead instead of eight jargon families (L6). The families are
+      // still there, one disclosure below.
+      axesTitle: 'What a report answers',
+      axes: [
+        { n: 'Reachable', q: 'do crawlers get to the page at all?' },
+        { n: 'Understood', q: 'do they understand what they read?' },
+        { n: 'Usable', q: 'does the page hold up, for a human and for an agent?' },
+      ],
+      // L5: show the deliverable instead of describing it.
+      previewTitle: 'What you get',
+      previewVerdict: 'Crawlers reach your pages, but an AI assistant finds no structured identity: it can describe you, it cannot cite you.',
+      previewPlanTitle: 'Action plan · quick wins',
+      previewPlan: [
+        { f: 'AI access', t: 'The /llms.txt orientation file', p: '+10 pts' },
+        { f: 'Data', t: 'Identity grounded by sameAs links', p: '+2 pts' },
+      ],
+      exampleLink: 'See a full example report',
+      // L8: the strongest argument the product has, and it was written nowhere.
+      // The number is asserted against the live engine by a dogfooding test.
+      proof: 'This site scores 99/100 (A) against its own engine — and the two remaining warnings are documented rather than hidden.',
       familiesTitle: '8 weighted families · 120 checks',
+      familiesDetails: 'The detail of the 8 scoring families',
       families: ['AI access', 'Answer-engine content', 'Structured data', 'Technical SEO', 'On-page', 'Performance / CWV', 'Accessibility', 'Security'],
       howTitle: 'How it works',
       steps: [
@@ -240,7 +265,32 @@ export const WEB_MESSAGES = {
       urlLabel: 'URL du site',
       cta: 'Auditer',
       hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
+      // Deux modes, un seul formulaire (L2) : les onglets sont des <a href="#…">
+      // + :target, la landing garde donc sa CSP `script-src 'none'`.
+      modeSingle: 'Un site',
+      modeCompare: 'Comparer',
+      // Trois axes en tête plutôt que huit familles en jargon (L6). Les familles
+      // restent, un cran plus bas.
+      axesTitle: 'Ce qu’un rapport répond',
+      axes: [
+        { n: 'Trouvable', q: 'les robots arrivent-ils seulement jusqu’à la page ?' },
+        { n: 'Compréhensible', q: 'comprennent-ils ce qu’ils lisent ?' },
+        { n: 'Utilisable', q: 'la page tient-elle la route, pour un humain et pour un agent ?' },
+      ],
+      // L5 : montrer le livrable au lieu de le décrire.
+      previewTitle: 'Ce que vous obtenez',
+      previewVerdict: 'Les robots atteignent vos pages, mais un assistant IA n’y trouve pas de fiche d’identité structurée : il peut vous décrire, pas vous citer.',
+      previewPlanTitle: 'Plan d’action · rapide',
+      previewPlan: [
+        { f: 'Accès IA', t: 'Le fichier d’orientation /llms.txt', p: '+10 pts' },
+        { f: 'Données', t: 'Identité ancrée par des liens sameAs', p: '+2 pts' },
+      ],
+      exampleLink: 'Voir un rapport d’exemple complet',
+      // L8 : l'argument le plus fort du produit, écrit nulle part jusqu'ici.
+      // Le chiffre est vérifié contre le moteur réel par un test de dogfooding.
+      proof: 'Ce site obtient 99/100 (A) avec son propre moteur — et les deux avertissements restants sont documentés plutôt que masqués.',
       familiesTitle: '8 familles pondérées · 120 vérifications',
+      familiesDetails: 'Le détail des 8 familles de score',
       families: ['Accès IA', 'Contenu pour moteurs de réponse', 'Données structurées', 'SEO technique', 'On-page', 'Performance / CWV', 'Accessibilité', 'Sécurité'],
       howTitle: 'Comment ça marche',
       steps: [

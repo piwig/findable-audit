@@ -2,7 +2,26 @@
 
 Périmètre : `apps/web` (landing) et `packages/cli/src/report/html.ts` (rapport, partagé
 web + export). Objectif énoncé : **rendre le rapport beaucoup plus compréhensible et
-user-friendly**. Rien n'est implémenté ici — c'est une proposition à valider.
+user-friendly**.
+
+> **État au 26/07/2026 (soir) — lots A, B, C, D et la landing sont implémentés et
+> déployés.** Le lot E (messages dynamiques paramétrés et localisés) ne l'est pas :
+> il demande de toucher les 120 checks un par un pour qu'ils renvoient une clé et
+> des valeurs au lieu d'une phrase, plus ~250 entrées de catalogue en deux langues,
+> plus la reprise de toutes les assertions de test qui portent sur ces messages.
+> C'est le chantier que la section 1.3 classait déjà « à isoler dans son propre
+> lot » ; le livrer à moitié laisserait la moitié des checks dans un format et
+> l'autre dans un second. Il reste donc ouvert, et le rapport FR affiche toujours
+> le `message` des checks en anglais.
+>
+> Détail de ce qui a été fait : verdict en langue naturelle déterministe
+> (`report/axes.ts`), trois axes, un seul visuel de score, page neutre, barre
+> collante, pluriel corrigé (A) ; couloirs d'effort, projection de score exacte,
+> URL par item, extraits prêts à coller (`report/snippets.ts`), plus de plafond
+> muet (B) ; thème sombre, ligne de check redessinée, réussis repliés (C) ;
+> `CHECK_TITLES` — 120 titres EN/FR (D) ; landing en deux colonnes avec aperçu du
+> livrable, formulaire unique à deux modes, CTA vert, ligne de preuve, rapport
+> d'exemple réel figé.
 
 Constat établi sur pièces : landing FR en prod (`findable.bordebat.fr/fr/`) et rapport
 réel généré contre `masse-motoculture.bordebat.fr` (76/100, note C, 120 checks).

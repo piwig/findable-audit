@@ -134,3 +134,46 @@ test('the two knowingly-unfixed findings are still warn, and still only warn', (
   assert.equal(check('sd-entity-grounding').status, 'warn', why('sd-entity-grounding'));
   assert.equal(check('sd-website-searchaction').status, 'warn', why('sd-website-searchaction'));
 });
+
+/**
+ * The landing now states a number in plain text ("This site scores 99/100 (A)").
+ * That number is measured against PRODUCTION (https, gzip, the real origin) and
+ * cannot be reproduced here: this suite crawls a plain-http local server, so a
+ * handful of checks fail for reasons that exist only in the test environment.
+ *
+ * What CAN be locked, and is stronger than a number, is the exact set of checks
+ * that do not pass — every entry justified below. A redesign that quietly breaks
+ * a check shows up here as a new id, not as a score that drifted three points
+ * while nobody looked. (It is how the landing's `chunk-boundary` regression was
+ * caught: a families list left with nothing but a <summary> above it.)
+ */
+const LOCAL_ONLY = new Set([
+  'open-graph',        // og:image must be an absolute https URL; the test origin is http
+  'twitter-card',      // same absolute-https image requirement
+  'sd-organization',   // logo must be an absolute https URL
+  'text-compression',  // gzip is nginx's job in production, not the bare node server's
+]);
+const KNOWN_WARNS = new Set([
+  'sd-entity-grounding',      // documented in README: no second official profile yet
+  'sd-website-searchaction',  // documented in README: no internal search to declare
+]);
+
+test('nothing but the documented exceptions falls short against our own engine', () => {
+  const notPassing = report.results
+    .filter((r) => r.status === 'warn' || r.status === 'fail')
+    .map((r) => r.id)
+    .sort();
+  const unexpected = notPassing.filter((id) => !LOCAL_ONLY.has(id) && !KNOWN_WARNS.has(id));
+  assert.deepEqual(unexpected, [], `unexpected findings: ${unexpected.map(why).join(' | ')}`);
+});
+
+test('both languages claim the same score, in the same words', async () => {
+  const claims = [];
+  for (const lang of ['en', 'fr']) {
+    const html = await (await fetch(`${base}/${lang}/`)).text();
+    const m = /(\d{1,3})\/100 \(([A-F])\)/.exec(html);
+    assert.ok(m, `${lang}: the landing states a score`);
+    claims.push(`${m[1]}/${m[2]}`);
+  }
+  assert.equal(claims[0], claims[1], `en claims ${claims[0]}, fr claims ${claims[1]}`);
+});

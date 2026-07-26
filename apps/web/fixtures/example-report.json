@@ -1,0 +1,1156 @@
+{
+  "url": "https://findable.bordebat.fr/",
+  "score": 99,
+  "grade": "A",
+  "familyScores": [
+    {
+      "family": "ai-access",
+      "score": 100,
+      "weight": 0.16,
+      "earned": 54,
+      "max": 54
+    },
+    {
+      "family": "llm-content",
+      "score": 100,
+      "weight": 0.18,
+      "earned": 77,
+      "max": 77
+    },
+    {
+      "family": "structured-data",
+      "score": 95,
+      "weight": 0.15,
+      "earned": 56,
+      "max": 59
+    },
+    {
+      "family": "technical-seo",
+      "score": 100,
+      "weight": 0.15,
+      "earned": 81,
+      "max": 81
+    },
+    {
+      "family": "on-page",
+      "score": 100,
+      "weight": 0.12,
+      "earned": 38,
+      "max": 38
+    },
+    {
+      "family": "performance",
+      "score": 100,
+      "weight": 0.1,
+      "earned": 27,
+      "max": 27
+    },
+    {
+      "family": "accessibility",
+      "score": 100,
+      "weight": 0.07,
+      "earned": 26,
+      "max": 26
+    },
+    {
+      "family": "security",
+      "score": 100,
+      "weight": 0.07,
+      "earned": 30,
+      "max": 30
+    }
+  ],
+  "sampledPages": [
+    "/en/",
+    "/fr/",
+    "/en/about/",
+    "/en/contact/",
+    "/fr/about/"
+  ],
+  "results": [
+    {
+      "id": "robots-exists",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "robots.txt found",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "robots-wellformed",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "robots.txt is well-formed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "search-crawlers-allowed",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "search crawlers (Googlebot, Bingbot, *) allowed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "ai-crawlers-allowed",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 12,
+      "maxPoints": 12,
+      "message": "all AI crawlers (training + citation-time) allowed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "homepage-ok",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "homepage responds 200",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "robots-directives",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no blocking robots directives (X-Robots-Tag / meta robots)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "ai-serving-parity",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "same document served across 5 AI/mobile UA probe(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "snippet-preview-directives",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "preview directives set on 5 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "llms-txt",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 10,
+      "maxPoints": 10,
+      "message": "llms.txt structured (summary + section + 5 descriptive links)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "llms-full-txt",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "llms-full.txt has 2236 words under 30 headings",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-without-js",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "static text ≥200 chars on 5 sampled page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "csr-content-parity",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "server-rendered main content on 5 sampled page(s), no empty CSR mount roots",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-depth",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "main content above the word threshold on 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-lead-answer",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "direct-answer lead on 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "answer-headings",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "question-style subheadings on 4 long page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "extractable-structure",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "lists/tables in main content on 5 substantial page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-freshness",
+      "family": "llm-content",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "no article-type pages to date",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-author-eeat",
+      "family": "llm-content",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "no article-type pages to attribute",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "outbound-citations",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "outbound citations on 5 substantial page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "content-uniqueness",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "no near-duplicate bodies across 5 pages",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "about-contact",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "About and Contact reachable with a contact method",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "well-known-ai-json",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 1,
+      "maxPoints": 1,
+      "message": "/.well-known/ai.json serves a JSON object manifest",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "images-alt",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no <img> elements on sampled pages",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "freshness-coherence",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "freshness signals coherent (24h tolerance) on 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "hedging-rate",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "direct, hedge-free leads on 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "answer-units",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "41 liftable answer unit(s) across 4 pillar page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "chunk-boundary",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "chunk-safe structure on 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "chunk-retrieval-sim",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "7/7 ~512-token chunk(s) survive isolated retrieval (100%)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "injection-hygiene",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "no hidden text or unattributed UGC across 5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "agent-usability",
+      "family": "llm-content",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "4 form(s) submittable without JS; contact reachable on 3/5 page(s)",
+      "docUrl": "https://llmstxt.org/"
+    },
+    {
+      "id": "json-ld",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 10,
+      "maxPoints": 10,
+      "message": "1 valid JSON-LD block(s)",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "json-ld-entity",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "relevant entity found: Organization",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "schema-coverage",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "5/5 sampled pages carry valid JSON-LD",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sitemap",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 10,
+      "maxPoints": 10,
+      "message": "valid sitemap, referenced in robots.txt",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "indexnow",
+      "family": "technical-seo",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no IndexNow key provided (use --indexnow-key to enable)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "title-description",
+      "family": "on-page",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "title and meta description look good",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "canonical",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "self-referential canonical on 5 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "open-graph",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "Open Graph complete (core set + site_name + locale)",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "twitter-card",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "twitter:card=summary_large_image complete",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "https",
+      "family": "security",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "served over HTTPS",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "viewport",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "mobile viewport set",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "meta-robots-noindex",
+      "family": "ai-access",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "no noindex on 5 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    {
+      "id": "unique-titles",
+      "family": "on-page",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "titles and descriptions unique across 5 pages",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "broken-internal-links",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "7 internal link(s) resolve",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "redirect-hygiene",
+      "family": "security",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "http:// 301-redirects to https://",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "hreflang",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "5 hreflang alternate(s) reachable and reciprocal",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "meta-per-page",
+      "family": "on-page",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "title and description in range on 5 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "title-pattern",
+      "family": "on-page",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "title is topic-first with a brand suffix",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "title-h1-alignment",
+      "family": "on-page",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "title and H1 share 4 meaningful token(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "headings-outline",
+      "family": "on-page",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "heading outline clean on 5 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "anchor-text",
+      "family": "on-page",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "0% generic internal anchor text (0/21)",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "charset",
+      "family": "on-page",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "UTF-8 charset declared",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "favicon",
+      "family": "on-page",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "favicon and apple-touch-icon present",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "content-readability",
+      "family": "on-page",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "main content reads at approximately grade 11.5",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "figure-caption",
+      "family": "on-page",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no explanatory content images on sampled pages",
+      "docUrl": "https://developers.google.com/search/docs/appearance"
+    },
+    {
+      "id": "json-ld-valid",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "1 JSON-LD block(s) all valid (parse + @context + @type)",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-organization",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "Organization entity complete: findable-audit",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-entity-grounding",
+      "family": "structured-data",
+      "status": "warn",
+      "points": 2,
+      "maxPoints": 4,
+      "message": "only 1 sameAs profile URL",
+      "fix": "List ≥2 official profile URLs in sameAs, including Wikipedia/Wikidata if available.",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-localbusiness",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no LocalBusiness entity on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-article",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no Article/NewsArticle/BlogPosting page in the sample",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-product",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no Product page in the sample",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-faq",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "FAQ content backed by FAQPage/QAPage schema",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-breadcrumb",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "breadcrumbs present on all interior pages",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-website-searchaction",
+      "family": "structured-data",
+      "status": "warn",
+      "points": 1,
+      "maxPoints": 2,
+      "message": "WebSite present but no SearchAction (no sitelinks searchbox)",
+      "fix": "Add potentialAction SearchAction with a urlTemplate and query-input.",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-video",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no video content on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-special-types",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no HowTo/Event/Recipe on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-graph-integrity",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "5 @id-linked entities, no dangling references",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "sd-consistency",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "1 JSON-LD value(s) confirmed visible on the page",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "nap-consistency",
+      "family": "structured-data",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no NAP (phone/address) to check",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "entity-graph-connectivity",
+      "family": "structured-data",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "38 entities, 46 links, no dangling references (1 component(s))",
+      "docUrl": "https://schema.org/docs/schemas.html"
+    },
+    {
+      "id": "canonical-resolves",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "5 declared canonical(s) resolve 200 and are indexable",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "www-consolidation",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "apex host serves the site; www host not live",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "trailing-slash",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "slash-toggled variants of 5 path(s) do not duplicate",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "redirect-chains",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no redirect chains across 6 URL(s)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "soft-404",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "missing route returns 404",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "custom-404",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "404 page offers a way back (links/nav/search)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "url-structure",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "7 sampled URL(s) are clean and readable",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "pagination-canonical",
+      "family": "technical-seo",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no pagination detected (single page series)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "meta-refresh",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no meta-refresh redirects on 5 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "hreflang-x-default",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "hreflang set complete on 5 page(s)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "internal-linking",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "5 sampled page(s) linked and shallow",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "link-equity-map",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "link equity well-distributed across 5 page(s) — top: /en/ (25.74%), /fr/ (25.74%), /en/contact/ (18.13%)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "crawlable-nav",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "42 crawlable link(s); navigation works without JavaScript",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "sitemap-lastmod",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6/6 entries have valid, varied <lastmod>",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "sitemap-urls-valid",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 sampled sitemap URL(s) are clean and indexable",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "sitemap-index-limits",
+      "family": "technical-seo",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no <sitemapindex> (single urlset sitemap)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "sitemap-orphans",
+      "family": "technical-seo",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "sitemap and internal links agree on 6 URL(s)",
+      "docUrl": "https://developers.google.com/search/docs"
+    },
+    {
+      "id": "html-lang",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "valid <html lang> on 5 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "alt-descriptive",
+      "family": "accessibility",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no non-empty alt text to assess",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "landmarks",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "semantic landmarks on 5 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "form-labels",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "all 6 form control(s) have an accessible name",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "link-text",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "all 42 link(s) have an accessible name",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "viewport-zoom",
+      "family": "accessibility",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "viewport allows pinch-zoom",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "iframe-title",
+      "family": "accessibility",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no iframes on sampled pages",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+    },
+    {
+      "id": "mixed-content",
+      "family": "security",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no mixed content across 5 sampled page(s)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "hsts",
+      "family": "security",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "HSTS max-age=31536000 (+includeSubDomains)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "x-content-type-options",
+      "family": "security",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "X-Content-Type-Options: nosniff",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "csp",
+      "family": "security",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "Content-Security-Policy present",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "clickjacking",
+      "family": "security",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "CSP frame-ancestors restricts framing",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "referrer-policy",
+      "family": "security",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "Referrer-Policy: no-referrer",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "permissions-policy",
+      "family": "security",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "Permissions-Policy present",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+    },
+    {
+      "id": "html-weight",
+      "family": "performance",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "HTML document is 15KB",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "render-blocking-js",
+      "family": "performance",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no render-blocking head scripts on 5 page(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "render-blocking-css",
+      "family": "performance",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "0 render-blocking stylesheet(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "img-dimensions",
+      "family": "performance",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no <img> elements on sampled pages",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "img-lazy-loading",
+      "family": "performance",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no images to assess",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "img-next-gen",
+      "family": "performance",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no raster <img> elements to assess",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "resource-hints",
+      "family": "performance",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "preconnect/dns-prefetch present for 1 third-party origin(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "dom-size",
+      "family": "performance",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "DOM has 118 element(s), max nesting depth 9",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "text-compression",
+      "family": "performance",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "HTML served with Content-Encoding: br",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "asset-caching",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no same-origin CSS/JS asset to sample",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "inline-head-volume",
+      "family": "performance",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "7KB inline <style>/<script> in <head>",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "lighthouse-perf",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "cwv-lcp",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 6,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "cwv-cls",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "cwv-inp",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "cwv-assessment",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "cwv-ttfb",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "lab-tbt",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    },
+    {
+      "id": "lab-fcp",
+      "family": "performance",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+    }
+  ],
+  "generatedAt": "2026-07-26T18:42:14.871Z",
+  "toolVersion": "0.2.0"
+}

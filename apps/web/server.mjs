@@ -15,6 +15,7 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { basename } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 import { runAudit, UnreachableSiteError } from '../../packages/cli/dist/runner.js';
 import { buildChecks } from '../../packages/cli/dist/checks/index.js';
@@ -108,62 +109,158 @@ function escapeHtml(text) {
 }
 
 const PAGE_STYLE = `
-  :root { color-scheme: light; }
+  :root {
+    color-scheme: light dark;
+    --bg: #fff; --ink: #1a1a1a; --title: #1c2230; --muted: #555; --faint: #777;
+    --soft: #7a8290; --line: #e5e5e5; --hair: #eef1f3; --field: #ccc;
+    --panel: #fff; --panel-2: #f8faf9; --track: #eee;
+    --good: #1a7f37; --good-hover: #166a2e; --bad: #b42318; --bad-bg: #fdf3f2;
+    --good-bg: #e7f4ec; --chip-bg: #f0f2f4;
+    --grad: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e);
+    --shadow: 0 1px 2px rgb(20 60 40 / .05), 0 10px 26px -14px rgb(20 60 40 / .16);
+  }
+  /* L7: a dark theme, same tokens, no second stylesheet and no JS toggle —
+     the OS preference is the switch. Status colours are lifted in luminosity
+     to keep 4.5:1 on the dark surface. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a; --ink: #e9ecef; --title: #f2f5f7; --muted: #b3bcc4; --faint: #8d97a0;
+      --soft: #97a1ab; --line: #2b3138; --hair: #242a30; --field: #39414a;
+      --panel: #1a1e22; --panel-2: #1f2429; --track: #2b3138;
+      --good: #4fbf74; --good-hover: #6bd08c; --bad: #f3796f; --bad-bg: #38191a;
+      --good-bg: #16301f; --chip-bg: #242a30;
+      --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 26px -14px rgb(0 0 0 / .7);
+    }
+  }
   * { box-sizing: border-box; }
   body { font: 16px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    color: #1a1a1a; background: #fff; margin: 0; padding: 3rem 1.5rem; }
+    color: var(--ink); background: var(--bg); margin: 0; padding: 3rem 1.5rem; }
   main { max-width: 640px; margin: 0 auto; }
+  main.wide { max-width: 1060px; }
   h1 { font-size: 1.8rem; margin: 0 0 .35rem; }
-  p.lead { color: #555; margin: 0 0 2rem; }
+  p.lead { color: var(--muted); margin: 0 0 2rem; }
   form { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 1rem; }
   input[type=url], input[type=text] { flex: 1 1 18rem; min-width: 0; font-size: 1rem;
-    padding: .6rem .7rem; border: 1px solid #ccc; border-radius: 6px; color: #1a1a1a; }
-  input:focus { outline: 2px solid #1a7f37; outline-offset: 1px; border-color: #1a7f37; }
+    padding: .6rem .7rem; border: 1px solid var(--field); border-radius: 6px;
+    color: var(--ink); background: var(--panel); }
+  input:focus { outline: 2px solid var(--good); outline-offset: 1px; border-color: var(--good); }
   button { font-size: 1rem; font-weight: 600; padding: .6rem 1.2rem; border: 0; border-radius: 6px;
-    background: #1a7f37; color: #fff; cursor: pointer; }
-  button:hover { background: #166a2e; }
-  .hint { color: #777; font-size: .85rem; margin: 0 0 2rem; }
-  .err { border-left: 3px solid #b42318; background: #fdf3f2; padding: .75rem 1rem; border-radius: 0 6px 6px 0; }
-  .err h1 { color: #b42318; font-size: 1.2rem; }
-  a { color: #1a7f37; }
-  footer { margin-top: 3rem; color: #888; font-size: .85rem; border-top: 1px solid #e5e5e5; padding-top: 1rem; }
-  .progress { height: 8px; background: #eee; border-radius: 999px; overflow: hidden; margin: 0 0 1rem; }
-  .bar { height: 100%; width: 0; background: #1a7f37; transition: width .3s ease; }
-  .lang-switch { font-size: .85rem; color: #777; margin: 0 0 1.5rem; }
-  .lang-switch a { color: #1a7f37; text-decoration: none; }
+    background: var(--good); color: #fff; cursor: pointer; }
+  button:hover { background: var(--good-hover); }
+  .hint { color: var(--faint); font-size: .85rem; margin: 0 0 2rem; }
+  .err { border-left: 3px solid var(--bad); background: var(--bad-bg); padding: .75rem 1rem; border-radius: 0 6px 6px 0; }
+  .err h1 { color: var(--bad); font-size: 1.2rem; }
+  a { color: var(--good); }
+  footer { margin-top: 3rem; color: var(--faint); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  .progress { height: 8px; background: var(--track); border-radius: 999px; overflow: hidden; margin: 0 0 1rem; }
+  .bar { height: 100%; width: 0; background: var(--good); transition: width .3s ease; }
+  .lang-switch { font-size: .85rem; color: var(--faint); margin: 0 0 1.5rem; }
+  .lang-switch a { color: var(--good); text-decoration: none; }
   .lang-switch a:hover { text-decoration: underline; }
-  .lang-switch [aria-current] { font-weight: 600; color: #1a1a1a; }
+  .lang-switch [aria-current] { font-weight: 600; color: var(--ink); }
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 1.75rem; }
   .topbar .lang-switch { margin: 0; }
   .brand { display: inline-flex; align-items: center; gap: .55rem; text-decoration: none; }
   .brand svg { display: block; flex: 0 0 auto; }
-  .brand-name { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: #1c2230; }
-  .g-dash { background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .ld-eyebrow { font: 600 .72rem/1 system-ui; letter-spacing: .14em; text-transform: uppercase; color: #7a8290; display: flex; align-items: center; gap: 10px; margin: 0 0 .9rem; }
-  .ld-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
-  .ld-h1 { font-weight: 800; letter-spacing: -.02em; line-height: 1.06; color: #1c2230; font-size: clamp(1.9rem, 1rem + 2.8vw, 2.9rem); margin: 0 0 .7rem; max-width: 20ch; }
-  .ld-h1 .g { background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .ld-cta { position: relative; overflow: hidden; background: #1c2230; }
-  .ld-cta::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .brand-name { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: var(--title); }
+  .g-dash { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ld-eyebrow { font: 600 .72rem/1 system-ui; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); display: flex; align-items: center; gap: 10px; margin: 0 0 .9rem; }
+  .ld-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; flex: 0 0 auto; background: var(--grad); }
+  .ld-h1 { font-weight: 800; letter-spacing: -.02em; line-height: 1.06; color: var(--title); font-size: clamp(1.9rem, 1rem + 2.8vw, 2.9rem); margin: 0 0 .7rem; max-width: 20ch; }
+  .ld-h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* L4: the primary CTA now wears the brand green. It used to be near-black,
+     which reads as a secondary — or disabled — button next to a green accent. */
+  .ld-cta { position: relative; overflow: hidden; background: var(--good); }
+  .ld-cta::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: var(--grad); }
   .ld-cta:hover::before { opacity: 1; }
   .ld-cta > span { position: relative; }
-  .ld-sec { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #eef1f3; }
+  .ld-sec { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--hair); }
+
+  /* --- L1/L5: two-column hero, promise + form on the left, the real
+         deliverable on the right. One column below 900px. --- */
+  .hero2 { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    gap: 2.5rem; align-items: start; }
+  @media (max-width: 900px) { .hero2 { grid-template-columns: 1fr; gap: 1.75rem; } }
+
+  /* L2: two modes, one field. Tabs are anchors + :target, so no JS and the
+     landing keeps its script-src 'none' policy. Without :has() support both
+     panes stay visible — degraded, never broken. */
+  .modes { display: flex; gap: .3rem; margin: 0 0 .8rem; }
+  .modes a { font-size: .85rem; font-weight: 700; text-decoration: none; color: var(--muted);
+    padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); }
+  .modes a:hover { color: var(--ink); border-color: var(--good); }
+  .pane-compare { display: none; }
+  .hero-left:has(#compare:target) .pane-compare { display: block; }
+  .hero-left:has(#compare:target) .pane-single { display: none; }
+  .modes a.m-single { background: var(--chip-bg); color: var(--ink); }
+  .hero-left:has(#compare:target) .m-single { background: transparent; color: var(--muted); }
+  .hero-left:has(#compare:target) .m-compare { background: var(--chip-bg); color: var(--ink); }
+  /* L3: the field is full width, the CTA sits right under it, and the Turnstile
+     widget spans the row instead of elbowing the button onto its own line. */
+  .ld-form { display: block; margin: 0 0 .6rem; }
+  .ld-form input[type=url], .ld-form input[type=text] { width: 100%; display: block; margin: 0 0 .5rem; }
+  /* The captcha widget is the only direct <div> child of the form; targeted by
+     shape rather than by its class name, which a test asserts is absent from a
+     document rendered with the captcha disabled. */
+  .ld-form > div { margin: 0 0 .6rem; }
+  .ld-form button { width: 100%; }
+  .ld-example { display: inline-block; font-size: .88rem; margin: 0 0 1rem; }
+  .ld-proof { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--good);
+    background: var(--good-bg); padding: .6rem .85rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0 0; }
+
+  /* --- the three axes (L6) --- */
+  .ld-axes { list-style: none; margin: 0; padding: 0; display: grid;
+    grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+  @media (max-width: 700px) { .ld-axes { grid-template-columns: 1fr; } }
+  .ld-axis { border: 1px solid var(--line); border-radius: 12px; padding: .7rem .85rem; background: var(--panel); }
+  .ld-axis b { display: block; color: var(--title); font-size: .95rem; }
+  .ld-axis span { color: var(--soft); font-size: .82rem; line-height: 1.35; }
+  details.ld-fold { margin-top: 1rem; }
+  details.ld-fold > summary { cursor: pointer; color: var(--muted); font-size: .88rem; font-weight: 600; width: fit-content; }
+  details.ld-fold > summary:hover { color: var(--good); }
+  details.ld-fold[open] > summary { margin-bottom: .8rem; }
+
+  /* --- the report preview: same shapes and tokens as the real report --- */
+  .pv { border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+    box-shadow: var(--shadow); overflow: hidden; }
+  .pv-head { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem;
+    background: var(--panel-2); border-bottom: 1px solid var(--line); }
+  .pv-score { width: 62px; height: 62px; border-radius: 50%; flex: 0 0 auto; display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem;
+    color: var(--good); border: 6px solid var(--good); }
+  .pv-verdict { font-size: .88rem; color: var(--ink); line-height: 1.45; }
+  .pv-axes { display: flex; gap: .5rem; padding: .8rem 1.1rem; border-bottom: 1px solid var(--line); }
+  .pv-ax { flex: 1; text-align: center; }
+  .pv-ax b { display: block; font-size: 1.15rem; font-weight: 800; color: var(--good); }
+  .pv-ax span { font-size: .72rem; color: var(--soft); }
+  .pv-plan { padding: .8rem 1.1rem 1rem; }
+  .pv-plan-t { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--soft); margin: 0 0 .5rem; }
+  .pv-row { display: flex; align-items: baseline; gap: .5rem; font-size: .85rem;
+    padding: .35rem 0; border-top: 1px solid var(--hair); }
+  .pv-row:first-of-type { border-top: 0; }
+  .pv-chip { font-size: .64rem; font-weight: 700; text-transform: uppercase; color: var(--muted);
+    background: var(--chip-bg); padding: .1rem .4rem; border-radius: 20px; flex: 0 0 auto; }
+  .pv-row b { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); }
+  .pv-pts { font-size: .72rem; font-weight: 700; color: var(--good); background: var(--good-bg);
+    padding: .1rem .4rem; border-radius: 20px; flex: 0 0 auto; }
+
   /* Chips and steps are real <ul>/<ol> (semantics + extractability): drop the
      list marker and default spacing so the visual is identical to the old divs. */
   .ld-chips, .ld-steps { list-style: none; margin: 0; padding: 0; }
   /* Prose lists (About families, outbound citation lists) keep their markers. */
-  .ld-list { margin: .2rem 0 .9rem; padding-left: 1.25rem; color: #555; }
+  .ld-list { margin: .2rem 0 .9rem; padding-left: 1.25rem; color: var(--muted); }
   .ld-list li { margin: 0 0 .35rem; }
-  .ld-q { font-size: 1rem; font-weight: 700; color: #1c2230; margin: 1.1rem 0 0; }
+  .ld-q { font-size: 1rem; font-weight: 700; color: var(--title); margin: 1.1rem 0 0; }
   .ld-chips { display: flex; flex-wrap: wrap; gap: .55rem; }
-  .ld-chip { font-size: .85rem; font-weight: 600; color: #2b3240; background: #fff; border: 1px solid #e2e7ea; border-radius: 999px; padding: .42rem .8rem; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 1px 2px rgb(20 60 40 / .05), 0 10px 26px -14px rgb(20 60 40 / .16); }
-  .ld-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-chip { font-size: .85rem; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .42rem .8rem; display: inline-flex; align-items: center; gap: 7px; box-shadow: var(--shadow); }
+  .ld-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--grad); }
   .ld-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
   @media (max-width: 560px) { .ld-steps { grid-template-columns: 1fr; } }
-  .ld-step { display: flex; gap: .7rem; align-items: flex-start; font-size: .88rem; color: #5b6472; }
-  .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
-  .ld-step b { color: #1c2230; display: block; font-size: .92rem; }
-  .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e); }
+  .ld-step { display: flex; gap: .7rem; align-items: flex-start; font-size: .88rem; color: var(--muted); }
+  .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: var(--grad); }
+  .ld-step b { color: var(--title); display: block; font-size: .92rem; }
+  .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: var(--grad); }
   /* Mobile: tighter top padding, and a full-width stacked form (input + CTA). */
   @media (max-width: 560px) {
     body { padding: 1.5rem 1rem 3rem; }
@@ -395,7 +492,7 @@ function securityTxt() {
   ].join('\n');
 }
 
-function shell(title, bodyHtml, { lang = 'en', alternates, meta } = {}) {
+function shell(title, bodyHtml, { lang = 'en', alternates, meta, wide = false } = {}) {
   // Absolute hreflang for an indexable page (canonical origin), relative for the
   // ephemeral pages that were never meant to be crawled anyway.
   const abs = (p) => (meta ? PUBLIC_ORIGIN + p : p);
@@ -443,7 +540,7 @@ ${seo}
 <style>${PAGE_STYLE}</style>
 </head>
 <body>
-<main>
+<main${wide ? ' class="wide"' : ''}>
 <header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
 ${bodyHtml}
 <footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a></footer>
@@ -484,28 +581,38 @@ function landingPage(lang = 'en') {
       + `\n  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`
       + turnstileDiv
     : '';
+  // The three axes lead (L6); the eight families keep their chips one
+  // disclosure below — same regrouping as layer 1 of the report, so the landing
+  // and the report speak one vocabulary.
+  const axes = s.axes.map((a) =>
+    `<li class="ld-axis"><b>${escapeHtml(a.n)}</b><span>${escapeHtml(a.q)}</span></li>`).join('');
+  // A static preview of the real deliverable (L5): same shapes and tokens as
+  // the report's verdict card, so it can never drift into a prettier lie.
+  const previewRows = s.previewPlan.map((r) =>
+    `<div class="pv-row"><span class="pv-chip">${escapeHtml(r.f)}</span><b>${escapeHtml(r.t)}</b><span class="pv-pts">${escapeHtml(r.p)}</span></div>`).join('');
   return shell(s.title, `
+<div class="hero2">
+<div class="hero-left">
 <p class="ld-eyebrow">${escapeHtml(s.eyebrow)}</p>
 <h1 class="ld-h1">${escapeHtml(s.h1Lead)}<span class="g">${escapeHtml(s.h1Accent)}</span>${escapeHtml(s.h1Tail)}</h1>
 <p class="lead">${escapeHtml(s.lead)}</p>
-<form method="get" action="/${lang}/audit">
+<nav class="modes" aria-label="${escapeHtml(s.axesTitle)}">
+  <a class="m-single" href="#single">${escapeHtml(s.modeSingle)}</a>
+  <a class="m-compare" href="#compare">${escapeHtml(s.modeCompare)}</a>
+</nav>
+<div class="pane pane-single" id="single">
+<form class="ld-form" method="get" action="/${lang}/audit">
   <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
     autocomplete="off" autocapitalize="off" spellcheck="false" required>${turnstileWidget}
   <button type="submit" class="ld-cta"><span>${escapeHtml(s.cta)}</span></button>
 </form>
+<a class="ld-example" href="/${lang}/example-report/">${escapeHtml(s.exampleLink)}</a>
 <p class="hint">${escapeHtml(s.hint)}</p>
-<section class="ld-sec">
-  <p class="ld-eyebrow">${escapeHtml(s.familiesTitle)}</p>
-  <ul class="ld-chips">${chips}</ul>
-</section>
-<section class="ld-sec">
-  <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
-  <ol class="ld-steps">${steps}</ol>
-</section>
-<section class="ld-sec">
+</div>
+<div class="pane pane-compare" id="compare">
   <p class="ld-eyebrow">${escapeHtml(c.heading)}</p>
-  <p class="lead" style="margin:.1rem 0 1rem">${escapeHtml(c.lead)}</p>
-  <form method="get" action="/${lang}/compare/start">
+  <p class="lead" style="margin:.1rem 0 .8rem">${escapeHtml(c.lead)}</p>
+  <form class="ld-form" method="get" action="/${lang}/compare/start">
     <input type="url" name="url" placeholder="https://your-site.com" aria-label="${escapeHtml(c.urlLabel)}"
       autocomplete="off" autocapitalize="off" spellcheck="false" required>
     <input type="text" name="compare" placeholder="https://rival-1.com, https://rival-2.com" aria-label="${escapeHtml(c.competitorsLabel)}"
@@ -513,6 +620,38 @@ function landingPage(lang = 'en') {
     <button type="submit" class="ld-cta"><span>${escapeHtml(c.cta)}</span></button>
   </form>
   <p class="hint">${escapeHtml(c.hint)}</p>
+</div>
+<p class="ld-proof">${escapeHtml(s.proof)}</p>
+</div>
+<aside class="hero-right">
+  <p class="ld-eyebrow">${escapeHtml(s.previewTitle)}</p>
+  <div class="pv">
+    <div class="pv-head">
+      <div class="pv-score">76</div>
+      <p class="pv-verdict">${escapeHtml(s.previewVerdict)}</p>
+    </div>
+    <div class="pv-axes">
+      ${s.axes.map((a, i) => `<div class="pv-ax"><b>${[92, 61, 84][i]}</b><span>${escapeHtml(a.n)}</span></div>`).join('\n      ')}
+    </div>
+    <div class="pv-plan">
+      <p class="pv-plan-t">${escapeHtml(s.previewPlanTitle)}</p>
+      ${previewRows}
+    </div>
+  </div>
+</aside>
+</div>
+<section class="ld-sec">
+  <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.axesTitle)}</h2>
+  <ul class="ld-axes">${axes}</ul>
+  <details class="ld-fold">
+    <summary>${escapeHtml(s.familiesDetails)}</summary>
+    <p class="hint" style="margin:.6rem 0 .8rem">${escapeHtml(s.familiesTitle)}</p>
+    <ul class="ld-chips">${chips}</ul>
+  </details>
+</section>
+<section class="ld-sec">
+  <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
+  <ol class="ld-steps">${steps}</ol>
 </section>
 <section class="ld-sec">
   <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.geoTitle)}</h2>
@@ -521,7 +660,35 @@ function landingPage(lang = 'en') {
   ${citationList(s.sources)}
 </section>
 <hr class="ld-rule">
-`, { lang, alternates: { en: '/en/', fr: '/fr/' }, meta: landingMeta(lang) });
+`, { lang, alternates: { en: '/en/', fr: '/fr/' }, meta: landingMeta(lang), wide: true });
+}
+
+/**
+ * A real, frozen report, reachable before you run one (L5). It is our OWN site
+ * audited by our own engine on the date below — not a mock-up, and not someone
+ * else's site published without asking.
+ *
+ * Deliberately `noindex`: making it indexable properly means a canonical, both
+ * hreflang alternates, a WebPage node in the @graph with a dateModified that
+ * agrees with the sitemap, and a sitemap entry — the whole contract our own
+ * checks enforce on every other public page. That is its own piece of work;
+ * shipping a half-indexed page would be exactly the sloppiness we audit for.
+ */
+const EXAMPLE_REPORT = JSON.parse(
+  readFileSync(new URL('./fixtures/example-report.json', import.meta.url), 'utf8'));
+const EXAMPLE_REPORT_DATE = new Date('2026-07-26T00:00:00Z');
+
+function exampleReportPage(lang = 'en') {
+  const back = lang === 'fr' ? '← Retour à findable-audit' : '← Back to findable-audit';
+  const note = lang === 'fr'
+    ? `Rapport réel, figé : findable-audit audité par son propre moteur le ${EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)}.`
+    : `A real, frozen report: findable-audit audited by its own engine on ${EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)}.`;
+  const banner = `<nav class="tocbar" style="position:static;border-bottom:0">`
+    + `<a href="/${escapeHtml(lang)}/">${escapeHtml(back)}</a>`
+    + `<span style="color:var(--muted);font-size:.82rem;margin-left:.6rem">${escapeHtml(note)}</span></nav>`;
+  return renderHtml(EXAMPLE_REPORT, EXAMPLE_REPORT_DATE, lang)
+    .replace('</head>', '<meta name="robots" content="noindex, follow">\n</head>')
+    .replace('<body>', `<body>\n${banner}`);
 }
 
 // SEO/OG metadata + a connected JSON-LD @graph for the landing (dogfooding: this
@@ -1575,6 +1742,11 @@ const server = http.createServer((req, res) => {
     if (pathname === '/about/' || pathname === '/contact/') {
       const page = pathname === '/about/' ? aboutPage(split.lang) : contactPage(split.lang);
       send(res, 200, 'text/html; charset=utf-8', page);
+      return;
+    }
+    if (pathname === '/example-report/') {
+      send(res, 200, 'text/html; charset=utf-8', exampleReportPage(split.lang),
+        { 'cache-control': 'public, max-age=3600' });
       return;
     }
     // Any other rest path (/audit, /audit/stream, /audit/result, /audit/export,
