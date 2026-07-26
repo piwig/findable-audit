@@ -7,6 +7,7 @@ import {
   NAP_REQUIRED_TYPES, rollupBySeverity, normalizePhone, addressString, str,
   type SeverityItem,
 } from './jsonld.js';
+import { isQuestionHeading } from './content.js';
 
 function nodesOf(page: FetchedResource): Record<string, unknown>[] {
   return flatten(extractJsonLd(page.body));
@@ -161,7 +162,8 @@ export const sdProduct: Check = {
 // sd-faq
 // ---------------------------------------------------------------------------
 
-const QUESTION_START_RE = /^(what|how|why|when|where|who|which|can|do|does|is|are)\b/i;
+// Question shape comes from the shared FR/EN helper (checks/content.ts): this
+// check used to carry an English-only copy, so a French FAQ was never detected.
 
 function countSchemaFaqPairs(nodes: Record<string, unknown>[], ids: Map<string, Record<string, unknown>>): number {
   let count = 0;
@@ -197,8 +199,7 @@ function countHeadingFaq(root: ReturnType<typeof parse>): number {
   for (const h of root.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
     if (h.closest('nav, header, footer, aside')) continue;
     const text = h.textContent.trim();
-    const questionLike = text.endsWith('?') || QUESTION_START_RE.test(text);
-    if (!questionLike) continue;
+    if (!isQuestionHeading(text)) continue;
     const sibling = h.nextElementSibling;
     if (sibling && sibling.tagName === 'P' && sibling.textContent.trim().length > 10) count += 1;
   }

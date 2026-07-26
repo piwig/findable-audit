@@ -10,6 +10,7 @@ import {
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
   aboutContact, wellKnownAiJson,
 } from '../../src/checks/llm-content.js';
+import { isQuestionHeading } from '../../src/checks/content.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
@@ -222,6 +223,44 @@ describe('answer-headings', () => {
   it('skips when every page is short', async () => {
     const p = contentPage('/a', 'A', 120, '<h2>How do we bake?</h2>');
     expect((await answerHeadings.run(mpCtx([p]))).status).toBe('skip');
+  });
+  // Regression (dogfooding our own /fr/ landing, 2026-07-26): the interrogative
+  // set was English-only, so a French page could never satisfy this check.
+  it('passes on a French question-style H2 with no question mark', async () => {
+    const p = contentPage('/a', 'A', 340, '<h2>Pourquoi le GEO compte</h2><p>Parce que les moteurs citent.</p>');
+    expect((await answerHeadings.run(mpCtx([p]))).status).toBe('pass');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isQuestionHeading — one bilingual source of truth shared by answer-headings,
+// sd-faq and chunk-boundary.
+// ---------------------------------------------------------------------------
+
+describe('isQuestionHeading', () => {
+  it('accepts anything ending in a question mark, in any language', () => {
+    expect(isQuestionHeading('Notre histoire ?')).toBe(true);
+    expect(isQuestionHeading('Our story?')).toBe(true);
+  });
+  it('accepts English interrogative openers', () => {
+    for (const h of ['What it checks', 'How scoring works', 'Which plan fits']) {
+      expect(isQuestionHeading(h), h).toBe(true);
+    }
+  });
+  it('accepts French interrogative openers', () => {
+    for (const h of ['Pourquoi le GEO compte', 'Comment ça marche', 'Quels formats sont acceptés', 'Combien ça coûte']) {
+      expect(isQuestionHeading(h), h).toBe(true);
+    }
+  });
+  // `où\b` never fired: JavaScript's \w is ASCII-only, so there is no word
+  // boundary after "ù". The shared helper uses a Unicode-aware lookahead.
+  it('accepts an accented opener that a \\b boundary would have missed', () => {
+    expect(isQuestionHeading('Où trouver la documentation')).toBe(true);
+  });
+  it('rejects headings that merely start with those letters', () => {
+    for (const h of ['However we ship weekly', 'Documentation des crawlers', 'Whichever you pick', 'Commentaires des clients']) {
+      expect(isQuestionHeading(h), h).toBe(false);
+    }
   });
 });
 

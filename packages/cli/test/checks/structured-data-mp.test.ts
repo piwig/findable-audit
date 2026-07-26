@@ -125,6 +125,15 @@ describe('sd-faq', () => {
     const ctx = ctxFromPages([page('/', html(head))]);
     expect((await sdFaq.run(ctx)).status).toBe('pass');
   });
+  // Regression (2026-07-26): the question-heading test was English-only, so a
+  // French FAQ was invisible here and the check silently skipped instead of
+  // asking for FAQPage markup.
+  it('detects a French heading FAQ with no question mark', async () => {
+    const body = '<h3>Comment fonctionne le score</h3><p>Chaque contrôle rapporte des points.</p>'
+      + '<h3>Pourquoi auditer son site</h3><p>Pour être trouvé et cité par les IA.</p>';
+    const ctx = ctxFromPages([page('/', html('', body))]);
+    expect((await sdFaq.run(ctx)).status).toBe('warn');
+  });
 });
 
 describe('sd-breadcrumb', () => {

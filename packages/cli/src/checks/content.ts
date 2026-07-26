@@ -59,6 +59,33 @@ export function depthThreshold(res: FetchedResource): number {
 }
 
 // ---------------------------------------------------------------------------
+// Question-shaped headings (shared by answer-headings, sd-faq, chunk-boundary)
+// ---------------------------------------------------------------------------
+
+const QUESTION_OPENERS_EN = 'what|how|why|when|where|who|whose|which|can|could|should|will|would|does|do|did|is|are|was|were';
+const QUESTION_OPENERS_FR = "quels?|quelles?|comment|pourquoi|quand|où|qui|combien|est-ce|qu['’]est-ce|peut-on|faut-il|doit-on";
+/**
+ * The boundary is a Unicode-aware negative lookahead, not `\b`: JavaScript's `\w`
+ * is ASCII-only, so `où\b` never matched "Où trouver…" while still (correctly)
+ * refusing to match "how" inside "however".
+ */
+const QUESTION_HEAD_RE = new RegExp(`^(?:${QUESTION_OPENERS_EN}|${QUESTION_OPENERS_FR})(?![\\p{L}\\p{N}])`, 'iu');
+
+/**
+ * true when a heading reads as a question — it ends with "?" or opens with a
+ * French or English interrogative.
+ *
+ * Single source of truth on purpose: `answer-headings`, `sd-faq` and
+ * `chunk-boundary` each carried their own copy, two of them English-only, so
+ * French pages could never satisfy a question-heading check no matter how they
+ * were written (found by auditing our own /fr/ landing, 2026-07-26).
+ */
+export function isQuestionHeading(text: string): boolean {
+  const t = text.trim();
+  return t.endsWith('?') || QUESTION_HEAD_RE.test(t);
+}
+
+// ---------------------------------------------------------------------------
 // Shingle-hash near-duplicate detection (content-uniqueness)
 // ---------------------------------------------------------------------------
 

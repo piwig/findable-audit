@@ -117,7 +117,7 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Corriger :** Ouvrez chaque page par une réponse directe d'1–2 phrases ou un bloc TL;DR / points clés.
 
 ### `answer-headings` (4 pts)
-**Vérifie :** *(ignoré pour les pages courtes)* Les longues pages de contenu portent ≥1 H2/H3 en forme de question ou descriptif (commence par quoi/comment/pourquoi/quand/meilleur/vs ou finit par `?`) ; avertit si tous génériques.
+**Vérifie :** *(ignoré pour les pages courtes)* Les longues pages de contenu portent ≥1 H2/H3 en forme de question ou descriptif — finit par `?`, ou commence par un interrogatif **français** (quel/comment/pourquoi/quand/où/combien/…) ou anglais (what/how/why/when/…), ou un ouvreur de liste (meilleur, best/top/vs) ; avertit si tous génériques.
 **Pourquoi :** Des sous-titres en forme de question collent aux requêtes des utilisateurs et à la façon dont les assistants découpent le contenu.
 **Corriger :** Formulez les sous-titres comme les questions que se posent les lecteurs.
 
@@ -228,7 +228,7 @@ Identité lisible par machine et éligibilité aux résultats enrichis.
 **Corriger :** Ajoutez offers(price/priceCurrency/availability) + brand + gtin/mpn ; ne balisez jamais des notes non affichées.
 
 ### `sd-faq` (4 pts)
-**Vérifie :** *(ignoré s'il n'y a pas de contenu en forme de FAQ)* JSON-LD FAQPage/QAPage (≥2 Question → acceptedAnswer non vide) et/ou un bloc Q&R sur la page (avertissement si la FAQ visible n'a pas de schéma).
+**Vérifie :** *(ignoré s'il n'y a pas de contenu en forme de FAQ)* JSON-LD FAQPage/QAPage (≥2 Question → acceptedAnswer non vide) et/ou un bloc Q&R sur la page — paires `<details>/<summary>`, ou intertitres en forme de question (français comme anglais) suivis d'un paragraphe de réponse (avertissement si la FAQ visible n'a pas de schéma).
 **Pourquoi :** Le balisage FAQ est parmi les structures les plus directement citables pour les assistants de question-réponse.
 **Corriger :** Balisez les FAQ en FAQPage → Question → acceptedAnswer.Text.
 
@@ -344,7 +344,7 @@ Hygiène de crawlabilité et d'indexation.
 **Corriger :** Corrigez ou supprimez les liens renvoyant 400+.
 
 ### `www-consolidation` (5 pts)
-**Vérifie :** Les variantes www et apex (sans suivi de redirection) — exactement une sert 200 et l'autre 301 vers elle (avertissement sur 302 ; échec si les deux vivent ou boucle de redirection).
+**Vérifie :** Les variantes www et apex — exactement une *atterrit* en 200 sur son propre hôte et l'autre y renvoie en 301 (avertissement sur 302 ; échec si les deux vivent, si elles se renvoient l'une à l'autre, ou si une chaîne boucle). Une redirection de chemin sur le même hôte (`/` → `/fr/`) compte toujours comme « sert le site » : seul un saut qui quitte l'hôte est un signal de consolidation.
 **Pourquoi :** Deux hôtes vivants dupliquent chaque URL et divisent les signaux de classement.
 **Corriger :** 301 l'hôte non canonique vers celui choisi.
 

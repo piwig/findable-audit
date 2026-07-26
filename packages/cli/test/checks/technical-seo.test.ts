@@ -103,10 +103,57 @@ describe('www-consolidation', () => {
     const ctx = makeCtx({
       chains: {
         'https://stub.example/': chainOf(200, [H(200)]),
-        'https://www.stub.example/': chainOf(200, [H(200)]),
+        // Each host terminates on ITSELF: two live duplicates, no consolidation.
+        'https://www.stub.example/': chainOf(200, [H(200)], 'https://www.stub.example/'),
       },
     });
     expect((await wwwConsolidation.run(ctx)).status).toBe('fail');
+  });
+  // Regression (dogfooding findable.bordebat.fr, 2026-07-26): the apex root 301s to a
+  // localized path on the SAME host. That is a path redirect, not a host-consolidation
+  // problem — judging by hops[0].status alone used to fail a correctly consolidated site.
+  it('passes when the apex root 301s to a localized path on the same host', async () => {
+    const ctx = makeCtx({
+      chains: {
+        // www host deliberately absent from the map -> fetchChain resolves null
+        // (no DNS record, or a TLS handshake failure as on the real deployment).
+        'https://stub.example/': chainOf(200, [H(301, 'https://stub.example/en/'), H(200)], 'https://stub.example/en/'),
+      },
+    });
+    const r = await wwwConsolidation.run(ctx);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('www host not live');
+  });
+  it('still passes the locale bounce when www 301s across to the apex', async () => {
+    const ctx = makeCtx({
+      chains: {
+        'https://stub.example/': chainOf(200, [H(301, 'https://stub.example/en/'), H(200)], 'https://stub.example/en/'),
+        'https://www.stub.example/': chainOf(200, [H(301, 'https://stub.example/'), H(301, 'https://stub.example/en/'), H(200)], 'https://stub.example/en/'),
+      },
+    });
+    expect((await wwwConsolidation.run(ctx)).status).toBe('pass');
+  });
+  it('fails when the apex bounces off-site to a third host', async () => {
+    const ctx = makeCtx({
+      chains: {
+        'https://stub.example/': chainOf(200, [H(301, 'https://elsewhere.example/'), H(200)], 'https://elsewhere.example/'),
+        'https://www.stub.example/': chainOf(200, [H(200)], 'https://www.stub.example/'),
+      },
+    });
+    const r = await wwwConsolidation.run(ctx);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('off-site');
+  });
+  it('fails when www and apex redirect to each other', async () => {
+    const ctx = makeCtx({
+      chains: {
+        'https://stub.example/': chainOf(200, [H(301, 'https://www.stub.example/'), H(200)], 'https://www.stub.example/'),
+        'https://www.stub.example/': chainOf(200, [H(301, 'https://stub.example/'), H(200)], 'https://stub.example/'),
+      },
+    });
+    const r = await wwwConsolidation.run(ctx);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('loop');
   });
   it('warns when the non-canonical host uses a 302', async () => {
     const ctx = makeCtx({

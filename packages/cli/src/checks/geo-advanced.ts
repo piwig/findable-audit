@@ -4,7 +4,7 @@ import { makeResult } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { extractJsonLd, flatten, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
-import { mainContent } from './content.js';
+import { mainContent, isQuestionHeading } from './content.js';
 import { discoverSitemap, parseSitemapEntries } from './sitemap.js';
 import { canonicalIdentity } from './canonical.js';
 
@@ -240,12 +240,8 @@ const HEADING_TAGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 const TEXT_BLOCK_TAGS = new Set(['P', 'UL', 'OL', 'TABLE', 'BLOCKQUOTE', 'DL']);
 const DECORATIVE_TAGS = new Set(['IMG', 'HR', 'FIGURE', 'PICTURE', 'SVG', 'VIDEO', 'IFRAME']);
 
-const QUESTION_HEAD_RE = /^(what|how|why|when|where|who|which|can|does|do|is|are|should|quels?|quelles?|comment|pourquoi|quand|où|qui|combien|est-ce)\b/i;
-
-function isQuestionHeading(text: string): boolean {
-  const t = text.trim();
-  return t.endsWith('?') || QUESTION_HEAD_RE.test(t);
-}
+// Question shape comes from the shared FR/EN helper in checks/content.ts (this
+// module used to carry the only bilingual copy of the three).
 
 function tagOf(el: HTMLElement | null): string {
   return (el?.tagName ?? '').toUpperCase();

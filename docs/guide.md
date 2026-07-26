@@ -109,7 +109,7 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Fix:** Open each page with a 1–2 sentence direct answer or a TL;DR / Key-takeaways block.
 
 ### `answer-headings` (4 pts)
-**Verifies:** *(skip short pages)* Long content pages carry ≥1 question-style/descriptive H2/H3 (starts what/how/why/when/best/vs or ends `?`); warns if all-generic.
+**Verifies:** *(skip short pages)* Long content pages carry ≥1 question-style/descriptive H2/H3 — ends `?`, or opens with an English (what/how/why/when/which/…) **or French** (quel/comment/pourquoi/quand/où/combien/…) interrogative, or a listicle opener (best/top/vs, meilleur); warns if all-generic.
 **Why:** Question-shaped subheads match how users phrase queries and how assistants segment content into answerable chunks.
 **Fix:** Phrase subheadings as the questions readers actually ask.
 
@@ -220,7 +220,7 @@ Machine-readable identity and rich-result eligibility.
 **Fix:** Add offers(price/priceCurrency/availability) + brand + gtin/mpn; never mark up ratings not shown on the page.
 
 ### `sd-faq` (4 pts)
-**Verifies:** *(skip if no FAQ-shaped content)* FAQPage/QAPage JSON-LD (≥2 Question → non-empty acceptedAnswer) and/or an on-page Q&A block (warn if on-page FAQ has no schema).
+**Verifies:** *(skip if no FAQ-shaped content)* FAQPage/QAPage JSON-LD (≥2 Question → non-empty acceptedAnswer) and/or an on-page Q&A block — `<details>/<summary>` pairs, or question headings (French and English) each followed by an answer paragraph (warn if the on-page FAQ has no schema).
 **Why:** FAQ markup is among the most directly quotable structures for question-answering assistants.
 **Fix:** Mark FAQs as FAQPage → Question → acceptedAnswer.Text.
 
@@ -336,7 +336,7 @@ Crawlability and indexation hygiene.
 **Fix:** Fix or remove links returning 400+.
 
 ### `www-consolidation` (5 pts)
-**Verifies:** The www and apex variants (no-follow) — exactly one serves 200 and the other 301s to it (warn on 302; fail if both live or a redirect loop).
+**Verifies:** The www and apex variants — exactly one *lands* on 200 on its own host and the other 301s across to it (warn on 302; fail if both are live, if they point at each other, or if a chain loops). A same-host path redirect (`/` → `/en/`) still counts as serving; only a hop that leaves the host is a consolidation signal.
 **Why:** Two live hostnames duplicate every URL and split ranking signals.
 **Fix:** 301 the non-canonical host to the chosen one.
 

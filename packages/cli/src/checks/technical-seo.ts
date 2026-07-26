@@ -63,6 +63,46 @@ export const canonicalResolves: Check = {
 // www-consolidation (no-follow, skip local)
 // ---------------------------------------------------------------------------
 
+/** Lower-cased host of an absolute URL, or '' when it cannot be parsed. */
+function hostOfUrl(url: string): string {
+  try { return new URL(url).host.toLowerCase(); } catch { return ''; }
+}
+
+/** Where one host variant's no-follow chain actually ends up. */
+type HostState =
+  | { kind: 'absent' }                     // host not reachable at all
+  | { kind: 'serves' }                     // terminates 200 while still on its own host
+  | { kind: 'crosses'; status: number }    // hands off to the sibling host (status of the crossing hop)
+  | { kind: 'broken'; reason: string };    // loop, off-site bounce, or non-200 terminal
+
+/**
+ * Consolidation is a HOST-level question, so the verdict must come from where the
+ * chain LANDS, not from `hops[0]`. A same-host path redirect — the very common
+ * `/` -> `/en/` locale bounce — still means "this host serves the site"; only a hop
+ * that leaves the host is a consolidation signal. Reading `hops[0].status` alone
+ * mistook that locale bounce for an unconsolidated host and failed sites that are
+ * in fact correctly consolidated (found by dogfooding findable.bordebat.fr, whose
+ * apex 301s `/` to `/en/` and has no live www host).
+ */
+function classifyHost(
+  chain: FetchChainResult | null | undefined,
+  ownHost: string,
+  siblingHost: string,
+): HostState {
+  if (!chain || chain.hops.length === 0) return { kind: 'absent' };
+  // Never reached a terminal status within the hop budget: a loop or an endless chain.
+  if (isRedirect(chain.finalStatus)) return { kind: 'broken', reason: 'redirect chain never terminates' };
+  const finalHost = hostOfUrl(chain.finalUrl) || ownHost; // unparseable finalUrl -> assume it stayed put
+  if (finalHost === ownHost) {
+    if (chain.finalStatus !== 200) return { kind: 'broken', reason: `terminal ${chain.finalStatus}` };
+    return { kind: 'serves' };
+  }
+  if (finalHost !== siblingHost) return { kind: 'broken', reason: `redirects off-site to ${finalHost}` };
+  if (chain.finalStatus !== 200) return { kind: 'broken', reason: `redirects to ${siblingHost} then ${chain.finalStatus}` };
+  const crossing = chain.hops.find((h) => isRedirect(h.status));
+  return { kind: 'crosses', status: crossing?.status ?? chain.finalStatus };
+}
+
 export const wwwConsolidation: Check = {
   id: 'www-consolidation', family: 'technical-seo', maxPoints: 5,
   async run(ctx) {
@@ -70,41 +110,43 @@ export const wwwConsolidation: Check = {
     if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
     const host = ctx.baseUrl.host;
     const isWww = host.toLowerCase().startsWith('www.');
-    const apexUrl = `${ctx.baseUrl.protocol}//${isWww ? host.slice(4) : host}/`;
-    const wwwUrl = `${ctx.baseUrl.protocol}//${isWww ? host : `www.${host}`}/`;
-    const apex = await ctx.fetchChain(apexUrl);
-    const www = await ctx.fetchChain(wwwUrl);
-    const a0 = apex?.hops[0];
-    const w0 = www?.hops[0];
-    if (!a0 && !w0) return makeResult(this, 'warn', 'neither www nor apex host is reachable',
-      'Serve the site on one canonical host and 301 the other to it.');
-    // Classify from the FULL hop list, not just hops[0]: a variant whose chain loops
-    // (never reaches a terminal status) or takes more than one redirect hop is broken,
-    // regardless of its opening status — e.g. a www↔apex loop opening with 302.
-    const brokenChain = (c: FetchChainResult | null | undefined): boolean => {
-      if (!c) return false;
-      return isRedirect(c.finalStatus) || c.hops.filter((h) => isRedirect(h.status)).length > 1;
-    };
-    if (brokenChain(apex) || brokenChain(www)) {
-      return makeResult(this, 'fail', 'www/apex redirect chain or loop between hosts',
+    const apexHost = (isWww ? host.slice(4) : host).toLowerCase();
+    const wwwHost = (isWww ? host : `www.${host}`).toLowerCase();
+    const apex = await ctx.fetchChain(`${ctx.baseUrl.protocol}//${apexHost}/`);
+    const www = await ctx.fetchChain(`${ctx.baseUrl.protocol}//${wwwHost}/`);
+    const apexState = classifyHost(apex, apexHost, wwwHost);
+    const wwwState = classifyHost(www, wwwHost, apexHost);
+
+    if (apexState.kind === 'absent' && wwwState.kind === 'absent') {
+      return makeResult(this, 'warn', 'neither www nor apex host is reachable',
+        'Serve the site on one canonical host and 301 the other to it.');
+    }
+    const broken = apexState.kind === 'broken' ? apexState : (wwwState.kind === 'broken' ? wwwState : null);
+    if (broken) {
+      return makeResult(this, 'fail', `www/apex redirect chain or loop between hosts (${broken.reason})`,
         'Point the non-canonical host at the canonical host with a single 301, not a chain or loop.');
     }
-    const a200 = a0?.status === 200;
-    const w200 = w0?.status === 200;
-    // Only one host live at all -> effectively consolidated.
-    if (a200 && !w0) return makeResult(this, 'pass', 'apex serves 200; www host not live');
-    if (w200 && !a0) return makeResult(this, 'pass', 'www serves 200; apex host not live');
-    if (a200 && w200) return makeResult(this, 'fail', 'both www and apex serve 200 (duplicate hosts)',
-      '301 the non-canonical host to the chosen one so search engines index a single host.');
-    const liveIsApex = a200 && !w200;
-    const liveIsWww = w200 && !a200;
-    if (liveIsApex || liveIsWww) {
-      const redir = liveIsApex ? w0 : a0;
-      if (redir && (redir.status === 301 || redir.status === 308)) {
-        return makeResult(this, 'pass', `${liveIsApex ? 'www' : 'apex'} host 301s to the ${liveIsApex ? 'apex' : 'www'} host`);
+    if (apexState.kind === 'crosses' && wwwState.kind === 'crosses') {
+      return makeResult(this, 'fail', 'www and apex redirect to each other (loop)',
+        'Pick one canonical host and 301 the other to it — one direction only.');
+    }
+    if (apexState.kind === 'serves' && wwwState.kind === 'serves') {
+      return makeResult(this, 'fail', 'both www and apex serve 200 (duplicate hosts)',
+        '301 the non-canonical host to the chosen one so search engines index a single host.');
+    }
+    const liveIsApex = apexState.kind === 'serves';
+    if (liveIsApex || wwwState.kind === 'serves') {
+      const other = liveIsApex ? wwwState : apexState;
+      const liveName = liveIsApex ? 'apex' : 'www';
+      const otherName = liveIsApex ? 'www' : 'apex';
+      if (other.kind === 'absent') {
+        return makeResult(this, 'pass', `${liveName} host serves the site; ${otherName} host not live`);
       }
-      if (redir && isRedirect(redir.status)) {
-        return makeResult(this, 'warn', `non-canonical host uses a ${redir.status} (should be 301)`,
+      if (other.kind === 'crosses') {
+        if (other.status === 301 || other.status === 308) {
+          return makeResult(this, 'pass', `${otherName} host ${other.status}s to the ${liveName} host`);
+        }
+        return makeResult(this, 'warn', `non-canonical host uses a ${other.status} (should be 301)`,
           'Make the host redirect a permanent 301, not a temporary redirect.');
       }
     }

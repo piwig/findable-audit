@@ -4,7 +4,7 @@ import { makeResult, isPlainText } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { extractJsonLd, flatten, typesOf, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
-import { mainContent, isArticlePage, depthThreshold, shingles, jaccard } from './content.js';
+import { mainContent, isArticlePage, depthThreshold, shingles, jaccard, isQuestionHeading } from './content.js';
 
 /** Truncate an offender path list to 3 entries + "(+N more)", matching the other MP checks. */
 function offenderList(paths: string[]): string {
@@ -196,12 +196,13 @@ export const contentLeadAnswer: Check = {
 // answer-headings (MP: question-style H2/H3 on long content pages)
 // ---------------------------------------------------------------------------
 
-const ANSWER_HEAD_RE = /^(what|how|why|when|where|who|which|whose|best|top|vs\.?|should|can|is|are|does|do|will)\b/i;
+// Beyond a plain question, these listicle/comparison openers also read as an
+// answer-shaped subhead. The interrogative set itself lives in content.ts.
+const ANSWER_HEAD_EXTRA_RE = /^(best|top|vs\.?|meilleurs?|meilleures?)\b/i;
 const ANSWER_HEAD_WORDS = 300;
 
 function isAnswerHeading(text: string): boolean {
-  const t = text.trim();
-  return t.endsWith('?') || ANSWER_HEAD_RE.test(t);
+  return isQuestionHeading(text) || ANSWER_HEAD_EXTRA_RE.test(text.trim());
 }
 
 export const answerHeadings: Check = {
