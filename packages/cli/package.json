@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "engines": { "node": ">=20.3" },
-  "bin": { "findable": "./dist/index.js" },
+  "bin": { "findable": "dist/index.js" },
   "files": ["dist", "README.md", "LICENSE"],
   "publishConfig": { "access": "public" },
   "repository": { "type": "git", "url": "git+https://github.com/piwig/findable-audit.git", "directory": "packages/cli" },
