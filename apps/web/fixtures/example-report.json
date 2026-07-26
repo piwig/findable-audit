@@ -155,7 +155,7 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "llms-full.txt has 2236 words under 30 headings",
+      "message": "llms-full.txt has 2243 words under 30 headings",
       "docUrl": "https://llmstxt.org/"
     },
     {
@@ -317,7 +317,7 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "7/7 ~512-token chunk(s) survive isolated retrieval (100%)",
+      "message": "8/8 ~512-token chunk(s) survive isolated retrieval (100%)",
       "docUrl": "https://llmstxt.org/"
     },
     {
@@ -461,7 +461,7 @@
       "status": "pass",
       "points": 8,
       "maxPoints": 8,
-      "message": "7 internal link(s) resolve",
+      "message": "9 internal link(s) resolve",
       "docUrl": "https://developers.google.com/search/docs"
     },
     {
@@ -524,7 +524,7 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "0% generic internal anchor text (0/21)",
+      "message": "0% generic internal anchor text (0/23)",
       "docUrl": "https://developers.google.com/search/docs/appearance"
     },
     {
@@ -551,7 +551,7 @@
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "main content reads at approximately grade 11.5",
+      "message": "main content reads at approximately grade 11.0",
       "docUrl": "https://developers.google.com/search/docs/appearance"
     },
     {
@@ -760,7 +760,7 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "7 sampled URL(s) are clean and readable",
+      "message": "9 sampled URL(s) are clean and readable",
       "docUrl": "https://developers.google.com/search/docs"
     },
     {
@@ -814,7 +814,7 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "42 crawlable link(s); navigation works without JavaScript",
+      "message": "44 crawlable link(s); navigation works without JavaScript",
       "docUrl": "https://developers.google.com/search/docs"
     },
     {
@@ -895,7 +895,7 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "all 42 link(s) have an accessible name",
+      "message": "all 44 link(s) have an accessible name",
       "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
     },
     {
@@ -985,7 +985,7 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "HTML document is 15KB",
+      "message": "HTML document is 23KB",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals"
     },
     {
@@ -1048,7 +1048,7 @@
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "DOM has 118 element(s), max nesting depth 9",
+      "message": "DOM has 165 element(s), max nesting depth 9",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals"
     },
     {
@@ -1075,7 +1075,7 @@
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "7KB inline <style>/<script> in <head>",
+      "message": "13KB inline <style>/<script> in <head>",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals"
     },
     {
@@ -1151,6 +1151,6 @@
       "docUrl": "https://web.dev/explore/learn-core-web-vitals"
     }
   ],
-  "generatedAt": "2026-07-26T18:42:14.871Z",
+  "generatedAt": "2026-07-26T18:51:58.931Z",
   "toolVersion": "0.2.0"
 }
