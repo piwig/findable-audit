@@ -13,7 +13,7 @@
 - Node `>=20`, `"type": "module"` — all relative imports use the `.js` suffix.
 - No new npm dependencies (only `fast-xml-parser`, `node-html-parser`, `picocolors`).
 - NEVER call `process.exit()` after the audit runs (Windows libuv crash); set `process.exitCode`. Arg validation BEFORE `runAudit` may use `process.exit(2)`.
-- All shell commands run from `C:\Users\pieri\dev\findable-audit\packages\cli` unless stated. Run tests: `npx vitest run <path>`. Build: `npm run build`. An RTK hook may truncate long output — narrow the path or redirect to a file if so.
+- All shell commands run from `C:\dev\produits\findable-audit\packages\cli` unless stated. Run tests: `npx vitest run <path>`. Build: `npm run build`. An RTK hook may truncate long output — narrow the path or redirect to a file if so.
 - The e2e contract holds: `perfect-site` scores **100/100**, zero warn/fail.
 - Match existing style: 2-space indent, single quotes, semicolons present.
 - Escape all site-derived text when emitting HTML (the report can contain attacker-controlled strings from the audited site).
@@ -583,7 +583,7 @@ git commit -m "feat(report): self-contained printable HTML report, repeatable --
 - Modify: `README.md`
 - Modify: `docs/guide.md` and `docs/guide.fr.md`
 
-(Paths relative to repo root `C:\Users\pieri\dev\findable-audit`.)
+(Paths relative to repo root `C:\dev\produits\findable-audit`.)
 
 **Interfaces:** Consumes the CLI contract finalized in Tasks 2–3.
 

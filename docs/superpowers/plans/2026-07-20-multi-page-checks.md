@@ -13,7 +13,7 @@
 - Node `>=20`, `"type": "module"` — all relative imports use the `.js` suffix.
 - No new npm dependencies (only `fast-xml-parser`, `node-html-parser`, `picocolors`).
 - NEVER call `process.exit()` after the audit runs (Windows libuv crash — see comment in `packages/cli/src/index.ts`); set `process.exitCode`.
-- All shell commands below run from `C:\Users\pieri\dev\findable-audit\packages\cli` unless stated otherwise.
+- All shell commands below run from `C:\dev\produits\findable-audit\packages\cli` unless stated otherwise.
 - Test fixtures may use `{{ORIGIN}}` — the test server (`test/helpers/server.ts`) substitutes its own origin in text/xml/html bodies.
 - `makeResult(check, status, message, fix?)` computes points: pass = maxPoints, warn = floor(maxPoints/2), fail/skip = 0. Skips are excluded from scoring.
 - The e2e contract must hold: `perfect-site` fixture scores **100/100** with zero warn/fail.
@@ -1141,7 +1141,7 @@ git commit -m "feat: wire sampler into runner, add --max-pages, register 7 new c
 - Create: `plugin/skills/implement-geo/SKILL.md`
 - Create: `plugin/skills/fix-technical-seo/SKILL.md`
 
-(Paths are relative to the repo root `C:\Users\pieri\dev\findable-audit`, not `packages/cli`.)
+(Paths are relative to the repo root `C:\dev\produits\findable-audit`, not `packages/cli`.)
 
 **Interfaces:**
 - Consumes: the CLI contract from Task 5 (`findable <url> [--json] [--report <file.md>] [--max-pages <n>] [--indexnow-key <key>]`, exit codes 0/1/2) and the check ids/families from Tasks 3–5.

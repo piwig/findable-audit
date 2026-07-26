@@ -376,7 +376,7 @@ Ajoutées en cours d'exécution ; **n'affectent pas la Phase 1** (renderers CLI)
 
 ### 7.1 Refonte de la landing page (user-friendly + design soigné)
 - Rendre la page d'accueil de `apps/web` plus accueillante et jolie (aujourd'hui : `landingPage()` minimal dans `server.mjs`, un `<form>` + hint).
-- **Source de design** : s'inspirer de **pb-ot.fr** (sources locales `C:\IA\PB OpenTech`, site Astro ; SEO/GEO/AEO très abouti — voir mémoire [[pb-opentech-site]]). Reprendre son langage visuel (hero clair, typographie, accents, sections « ce que ça fait / pourquoi », CTA) **adapté** à findable-audit (thème clair, accent vert `#1a7f37`, cohérent avec le rapport Direction A). Contraintes web conservées : zéro-dép, CSP stricte hors page d'attente, autonome.
+- **Source de design** : s'inspirer de **pb-ot.fr** (sources locales `C:\dev\produits\pb-opentech`, site Astro ; SEO/GEO/AEO très abouti — voir mémoire [[pb-opentech-site]]). Reprendre son langage visuel (hero clair, typographie, accents, sections « ce que ça fait / pourquoi », CTA) **adapté** à findable-audit (thème clair, accent vert `#1a7f37`, cohérent avec le rapport Direction A). Contraintes web conservées : zéro-dép, CSP stricte hors page d'attente, autonome.
 - À la reprise Phase 2 : proposer 1-2 maquettes (compagnon visuel) avant implémentation, puis valider.
 
 ### 7.2 Export JSON (en plus de HTML et MD)

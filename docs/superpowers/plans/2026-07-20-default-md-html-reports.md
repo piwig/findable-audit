@@ -13,7 +13,7 @@
 - Node `>=20`, ESM — relative imports end in `.js`.
 - No new npm dependencies.
 - NEVER `process.exit()` after the audit runs; write failures set `reportWriteFailed` → `process.exitCode = 2`. The write block stays inside the post-audit `try`.
-- Run from `C:\Users\pieri\dev\findable-audit\packages\cli`: tests `npx vitest run <path>`, build `npm run build`. RTK hook may truncate long output — narrow the path or redirect if so.
+- Run from `C:\dev\produits\findable-audit\packages\cli`: tests `npx vitest run <path>`, build `npm run build`. RTK hook may truncate long output — narrow the path or redirect if so.
 - e2e `perfect-site` 100/100 unchanged (no check touched).
 - Match existing style: 2-space indent, single quotes, semicolons.
 
