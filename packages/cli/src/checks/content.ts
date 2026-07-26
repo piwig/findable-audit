@@ -86,6 +86,53 @@ export function isQuestionHeading(text: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Passage primitives (shared by answer-units and chunk-retrieval-sim)
+// ---------------------------------------------------------------------------
+
+const ANAPHORIC_OPENERS = new Set([
+  'it', 'this', 'that', 'these', 'those', 'they', 'he', 'she', 'such',
+  'il', 'ils', 'elle', 'elles', 'cela', 'ceci', "c'est", 'ce', 'cette', 'ces', 'celui', 'celle', 'ceux',
+  'however', 'moreover', 'therefore', 'also', 'cependant', 'toutefois', 'donc', 'ainsi',
+]);
+const CONNECTOR_PREFIXES = ['de plus', 'en outre', 'par ailleurs'];
+
+/**
+ * true when a passage does not open by pointing back at what came before it — no
+ * anaphoric pronoun/demonstrative, no discourse connector.
+ *
+ * Deliberately case-blind: a *block* boundary already guarantees we are at the start
+ * of a paragraph, and requiring an uppercase first letter would punish the many brands
+ * that are lowercase by design (npm, iPhone, findable-audit…). That is the right test
+ * for a retrieval window, which only has to be readable on its own.
+ */
+export function opensWithoutBackreference(text: string): boolean {
+  const norm = text.toLowerCase().replace(/’/g, "'");
+  const first = (norm.match(/^[\p{L}\p{N}'-]+/u) ?? [''])[0];
+  if (ANAPHORIC_OPENERS.has(first)) return false;
+  return !CONNECTOR_PREFIXES.some((c) => norm.startsWith(`${c} `));
+}
+
+/**
+ * true when a passage can open on its own AND reads as a polished standalone
+ * sentence: `opensWithoutBackreference` plus an uppercase-letter/digit start. The
+ * extra bar is what an *answer unit* needs — a fragment an engine quotes verbatim —
+ * and is stricter than what a retrieval window needs.
+ */
+export function isSelfSufficientStart(text: string): boolean {
+  return /^[\p{Lu}\p{N}]/u.test(text) && opensWithoutBackreference(text);
+}
+
+/** A digit sequence, or an entity proxy: a capitalized token that does not open a sentence. */
+export function hasFactAnchor(text: string): boolean {
+  if (/\d/.test(text)) return true;
+  const tokens = text.split(/\s+/);
+  for (let i = 1; i < tokens.length; i += 1) {
+    if (/^[\p{Lu}]/u.test(tokens[i]) && !/[.!?:]$/.test(tokens[i - 1])) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Shingle-hash near-duplicate detection (content-uniqueness)
 // ---------------------------------------------------------------------------
 

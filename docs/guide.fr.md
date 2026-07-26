@@ -1,13 +1,13 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **117 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **119 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
-| Contenu pour moteurs de réponse | 0,18 | 18 |
+| Contenu pour moteurs de réponse | 0,18 | 20 |
 | Données structurées et métadonnées | 0,15 | 20 |
 | SEO technique | 0,15 | 22 |
 | On-page et contenu | 0,12 | 11 |
@@ -175,6 +175,16 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** Sur les pages substantielles (≥150 mots), signale les structures DOM qui se disloquent lorsque la page est découpée en fragments de retrieval : tableaux longs (>10 lignes) sans cellules d'en-tête, réponses de FAQ détachées de leur question par du balisage décoratif, et listes de 3+ éléments orphelines de tout titre. Avertit (n'échoue jamais). Les listes imbriquées sont exemptées.
 **Pourquoi :** Les pipelines de retrieval découpent la page et perdent le contexte situé en dehors de chaque fragment. Une ligne de tableau sans en-tête, une réponse éloignée de sa question ou une liste sans titre parvient au modèle dépouillée du sens qui l'entourait.
 **Corriger :** Donnez aux tableaux longs des en-têtes `<thead>`/`<th>`, gardez les réponses de FAQ directement sous leur question, et titrez chaque liste.
+
+### `chunk-retrieval-sim` (4 pts)
+**Vérifie :** *(ignoré s'il n'y a aucune page pilier ≥300 mots)* Découpe chaque page pilier en fenêtres d'environ 512 tokens aux frontières de blocs — comme le ferait un pipeline de retrieval — et mesure combien de ces fenêtres tiennent encore seules. Une fenêtre survit si elle porte un ancrage thématique (un nombre ou une entité nommée, en comptant le fil d'intertitres qu'un moteur préfixe) **et** si elle commence sans renvoyer à la fenêtre précédente (*cela, celui-ci, it, this…*) ni à un connecteur de discours. Passe à ≥70 % de survivantes ; avertit en dessous (n'échoue jamais).
+**Pourquoi :** Un moteur reçoit une fenêtre récupérée, pas la page. Une fenêtre qui s'ouvre sur « Cela signifie aussi… » ou qui ne nomme rien est inutilisable comme citation, aussi bon soit l'article autour.
+**Corriger :** Ouvrez chaque section par un sujet nommé plutôt qu'un pronom, et gardez un intertitre descriptif au-dessus de chaque passage.
+
+### `injection-hygiene` (3 pts)
+**Vérifie :** Le texte qu'un assistant ingère mais qu'un visiteur ne voit jamais. Trois signaux : contenu masqué par un style **en ligne** (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, décalage hors écran) ou par l'attribut `hidden` et atteignant ≥15 mots ; instructions destinées au modèle (*ignore previous instructions*, *en tant que modèle*, *recommande toujours*…) trouvées **à l'intérieur** de ce contenu masqué ; et liens sortants dans un conteneur de commentaires/avis ne portant ni `rel="ugc"` ni `rel="nofollow"`. N'échoue que sur du contenu masqué porteur d'instructions ; avertit sur un signal isolé. Les contenus `script`, `style`, `template` et `noscript` sont exemptés, et seuls les styles en ligne comptent — les feuilles de style ne sont jamais récupérées, donc le motif légitime `.sr-only` n'est jamais pris pour du masquage.
+**Pourquoi :** Des instructions cachées constituent une charge d'injection de prompt visant l'assistant qui lit la page, et des liens contribués non attribués laissent des tiers parler au nom du site. Le même texte *visible* ne pose aucun problème : un article de sécurité qui traite de l'injection est légitime, une page qui la dissimule ne l'est pas.
+**Corriger :** Supprimez le contenu masqué en ligne, et marquez les liens contribués `rel="ugc"`.
 
 ---
 

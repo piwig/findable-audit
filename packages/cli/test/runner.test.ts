@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(117);
+    expect(report.results).toHaveLength(119);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -28,9 +28,10 @@ describe('runAudit', () => {
     // csr-content-parity and ai-serving-parity both run and pass on this fixture.
     // The 4 GEO-advanced checks skip on this homepage-only fixture: freshness-coherence
     // (< 2 freshness sources), hedging-rate/chunk-boundary (no substantial page) and
-    // answer-units (no pillar page ≥300 words).
+    // answer-units (no pillar page ≥300 words). Of the LOT 5 pair, chunk-retrieval-sim
+    // skips for the same reason as answer-units; injection-hygiene runs and passes.
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'chunk-boundary', 'content-author-eeat',
+      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
       'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
       'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexnow', 'internal-linking',

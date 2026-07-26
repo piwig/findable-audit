@@ -10,7 +10,7 @@ import {
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
   aboutContact, wellKnownAiJson,
 } from '../../src/checks/llm-content.js';
-import { isQuestionHeading } from '../../src/checks/content.js';
+import { isQuestionHeading, opensWithoutBackreference, isSelfSufficientStart } from '../../src/checks/content.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 const closers: Array<() => Promise<void>> = [];
@@ -261,6 +261,32 @@ describe('isQuestionHeading', () => {
     for (const h of ['However we ship weekly', 'Documentation des crawlers', 'Whichever you pick', 'Commentaires des clients']) {
       expect(isQuestionHeading(h), h).toBe(false);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Passage openings: two bars, one for retrieval windows and a stricter one for
+// quotable answer units.
+// ---------------------------------------------------------------------------
+
+describe('opensWithoutBackreference vs isSelfSufficientStart', () => {
+  it('both reject an anaphoric or connector opening, in FR and EN', () => {
+    for (const t of ['It also helps us plan.', 'Cela aide aussi.', 'However we ship weekly.', 'Par ailleurs nous livrons.']) {
+      expect(opensWithoutBackreference(t), t).toBe(false);
+      expect(isSelfSufficientStart(t), t).toBe(false);
+    }
+  });
+  it('both accept a named subject', () => {
+    const t = 'Example Bakery opens at seven every morning.';
+    expect(opensWithoutBackreference(t)).toBe(true);
+    expect(isSelfSufficientStart(t)).toBe(true);
+  });
+  // A lowercase brand is readable in a retrieval window but is not the polished
+  // sentence an answer unit is meant to be — so only the stricter bar rejects it.
+  it('differ on a lowercase brand name opening', () => {
+    const t = 'findable-audit measures how findable a site is for ChatGPT.';
+    expect(opensWithoutBackreference(t)).toBe(true);
+    expect(isSelfSufficientStart(t)).toBe(false);
   });
 });
 

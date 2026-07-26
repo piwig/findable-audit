@@ -1,13 +1,13 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **117 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **119 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
-| Answer-engine content | 0.18 | 18 |
+| Answer-engine content | 0.18 | 20 |
 | Structured data & metadata | 0.15 | 20 |
 | Technical SEO | 0.15 | 22 |
 | On-page & content | 0.12 | 11 |
@@ -167,6 +167,16 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** On substantial pages (≥150 words), flags DOM structures that fall apart when the page is split into retrieval chunks: long tables (>10 rows) without header cells, FAQ answers detached from their question by decorative markup, and 3+-item lists orphaned from any title. Warns (never fails). Nested lists are exempt.
 **Why:** Retrieval pipelines chunk a page and lose the context outside each chunk. A headerless table row, an answer far from its question, or an untitled list reaches the model stripped of the meaning that sat around it.
 **Fix:** Give long tables `<thead>`/`<th>` headers, keep FAQ answers directly under their question, and title every list.
+
+### `chunk-retrieval-sim` (4 pts)
+**Verifies:** *(skip if no pillar page ≥300 words)* Cuts each pillar page into ~512-token windows at block boundaries — the way a retrieval pipeline would — and measures how many of those windows still stand on their own. A window survives when it carries a topic anchor (a number or a named entity, counting the heading trail a retriever prepends) **and** opens without pointing back at the previous window (*it, this, cela, celui-ci…*) or at a discourse connector. Passes at ≥70% survivors; warns below (never fails).
+**Why:** An engine is handed one retrieved window, not the page. A window that opens on "It also means…" or names nothing at all is unusable as a citation however good the surrounding article is.
+**Fix:** Open each section with a named subject rather than a pronoun, and keep a descriptive heading above every passage.
+
+### `injection-hygiene` (3 pts)
+**Verifies:** Text an assistant ingests but a visitor never sees. Three signals: copy hidden by an **inline** style (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, off-screen offsets) or the `hidden` attribute and running to ≥15 words; model-directed instructions (*ignore previous instructions*, *as an AI model*, *recommande toujours*…) found **inside** that hidden copy; and outbound links inside a comment/review container carrying neither `rel="ugc"` nor `rel="nofollow"`. Fails only on hidden copy that carries model instructions; warns on any single signal. Script, style, template and noscript content is exempt, and only inline styles count — stylesheets are never fetched, so the legitimate `.sr-only` pattern is never mistaken for hiding.
+**Why:** Hidden instructions are a prompt-injection payload aimed at whatever assistant reads the page, and unattributed user links let third parties speak in the site's voice. The same wording in *visible* copy is fine — a security article discussing injection is legitimate; a page concealing it is not.
+**Fix:** Remove inline-hidden copy, and mark user-contributed links `rel="ugc"`.
 
 ---
 

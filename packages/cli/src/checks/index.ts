@@ -43,6 +43,7 @@ import {
 } from './performance-cwv.js';
 import { entityGraphConnectivity } from './entity-graph.js';
 import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
+import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -52,6 +53,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, imagesAlt,
     freshnessCoherence, hedgingRate, answerUnits, chunkBoundary,
+    chunkRetrievalSim, injectionHygiene,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,
     metaRobotsNoindex, uniqueTitles, brokenInternalLinks, redirectHygiene, hreflang,

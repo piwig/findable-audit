@@ -77,6 +77,14 @@ test('sitemap lastmod and JSON-LD dateModified agree (freshness-coherence)', () 
   assert.equal(check('freshness-coherence').status, 'pass', why('freshness-coherence'));
 });
 
+test('every retrieval window still stands on its own (chunk-retrieval-sim)', () => {
+  assert.equal(check('chunk-retrieval-sim').status, 'pass', why('chunk-retrieval-sim'));
+});
+
+test('nothing is hidden from readers but fed to assistants (injection-hygiene)', () => {
+  assert.equal(check('injection-hygiene').status, 'pass', why('injection-hygiene'));
+});
+
 test('the landing keeps semantic list markup for families and steps', async () => {
   const html = await (await fetch(`${base}/en/`)).text();
   assert.match(html, /<ul class="ld-chips">/);

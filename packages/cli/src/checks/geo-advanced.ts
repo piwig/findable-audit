@@ -4,7 +4,7 @@ import { makeResult } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { extractJsonLd, flatten, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
-import { mainContent, isQuestionHeading } from './content.js';
+import { mainContent, isQuestionHeading, isSelfSufficientStart, hasFactAnchor } from './content.js';
 import { discoverSitemap, parseSitemapEntries } from './sitemap.js';
 import { canonicalIdentity } from './canonical.js';
 
@@ -174,31 +174,8 @@ export const hedgingRate: Check = {
 const UNIT_MIN_WORDS = 8;
 const UNIT_MAX_WORDS = 40;
 
-const ANAPHORIC_OPENERS = new Set([
-  'it', 'this', 'that', 'these', 'those', 'they', 'he', 'she', 'such',
-  'il', 'ils', 'elle', 'elles', 'cela', 'ceci', "c'est", 'ce', 'cette', 'ces', 'celui', 'celle', 'ceux',
-  'however', 'moreover', 'therefore', 'also', 'cependant', 'toutefois', 'donc', 'ainsi',
-]);
-const CONNECTOR_PREFIXES = ['de plus', 'en outre', 'par ailleurs'];
-
-/** Starts with an uppercase letter/digit and not with an anaphoric opener or connector. */
-function isSelfSufficientStart(text: string): boolean {
-  if (!/^[\p{Lu}\p{N}]/u.test(text)) return false;
-  const norm = text.toLowerCase().replace(/’/g, "'");
-  const first = (norm.match(/^[\p{L}\p{N}'-]+/u) ?? [''])[0];
-  if (ANAPHORIC_OPENERS.has(first)) return false;
-  return !CONNECTOR_PREFIXES.some((c) => norm.startsWith(`${c} `));
-}
-
-/** A digit sequence, or an entity proxy: a capitalized token not opening a sentence. */
-function hasFactAnchor(text: string): boolean {
-  if (/\d/.test(text)) return true;
-  const tokens = text.split(/\s+/);
-  for (let i = 1; i < tokens.length; i += 1) {
-    if (/^[\p{Lu}]/u.test(tokens[i]) && !/[.!?:]$/.test(tokens[i - 1])) return true;
-  }
-  return false;
-}
+// isSelfSufficientStart / hasFactAnchor now live in checks/content.ts: LOT 5's
+// chunk-retrieval-sim applies the same two primitives at chunk scale.
 
 /** true when a block reads as a liftable answer unit (spec QW3). */
 export function isAnswerUnit(text: string): boolean {

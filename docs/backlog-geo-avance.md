@@ -12,13 +12,15 @@ Grille d'organisation : **retrieval → selection → generation** (taxonomie Ag
 | QW3 | 🎯 **Citabilité par passage** | « unités de réponse » : affirmation directe + chiffre/date/entité + autosuffisante + < N mots | selection | moyen — heuristique AST |
 | QW4 | ✂️ **Chunk-boundary hygiene** | tableaux sans en-têtes répétés, réponses FAQ séparées de leur question, listes orphelines de leur titre | generation | moyen — DOM pur |
 
-## LOT 5 recommandé (socle chunker partagé)
+## LOT 5 — socle chunker partagé ✅ livré (2026-07-26, 117 → 119)
 
-| Idée | Principe | Note |
-|------|----------|------|
-| 🧪 **RAG twin / retrieval-sim** | chunker ~512 tokens + score d'autosuffisance par chunk (pronoms sans antécédent, entité absente) | LE moonshot crawl-only |
-| 🧼 **Injection-hygiene** | texte caché, impératifs machine, UGC non délimité | la propreté devient facteur de citation |
-| 🔁 **Self-containment anaphorique** | ratio de phrases qui ne survivent pas à l'extraction isolée | fusionne avec retrieval-sim |
+Spec : `docs/superpowers/specs/2026-07-26-lot5-chunker.md`.
+
+| Idée | Livré comme | Note |
+|------|-------------|------|
+| 🧪 **RAG twin / retrieval-sim** | `chunk-retrieval-sim` (4 pts, llm-content) | chunker ~512 tokens dans `checks/chunker.ts` (pur, sans ctx) ; part des fenêtres qui survivent à l'extraction isolée, ancrage compté sur le fil d'intertitres |
+| 🔁 **Self-containment anaphorique** | *fusionné* dans `chunk-retrieval-sim` | comme prévu par ce backlog : le test d'ouverture sans renvoi arrière est la moitié du verdict |
+| 🧼 **Injection-hygiene** | `injection-hygiene` (3 pts, llm-content) | texte masqué **en ligne** uniquement (pas de CSS récupéré → pas de faux positif `.sr-only`), échec réservé au texte masqué porteur d'instructions modèle, liens UGC sans `rel="ugc"` |
 
 ## LOT 6+ (standards à laisser mûrir / coût réseau)
 
