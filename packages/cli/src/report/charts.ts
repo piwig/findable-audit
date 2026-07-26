@@ -23,6 +23,19 @@ export const COMPARE_SERIES = ['#1a7f37', '#2a78d6', '#4a3aa7'] as const;
 
 const FONT = '-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif';
 
+/**
+ * Neutral tokens as CSS variables with their light-theme value as fallback.
+ * Inline SVG in an HTML document resolves custom properties, so the dark theme
+ * flips them with the rest of the report; a chart lifted out of the document
+ * (or rendered without the stylesheet) still gets the literal light values.
+ * Status colours stay literal — they MEAN good/warn/bad and must not drift.
+ */
+const INK = 'var(--ink, #1a1a1a)';
+const MUTED = 'var(--muted, #555)';
+const FAINT = 'var(--faint, #888)';
+const TRACK = 'var(--track, #eee)';
+const TRACK_BAR = 'var(--track, #f2f2f2)';
+
 /** Canonical family order (same source as every renderer). */
 const CANON = Object.keys(FAMILY_LABELS_I18N.en) as Family[];
 
@@ -69,9 +82,9 @@ export function renderScoreGauge(score: number, grade: string, lang: Lang): stri
     : '';
   return `<svg class="viz-gauge" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="${esc(label)}" xmlns="http://www.w3.org/2000/svg">
 <title>${esc(label)}</title>
-<circle cx="60" cy="60" r="52" fill="none" stroke="#eee" stroke-width="10"/>${arc}
-<text x="60" y="66" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="800" fill="#1a1a1a">${s}</text>
-<text x="60" y="84" text-anchor="middle" font-family="${FONT}" font-size="12" fill="#555">/100 · ${esc(grade)}</text>
+<circle cx="60" cy="60" r="52" fill="none" stroke="${TRACK}" stroke-width="10"/>${arc}
+<text x="60" y="66" text-anchor="middle" font-family="${FONT}" font-size="30" font-weight="800" fill="${INK}">${s}</text>
+<text x="60" y="84" text-anchor="middle" font-family="${FONT}" font-size="12" fill="${MUTED}">/100 · ${esc(grade)}</text>
 </svg>`;
 }
 
@@ -98,13 +111,13 @@ export function renderPriorityBars(familyScores: FamilyScore[], lang: Lang): str
     // otherwise just past the tip (never clipped by its own mark).
     const lostText = w >= 60
       ? `<text x="${150 + w - 6}" y="${y0 + 20}" text-anchor="end" font-family="${FONT}" font-size="11" fill="#fff">${lostLabel}</text>`
-      : `<text x="${150 + w + 6}" y="${y0 + 20}" font-family="${FONT}" font-size="11" fill="#555">${lostLabel}</text>`;
+      : `<text x="${150 + w + 6}" y="${y0 + 20}" font-family="${FONT}" font-size="11" fill="${MUTED}">${lostLabel}</text>`;
     return `<g><title>${esc(longLabel[r.family])}: ${r.score}/100, ${lostLabel}</title>
-<text x="142" y="${y0 + 20}" text-anchor="end" font-family="${FONT}" font-size="12" fill="#1a1a1a">${esc(shortLabel[r.family])}</text>
-<rect x="150" y="${y0 + 9}" width="330" height="14" rx="4" fill="#f2f2f2"/>
+<text x="142" y="${y0 + 20}" text-anchor="end" font-family="${FONT}" font-size="12" fill="${INK}">${esc(shortLabel[r.family])}</text>
+<rect x="150" y="${y0 + 9}" width="330" height="14" rx="4" fill="${TRACK_BAR}"/>
 ${bar(150, y0 + 9, w, 14, statusColor(r.score))}
 ${lostText}
-<text x="556" y="${y0 + 20}" text-anchor="end" font-family="${FONT}" font-size="11" fill="#888">${r.score}/100</text>
+<text x="556" y="${y0 + 20}" text-anchor="end" font-family="${FONT}" font-size="11" fill="${FAINT}">${r.score}/100</text>
 </g>`;
   }).join('\n');
   return `<svg class="viz-bars-svg" viewBox="0 0 560 ${height}" role="img" aria-label="${esc(m.vizTitle)}" xmlns="http://www.w3.org/2000/svg">

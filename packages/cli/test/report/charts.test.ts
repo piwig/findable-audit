@@ -58,14 +58,17 @@ describe('renderScoreGauge', () => {
   it('omits the value arc entirely at score 0 (no rounded-cap dot artifact)', () => {
     const svg = renderScoreGauge(0, 'F', 'en');
     expect(svg).not.toContain('stroke-dasharray');
-    expect(svg).toContain('stroke="#eee"'); // track still present
+    expect(svg).toContain('stroke="var(--track, #eee)"'); // track still present
   });
   it('is accessible: role=img + localized aria-label + <title>, number in ink not series color', () => {
     const en = renderScoreGauge(72, 'C', 'en');
     expect(en).toMatch(/<svg[^>]*role="img"/);
     expect(en).toContain('aria-label="Overall score: 72 out of 100 — grade C"');
     expect(en).toContain('<title>Overall score: 72 out of 100 — grade C</title>');
-    expect(en).toContain('fill="#1a1a1a">72</text>'); // hero number wears a text token
+    // The hero number wears a text token, not a series colour. The token is a
+    // CSS variable so the dark theme flips it, with the light value as fallback
+    // for a chart lifted out of the document.
+    expect(en).toContain('fill="var(--ink, #1a1a1a)">72</text>');
     const fr = renderScoreGauge(72, 'C', 'fr');
     expect(fr).toContain('aria-label="Score global : 72 sur 100 — note C"');
   });
@@ -207,19 +210,25 @@ describe('renderDiffHtmlSection delta indicators', () => {
 describe('report integration', () => {
   const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
 
-  it('adds a viz section (gauge + priority bars) to the single-audit report', () => {
-    expect(html).toContain('<section class="viz">');
+  it('puts the gauge in the verdict card and the priority bars in the folded breakdown', () => {
+    // Layer 1 carries exactly ONE score visual: the gauge, inside the hero.
+    expect(html).toMatch(/<header class="hero">\s*<svg class="viz-gauge"/);
     expect(html).toContain('stroke-dasharray="72 28"');
-    expect(html).toContain('Where to regain points');
+    // The bars moved down into the 8-family breakdown, which is folded by default.
+    expect(html).toMatch(/<details class="breakdown">[\s\S]*Where to regain points/);
   });
-  it('keeps the existing hero and subscore table untouched (additive)', () => {
-    expect(html).toMatch(/class="hero-score[^"]*">72</);
+  it('shows the score exactly once as a visual, and keeps the subscore table', () => {
+    // The old hero pastille duplicated the gauge's number — it is gone.
+    expect(html).not.toContain('hero-score');
+    expect((html.match(/class="viz-gauge"/g) ?? []).length).toBe(1);
     expect(html).toContain('class="subscore-table"');
   });
-  it('omits the viz section when familyScores is empty (mirrors subscores)', () => {
+  it('omits the family breakdown when familyScores is empty, but keeps the verdict gauge', () => {
     const none = renderHtml({ ...report, familyScores: [] }, new Date('2026-07-20T00:00:00Z'));
-    expect(none).not.toContain('<section class="viz">');
-    expect(none).not.toContain('stroke-dasharray');
+    expect(none).not.toContain('<details class="breakdown">');
+    expect(none).not.toContain('Where to regain points');
+    // The overall score still exists, so layer 1 still shows it.
+    expect(none).toContain('class="viz-gauge"');
   });
   it('renders in French', () => {
     const fr = renderHtml(report, new Date('2026-07-20T00:00:00Z'), 'fr');

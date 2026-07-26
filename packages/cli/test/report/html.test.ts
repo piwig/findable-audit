@@ -123,25 +123,97 @@ describe('renderHtml', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
-  it('shows a verdict line and a stats line in the hero', () => {
-    // report has grade C and 1 failing check (llms-txt)
-    expect(html).toMatch(/priority/i);            // verdict text for grade C
+  it('states the verdict in plain language, not an adjective, plus a stats line', () => {
+    // The weakest axis here is "understood" (llm-content 0, structured-data 100),
+    // and it is under 60 -> the strong wording of that axis.
     expect(html).toContain('class="hero"');
+    expect(html).toMatch(/it can describe you, it cannot cite you/);
     expect(html).toMatch(/2 to fix/);          // 1 fail + 1 warn ('evil') => 2
   });
-  it('shows an effort estimate on each action-plan item', () => {
-    expect(html).toContain('class="ap-effort');
-    expect(html).toMatch(/Quick win|Moderate|Involved/); // llms-txt=Moderate, evil=Quick win
+  it('regroups the eight families into three reader-facing axes', () => {
+    expect(html).toContain('class="axes"');
+    for (const axis of ['Reachable', 'Understood', 'Usable']) expect(html).toContain(axis);
+    // ai-access / technical-seo are absent from this fixture -> that axis is n/a,
+    // never a misleading 0.
+    expect(html).toMatch(/<div class="axis-score">n\/a<\/div>/);
   });
-  it('renders a prioritized action plan with severity groups and impact', () => {
+  it('offers four anchors in a sticky bar (no JS)', () => {
+    expect(html).toContain('class="tocbar"');
+    for (const id of ['#verdict', '#plan', '#cwv', '#detail']) expect(html).toContain(`href="${id}"`);
+    expect(html).toMatch(/position:\s*sticky/);
+  });
+  it('groups the action plan into effort lanes with a real score projection', () => {
     expect(html).toContain('Action plan');
-    expect(html).toMatch(/Fix first/);   // fails group (llms-txt)
-    expect(html).toContain('Add a /llms.txt file.');    // the fix text
-    expect(html).toMatch(/\+\d+ pts/);                  // impact badge
+    expect(html).toContain('class="lane"');
+    expect(html).toMatch(/Quick wins|Moderate|Bigger projects/); // llms-txt=Moderate, evil=Quick win
+    expect(html).toContain('Add a /llms.txt file.');             // the fix text
+    expect(html).toMatch(/\+\d+ pts/);                           // impact badge
+    // The projection is the recomputed score, not a point sum: fixing llms-txt
+    // alone (llm-content 0 -> 10/10) re-blends the weighted subscores to 91.
+    expect(html).toContain('the 1 of them: 72 → 91 (A)');
+  });
+  it('names the offending paths on a plan item (says WHERE, not only what)', () => {
+    const withPaths = renderHtml({
+      ...report,
+      results: [{ ...report.results[0], message: 'no <h1> on /a and /b/c' }],
+    }, new Date('2026-07-20T00:00:00Z'));
+    expect(withPaths).toContain('class="ap-where"');
+    expect(withPaths).toContain('<code>/a</code>');
+    expect(withPaths).toContain('<code>/b/c</code>');
+  });
+  it('carries a ready-to-paste snippet in the per-item "how to do it"', () => {
+    expect(html).toContain('class="ap-how"');
+    expect(html).toContain('How to do it');
+    expect(html).toContain('class="snippet"');  // llms-txt has a catalogued snippet
   });
   it('adds a doc link next to the fix in the per-family check table', () => {
     // llms-txt is a failing llm-content check -> family fallback docUrl (llmstxt.org)
     expect(html).toMatch(/class="fix">Add a \/llms\.txt file\.[\s\S]*?href="https:\/\/llmstxt\.org\/"/);
+  });
+});
+
+describe('renderHtml layer 3 — the detail', () => {
+  const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
+
+  it('leads each row with the human title and demotes the technical id to a tag', () => {
+    expect(html).toContain('<span class="ck-title">The /llms.txt orientation file</span>');
+    expect(html).toContain('<code class="ck-id">llms-txt</code>');
+  });
+  it('folds the passing checks behind a disclosure that counts them', () => {
+    // structured-data has exactly one passing check (json-ld) in this fixture.
+    expect(html).toContain('<details class="pass-list">');
+    expect(html).toContain('Show the 1 passing check');
+    // …and a family with no issue at all says so rather than showing an empty table.
+    expect(html).toContain('class="fam-none"');
+  });
+  it('folds the 8-family breakdown rather than leading with it', () => {
+    expect(html).toMatch(/<details class="breakdown">\s*<summary>The detail of the 8 scoring families/);
+  });
+});
+
+describe('renderHtml theming', () => {
+  const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
+
+  it('ships a dark theme driven by the same tokens as the charts', () => {
+    expect(html).toContain('color-scheme: light dark');
+    expect(html).toMatch(/@media\s*\(prefers-color-scheme:\s*dark\)/);
+    // The gauge reads the report's tokens, so it flips with the page.
+    expect(html).toContain('var(--ink, #1a1a1a)');
+  });
+  it('does not tint the whole page with the grade colour', () => {
+    // Only status-bearing elements carry a band class; the verdict card itself
+    // is neutral (its background is the panel token, not the grade colour).
+    expect(html).toMatch(/\.hero \{[^}]*background: var\(--panel\)/);
+  });
+});
+
+describe('renderHtml stats line', () => {
+  it('agrees with itself on the page plural (1 page, not "1 pages")', () => {
+    const one = renderHtml({ ...report, sampledPages: ['/'] }, new Date('2026-07-20T00:00:00Z'));
+    expect(one).toContain('1 page<');
+    expect(one).not.toContain('1 pages');
+    const two = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
+    expect(two).toContain('2 pages');
   });
 });
 
@@ -176,12 +248,12 @@ describe('renderHtml in French', () => {
     expect(html).toContain('<html lang="fr">');
     expect(html).toContain('Rapport findable-audit');
     expect(html).toContain('<span class="grade ok">Note C</span>');
-    expect(html).toMatch(/priorité/);              // FR verdict for grade C
+    expect(html).toMatch(/il peut vous décrire, pas vous citer/); // FR verdict sentence
     expect(html).toMatch(/2 à corriger/);          // FR stats
     expect(html).toContain('Sous-scores par catégorie');
     expect(html).toContain("Plan d'action");
-    expect(html).toMatch(/À corriger en priorité/);
-    expect(html).toMatch(/À améliorer/);
+    expect(html).toContain('Compréhensible');      // FR axis label
+    expect(html).toMatch(/Rapide|Modéré|Chantier/); // FR effort lanes
     expect(html).toContain('Pages auditées :');
     expect(html).toContain('En savoir plus →');
   });

@@ -19,7 +19,7 @@ findable-audit scores a site out of 100 across **120 checks in 8 families**. Thi
 
 **Statuses:** `OK` (pass, full points), `!!` (warn, half points), `XX` (fail, 0 points), `--` (skip). **Skipped checks are excluded from scoring** — a site is never penalized for a check that doesn't apply to it (no Product page, single language, no `--cwv`, etc.). Entries below marked *(skip when …)* only run when their precondition is met.
 
-The HTML and Markdown reports open with a one-line verdict and include a prioritized action plan (biggest wins first, with "Learn more" links) — near the top in the HTML report, near the end in Markdown. Run with `--cwv --psi-key <key>` to add Core Web Vitals — a radial-gauge dashboard in the HTML report and a metrics table in Markdown (field/CrUX vs lab/Lighthouse).
+The HTML report is laid out in three layers — the verdict (one score visual, a plain-language sentence, three axes), the plan (fixes grouped in effort lanes, each lane showing the score it would reach), then the detail (every check, human title first, passing ones folded). The Markdown report carries the same verdict and the same action plan, near the end. Run with `--cwv --psi-key <key>` to add Core Web Vitals — a radial-gauge dashboard in the HTML report and a metrics table in Markdown (field/CrUX vs lab/Lighthouse).
 
 ---
 

@@ -4,7 +4,7 @@ import { verdictOf } from './verdict.js';
 import { renderCwvMarkdown } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
-import { checkWhy, checkFix } from './check-i18n.js';
+import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
 import { renderDiffMarkdown, type ReportDiff } from './diff.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
@@ -55,7 +55,9 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     for (const r of results) {
       const why = checkWhy(r.id, lang);
       const msg = why ? `${cell(r.message)} — _${cell(why)}_` : cell(r.message);
-      lines.push(`| ${ICONS[r.status]} | \`${r.id}\` | ${r.points}/${r.maxPoints} | ${msg} |`);
+      // The human title leads, the technical id follows in code — same order as
+      // the HTML report, so a reader moving between the two formats is not lost.
+      lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${r.id}\` | ${r.points}/${r.maxPoints} | ${msg} |`);
     }
     lines.push('');
   }
@@ -66,7 +68,8 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     for (const r of recs) {
       const link = r.docUrl ? ` — [${m.mdDoc}](${r.docUrl})` : '';
       const fix = checkFix(r.id, lang, r.fix) ?? r.fix;
-      lines.push(`- ${ICONS[r.status]} **\`${r.id}\`** (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${fix}${link}`);
+      const where = r.offenders.length > 0 ? ` — ${m.planWhere} ${r.offenders.map((p) => `\`${p}\``).join(' ')}` : '';
+      lines.push(`- ${ICONS[r.status]} **${cell(checkTitle(r.id, lang))}** \`${r.id}\` (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${fix}${link}${where}`);
     }
     lines.push('');
   }

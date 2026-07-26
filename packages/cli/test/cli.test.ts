@@ -106,7 +106,8 @@ describe('findable CLI binary', () => {
       expect(readFileSync(md, 'utf8')).toContain('# findable-audit — ');
       const h = readFileSync(html, 'utf8');
       expect(h.trimStart()).toMatch(/^<!doctype html/i);
-      expect(h).toMatch(/class="hero-score[^"]*">100</);
+      // The score lives in the verdict gauge (one score visual, layer 1).
+      expect(h).toMatch(/class="viz-gauge"[\s\S]*?>100<\/text>/);
       expect(h).toContain('Grade A');
     } finally {
       rmSync(md, { force: true });
