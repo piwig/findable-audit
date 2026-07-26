@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "findable-audit",
+  "owner": {
+    "name": "piwig"
+  },
+  "metadata": {
+    "description": "SEO + GEO (AI findability) skills backed by the findable-audit CLI"
+  },
+  "plugins": [
+    {
+      "name": "findable-audit",
+      "source": "./plugin",
+      "version": "0.2.0",
+      "category": "development",
+      "description": "Audit and implement AI-search visibility (GEO) and technical SEO. Three skills: geo-audit runs the findable-audit CLI on a URL and turns the report into a fix plan ordered by the points you are losing; geo-implement generates the indexing artifacts for a static site (robots.txt, llms.txt, llms-full.txt, JSON-LD, sitemap wiring, IndexNow); fix-technical-seo fixes the canonical, redirect, on-page, security-header and accessibility findings.",
+      "keywords": [
+        "seo",
+        "geo",
+        "ai-search",
+        "llms-txt",
+        "structured-data",
+        "core-web-vitals",
+        "accessibility",
+        "audit"
+      ],
+      "homepage": "https://github.com/piwig/findable-audit"
+    }
+  ]
+}

@@ -290,11 +290,13 @@ You can also emit SARIF straight from the CLI: `findable-audit https://your-site
 
 ## Claude Code plugin
 
-findable-audit ships as a Claude Code plugin with three skills:
+findable-audit ships as a Claude Code plugin with three skills. This repository is
+its own plugin marketplace, so installing it takes two commands:
 
 ```bash
 # in Claude Code
-/plugin install findable-audit
+/plugin marketplace add piwig/findable-audit
+/plugin install findable-audit@findable-audit
 ```
 
 - **`geo-audit`** — runs `findable-audit` on a URL, interprets the JSON report and turns it into a prioritized fix plan, ordered by the points you are losing.
