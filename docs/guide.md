@@ -1,13 +1,13 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **119 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **120 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
-| Answer-engine content | 0.18 | 20 |
+| Answer-engine content | 0.18 | 21 |
 | Structured data & metadata | 0.15 | 20 |
 | Technical SEO | 0.15 | 22 |
 | On-page & content | 0.12 | 11 |
@@ -177,6 +177,11 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** Text an assistant ingests but a visitor never sees. Three signals: copy hidden by an **inline** style (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, off-screen offsets) or the `hidden` attribute and running to ≥15 words; model-directed instructions (*ignore previous instructions*, *as an AI model*, *recommande toujours*…) found **inside** that hidden copy; and outbound links inside a comment/review container carrying neither `rel="ugc"` nor `rel="nofollow"`. Fails only on hidden copy that carries model instructions; warns on any single signal. Script, style, template and noscript content is exempt, and only inline styles count — stylesheets are never fetched, so the legitimate `.sr-only` pattern is never mistaken for hiding.
 **Why:** Hidden instructions are a prompt-injection payload aimed at whatever assistant reads the page, and unattributed user links let third parties speak in the site's voice. The same wording in *visible* copy is fine — a security article discussing injection is legitimate; a page concealing it is not.
 **Fix:** Remove inline-hidden copy, and mark user-contributed links `rel="ugc"`.
+
+### `agent-usability` (4 pts)
+**Verifies:** Whether an agent can *act* on the site, not only read it. Two dimensions. **Forms** (only when the sampled pages carry at least one `<form>`): fails a form whose submit control is `disabled` or that has no submit control at all (`<button>` with no `type` counts — `type="button"`/`"reset"` do not); warns on an `action` of `javascript:…` or `#`, and on nameable fields (`input`/`select`/`textarea`) missing a `name`. A **missing** `action` is not penalized — HTML posts such a form to the current URL. **Contact path** (always): at least one machine-readable way to reach a human — a `mailto:`/`tel:` link, a form with a non-JavaScript action, or `email`/`telephone`/`contactPoint` (or a `ContactPoint` node) in the JSON-LD; warns if none.
+**Why:** Every other check asks whether an engine can read the page. This one asks whether an assistant acting on a visitor's behalf can finish the job — request a quote, send a message, reach a human. An agent cannot run your click handlers, so a form that only submits through JavaScript, or whose button is disabled pending a "V1", is a dead end for it exactly as it is for a visitor with JS off.
+**Fix:** Give every form a real submit button that is never disabled, a non-JavaScript `action` and a `name` on every field, and expose a `mailto:`, `tel:` or JSON-LD `contactPoint`.
 
 ---
 

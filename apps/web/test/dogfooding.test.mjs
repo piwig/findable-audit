@@ -85,6 +85,12 @@ test('nothing is hidden from readers but fed to assistants (injection-hygiene)',
   assert.equal(check('injection-hygiene').status, 'pass', why('injection-hygiene'));
 });
 
+// Both landing forms are plain GET forms with a real action and named inputs, and
+// /contact declares a ContactPoint — so an agent can run an audit here without JS.
+test('an agent can actually submit our own forms (agent-usability)', () => {
+  assert.equal(check('agent-usability').status, 'pass', why('agent-usability'));
+});
+
 test('the landing keeps semantic list markup for families and steps', async () => {
   const html = await (await fetch(`${base}/en/`)).text();
   assert.match(html, /<ul class="ld-chips">/);

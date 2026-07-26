@@ -1,13 +1,13 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **119 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **120 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
-| Contenu pour moteurs de réponse | 0,18 | 20 |
+| Contenu pour moteurs de réponse | 0,18 | 21 |
 | Données structurées et métadonnées | 0,15 | 20 |
 | SEO technique | 0,15 | 22 |
 | On-page et contenu | 0,12 | 11 |
@@ -185,6 +185,11 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** Le texte qu'un assistant ingère mais qu'un visiteur ne voit jamais. Trois signaux : contenu masqué par un style **en ligne** (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, décalage hors écran) ou par l'attribut `hidden` et atteignant ≥15 mots ; instructions destinées au modèle (*ignore previous instructions*, *en tant que modèle*, *recommande toujours*…) trouvées **à l'intérieur** de ce contenu masqué ; et liens sortants dans un conteneur de commentaires/avis ne portant ni `rel="ugc"` ni `rel="nofollow"`. N'échoue que sur du contenu masqué porteur d'instructions ; avertit sur un signal isolé. Les contenus `script`, `style`, `template` et `noscript` sont exemptés, et seuls les styles en ligne comptent — les feuilles de style ne sont jamais récupérées, donc le motif légitime `.sr-only` n'est jamais pris pour du masquage.
 **Pourquoi :** Des instructions cachées constituent une charge d'injection de prompt visant l'assistant qui lit la page, et des liens contribués non attribués laissent des tiers parler au nom du site. Le même texte *visible* ne pose aucun problème : un article de sécurité qui traite de l'injection est légitime, une page qui la dissimule ne l'est pas.
 **Corriger :** Supprimez le contenu masqué en ligne, et marquez les liens contribués `rel="ugc"`.
+
+### `agent-usability` (4 pts)
+**Vérifie :** Si un agent peut *agir* sur le site, et pas seulement le lire. Deux dimensions. **Formulaires** (uniquement si les pages échantillonnées en comportent au moins un) : échoue sur un formulaire dont le contrôle de soumission est `disabled` ou qui n'en a aucun (un `<button>` sans `type` compte — `type="button"`/`"reset"` non) ; avertit sur une `action` en `javascript:…` ou `#`, et sur les champs nommables (`input`/`select`/`textarea`) sans `name`. Une `action` **absente** n'est pas pénalisée : en HTML, un tel formulaire poste sur l'URL courante. **Chemin de contact** (toujours) : au moins un moyen lisible par machine de joindre un humain — un lien `mailto:`/`tel:`, un formulaire à l'`action` non-JavaScript, ou `email`/`telephone`/`contactPoint` (ou un nœud `ContactPoint`) dans le JSON-LD ; avertit s'il n'y en a aucun.
+**Pourquoi :** Tous les autres checks demandent si un moteur peut lire la page. Celui-ci demande si un assistant qui agit pour un visiteur peut aller au bout : demander un devis, envoyer un message, joindre quelqu'un. Un agent ne peut pas exécuter vos gestionnaires de clic — un formulaire qui ne se soumet qu'en JavaScript, ou dont le bouton est désactivé en attendant une « V1 », est une impasse pour lui exactement comme pour un visiteur sans JS.
+**Corriger :** Donnez à chaque formulaire un vrai bouton de soumission jamais désactivé, une `action` non-JavaScript et un `name` sur chaque champ, et exposez un `mailto:`, un `tel:` ou un `contactPoint` JSON-LD.
 
 ---
 

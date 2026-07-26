@@ -8,7 +8,7 @@ Audit any URL right in your browser — no install: **[findable.bordebat.fr](htt
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **119 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
+AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **120 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
 
 ## Quick start
 
@@ -82,12 +82,12 @@ node apps/web/server.mjs                                 # self-hosted web app o
 
 ## What it checks
 
-**119 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**120 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
 | **AI crawler access** | 0.16 | 9 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
-| **Answer-engine content** | 0.18 | 20 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json`, plus **GEO-advanced** heuristics — freshness-signal coherence, lead hedging, liftable answer units, retrieval chunk-boundary hygiene, a **RAG-twin chunk simulation** (do ~512-token retrieval windows still stand alone?) and **ingestion hygiene** (hidden model instructions, unattributed UGC links) |
+| **Answer-engine content** | 0.18 | 21 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json`, plus **GEO-advanced** heuristics — freshness-signal coherence, lead hedging, liftable answer units, retrieval chunk-boundary hygiene, a **RAG-twin chunk simulation** (do ~512-token retrieval windows still stand alone?) and **ingestion hygiene** (hidden model instructions, unattributed UGC links) |
 | **Structured data & metadata** | 0.15 | 20 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
 | **Technical SEO** | 0.15 | 22 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution, IndexNow |
 | **On-page & content** | 0.12 | 11 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
@@ -322,7 +322,7 @@ Almost every individual check here exists somewhere else. What no free/OSS/self-
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope; pair findable-audit (input side) with a monitor (output side) if you need it.
 - **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we don't confirm a visit happened.
 - **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API; the keyless endpoint is aggressively rate-limited.
-- **Raw rule count** — SEOmator advertises 251 rules to our 119 checks.
+- **Raw rule count** — SEOmator advertises 251 rules to our 120 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 
