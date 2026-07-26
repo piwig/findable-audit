@@ -18,7 +18,7 @@ npx findable-audit <url> --json
   (`<host>-<date>.md` and a self-contained printable `<host>-<date>.html`).
   Use `--no-report` to suppress them, or `--report <file>` (repeatable) to pick
   names and formats — extension decides: `.md`, `.html`, `.json`, `.sarif`
-  (GitHub code scanning).
+  (GitHub code scanning), `.xml` (JUnit, for GitLab CI / Jenkins).
 
 Useful options:
 
