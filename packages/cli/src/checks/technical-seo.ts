@@ -1,5 +1,5 @@
 import type { Check, CrawlContext, FetchedResource, FetchChainResult } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { parsePage, isValidBcp47 } from './dom.js';
 import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
@@ -48,13 +48,13 @@ export const canonicalResolves: Check = {
       if (canonicalIdentity(res.finalUrl) !== canonicalIdentity(u.toString())) soft.push(`${label} (redirects)`);
     }
     if (hard.length === 0 && soft.length === 0) {
-      return makeResult(this, 'pass', `${Math.min(declared.size, MAX_CANONICALS)} declared canonical(s) resolve 200 and are indexable`);
+      return makeResult(this, 'pass', t`${Math.min(declared.size, MAX_CANONICALS)} declared canonical(s) resolve 200 and are indexable`);
     }
     if (hard.length > 0) {
-      return makeResult(this, 'fail', `canonical target broken/noindexed: ${offenderList([...hard, ...soft])}`,
+      return makeResult(this, 'fail', t`canonical target broken/noindexed: ${offenderList([...hard, ...soft])}`,
         'Point canonicals only at live (200), indexable, non-redirecting URLs.');
     }
-    return makeResult(this, 'warn', `canonical target redirects: ${offenderList(soft)}`,
+    return makeResult(this, 'warn', t`canonical target redirects: ${offenderList(soft)}`,
       'A canonical should be the final URL, not one that redirects.');
   },
 };
@@ -123,7 +123,7 @@ export const wwwConsolidation: Check = {
     }
     const broken = apexState.kind === 'broken' ? apexState : (wwwState.kind === 'broken' ? wwwState : null);
     if (broken) {
-      return makeResult(this, 'fail', `www/apex redirect chain or loop between hosts (${broken.reason})`,
+      return makeResult(this, 'fail', t`www/apex redirect chain or loop between hosts (${broken.reason})`,
         'Point the non-canonical host at the canonical host with a single 301, not a chain or loop.');
     }
     if (apexState.kind === 'crosses' && wwwState.kind === 'crosses') {
@@ -140,13 +140,13 @@ export const wwwConsolidation: Check = {
       const liveName = liveIsApex ? 'apex' : 'www';
       const otherName = liveIsApex ? 'www' : 'apex';
       if (other.kind === 'absent') {
-        return makeResult(this, 'pass', `${liveName} host serves the site; ${otherName} host not live`);
+        return makeResult(this, 'pass', t`${liveName} host serves the site; ${otherName} host not live`);
       }
       if (other.kind === 'crosses') {
         if (other.status === 301 || other.status === 308) {
-          return makeResult(this, 'pass', `${otherName} host ${other.status}s to the ${liveName} host`);
+          return makeResult(this, 'pass', t`${otherName} host ${other.status}s to the ${liveName} host`);
         }
-        return makeResult(this, 'warn', `non-canonical host uses a ${other.status} (should be 301)`,
+        return makeResult(this, 'warn', t`non-canonical host uses a ${other.status} (should be 301)`,
           'Make the host redirect a permanent 301, not a temporary redirect.');
       }
     }
@@ -185,14 +185,14 @@ export const trailingSlash: Check = {
       // 301/308 or 404 -> healthy (canonical enforced, or variant simply absent)
     }
     if (dupes.length > 0) {
-      return makeResult(this, 'fail', `trailing-slash duplicates (both 200): ${offenderList(dupes)}`,
+      return makeResult(this, 'fail', t`trailing-slash duplicates (both 200): ${offenderList(dupes)}`,
         'Enforce one slash convention with a 301 from the other form.');
     }
     if (warns.length > 0) {
-      return makeResult(this, 'warn', `trailing-slash variant uses a temporary redirect: ${offenderList(warns)}`,
+      return makeResult(this, 'warn', t`trailing-slash variant uses a temporary redirect: ${offenderList(warns)}`,
         'Use a permanent 301, not a 302/307, to the canonical slash form.');
     }
-    return makeResult(this, 'pass', `slash-toggled variants of ${paths.length} path(s) do not duplicate`);
+    return makeResult(this, 'pass', t`slash-toggled variants of ${paths.length} path(s) do not duplicate`);
   },
 };
 
@@ -228,14 +228,14 @@ export const redirectChains: Check = {
       else if (verdict === 'temp') temps.push(label);
     }
     if (chains.length > 0) {
-      return makeResult(this, 'fail', `redirect chain/loop: ${offenderList(chains)}`,
+      return makeResult(this, 'fail', t`redirect chain/loop: ${offenderList(chains)}`,
         'Collapse multi-hop redirects into a single 301 to the final URL.');
     }
     if (temps.length > 0) {
-      return makeResult(this, 'warn', `temporary redirect where permanent expected: ${offenderList(temps)}`,
+      return makeResult(this, 'warn', t`temporary redirect where permanent expected: ${offenderList(temps)}`,
         'Use 301/308 for permanent moves, not 302/307.');
     }
-    return makeResult(this, 'pass', `no redirect chains across ${urls.size} URL(s)`);
+    return makeResult(this, 'pass', t`no redirect chains across ${urls.size} URL(s)`);
   },
 };
 
@@ -265,13 +265,13 @@ export const soft404: Check = {
       }
     }
     if (chain.finalStatus === 404 || chain.finalStatus === 410) {
-      return makeResult(this, 'pass', `missing route returns ${chain.finalStatus}`);
+      return makeResult(this, 'pass', t`missing route returns ${chain.finalStatus}`);
     }
     if (chain.finalStatus === 200) {
       return makeResult(this, 'fail', 'missing route returns 200 (soft-404)',
         'Make missing routes return a real 404/410 status, not 200.');
     }
-    return makeResult(this, 'warn', `missing route returns ${chain.finalStatus} (expected 404/410)`,
+    return makeResult(this, 'warn', t`missing route returns ${chain.finalStatus} (expected 404/410)`,
       'Return 404 or 410 for missing routes.');
   },
 };
@@ -334,9 +334,9 @@ export const urlStructure: Check = {
       const issues = urlIssues(u);
       if (issues.length > 0) offenders.push(`${u.pathname} (${issues[0]})`);
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `${urls.size} sampled URL(s) are clean and readable`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`${urls.size} sampled URL(s) are clean and readable`);
     const agg = aggregate(urls.size, offenders);
-    return makeResult(this, agg.status, `poor URL structure: ${agg.detail}`,
+    return makeResult(this, agg.status, t`poor URL structure: ${agg.detail}`,
       'Use short, lowercase, hyphenated paths; strip session/tracking params from canonical URLs.');
   },
 };
@@ -375,8 +375,8 @@ export const paginationCanonical: Check = {
       const selfRef = canonicals.some((c) => isSelfReferential(c, p.finalUrl));
       if (!selfRef) offenders.push(pathOf(p));
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `${paginated.length} paginated page(s) self-canonical`);
-    return makeResult(this, 'fail', `pagination canonicalized to page 1: ${offenderList(offenders)}`,
+    if (offenders.length === 0) return makeResult(this, 'pass', t`${paginated.length} paginated page(s) self-canonical`);
+    return makeResult(this, 'fail', t`pagination canonicalized to page 1: ${offenderList(offenders)}`,
       'Self-reference each paginated page; keep every page indexable.');
   },
 };
@@ -398,8 +398,8 @@ export const metaRefresh: Check = {
         if (/\burl\s*=/i.test(content)) { offenders.push(pathOf(p)); break; }
       }
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `no meta-refresh redirects on ${pages.length} sampled page(s)`);
-    return makeResult(this, 'fail', `meta-refresh redirect on: ${offenderList(offenders)}`,
+    if (offenders.length === 0) return makeResult(this, 'pass', t`no meta-refresh redirects on ${pages.length} sampled page(s)`);
+    return makeResult(this, 'fail', t`meta-refresh redirect on: ${offenderList(offenders)}`,
       'Replace <meta http-equiv="refresh"> redirects with a server 301.');
   },
 };
@@ -450,7 +450,7 @@ export const hreflangXDefault: Check = {
       if (!selfRef) missingSelf.push(label);
     }
     if (invalidCodes.length > 0) {
-      return makeResult(this, 'fail', `invalid hreflang code(s): ${offenderList(invalidCodes)}`,
+      return makeResult(this, 'fail', t`invalid hreflang code(s): ${offenderList(invalidCodes)}`,
         'Use valid BCP-47 language codes for every hreflang value.');
     }
     const warns: string[] = [];
@@ -458,10 +458,10 @@ export const hreflangXDefault: Check = {
     if (missingSelf.length > 0) warns.push(`no self hreflang on ${offenderList(missingSelf)}`);
     if (relativeHrefs.length > 0) warns.push(`relative hreflang href on ${offenderList([...new Set(relativeHrefs)])}`);
     if (warns.length > 0) {
-      return makeResult(this, 'warn', `hreflang set incomplete: ${warns.join('; ')}`,
+      return makeResult(this, 'warn', t`hreflang set incomplete: ${warns.join('; ')}`,
         'Add an x-default alternate and a self-referencing hreflang; use absolute URLs.');
     }
-    return makeResult(this, 'pass', `hreflang set complete on ${withHreflang.length} page(s)`);
+    return makeResult(this, 'pass', t`hreflang set complete on ${withHreflang.length} page(s)`);
   },
 };
 
@@ -493,9 +493,9 @@ export const internalLinking: Check = {
       if ((graph.depth.get(url) ?? Infinity) > MAX_CLICK_DEPTH) reasons.push('deep');
       if (reasons.length > 0) offenders.push(`${label} (${reasons[0]})`);
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `${graph.pageUrls.length} sampled page(s) linked and shallow`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`${graph.pageUrls.length} sampled page(s) linked and shallow`);
     const agg = aggregate(graph.pageUrls.length, offenders);
-    return makeResult(this, agg.status, `orphan/deep pages: ${agg.detail}`,
+    return makeResult(this, agg.status, t`orphan/deep pages: ${agg.detail}`,
       'Add contextual internal links via hub pages; keep key pages within 3 clicks of the homepage.');
   },
 };
@@ -532,11 +532,11 @@ export const crawlableNav: Check = {
     }
     const ratio = jsOnly / navTotal;
     if (ratio <= 0.2) {
-      return makeResult(this, 'pass', `${crawlable} crawlable link(s); navigation works without JavaScript`);
+      return makeResult(this, 'pass', t`${crawlable} crawlable link(s); navigation works without JavaScript`);
     }
     const status = ratio > 0.5 ? 'fail' : 'warn';
     return makeResult(this, status,
-      `${jsOnly}/${navTotal} navigation links need JavaScript (href="#"/javascript:/no href) — non-JS crawlers (GPTBot, ClaudeBot) can't follow them`,
+      t`${jsOnly}/${navTotal} navigation links need JavaScript (href="#"/javascript:/no href) — non-JS crawlers (GPTBot, ClaudeBot) can't follow them`,
       'Use real <a href="/path"> links for navigation so crawlers that do not run JavaScript (AI answer-engine bots, and Google\'s first pass) can reach every page.');
   },
 };
@@ -614,7 +614,7 @@ export const linkEquityMap: Check = {
       .join(', ');
 
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `link equity well-distributed across ${graph.pageUrls.length} page(s) — top: ${top}`);
+      return makeResult(this, 'pass', t`link equity well-distributed across ${graph.pageUrls.length} page(s) — top: ${top}`);
     }
     const agg = aggregate(graph.pageUrls.length, offenders);
     // Sampling-induced uncertainty (finding #2): an orphan can be a false positive
@@ -623,7 +623,7 @@ export const linkEquityMap: Check = {
     // observed directly on the fetched page, no such uncertainty. So when EVERY
     // offender is an orphan (no dead-ends), cap the verdict at warn rather than fail.
     const status = !anyDeadEnd && agg.status === 'fail' ? 'warn' : agg.status;
-    return makeResult(this, status, `orphan/dead-end page(s): ${agg.detail} — top: ${top}`,
+    return makeResult(this, status, t`orphan/dead-end page(s): ${agg.detail} — top: ${top}`,
       'Link every sampled page from at least one other page, and give every page at least one internal outlink, so link equity flows across the whole site.');
   },
 };

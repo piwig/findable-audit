@@ -1,6 +1,6 @@
 import { XMLValidator } from 'fast-xml-parser';
 import type { Check, CrawlContext, FetchedResource } from '../types.js';
-import { makeResult, isPlainText, isXml } from '../types.js';
+import { makeResult, isPlainText, isXml, t } from '../types.js';
 import { pagesOf } from './aggregate.js';
 import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
 import { buildLinkGraph } from './link-graph.js';
@@ -91,7 +91,7 @@ export function indexnowCheck(key?: string): Check {
       if (res?.status === 200 && isPlainText(res) && res.body.trim() === key) {
         return makeResult(this, 'pass', 'IndexNow key file verified');
       }
-      return makeResult(this, 'fail', `IndexNow key file /${key}.txt missing or mismatched`,
+      return makeResult(this, 'fail', t`IndexNow key file /${key}.txt missing or mismatched`,
         'Publish a text file named <key>.txt at the site root containing exactly the key.');
     },
   };
@@ -123,10 +123,10 @@ export const sitemapLastmod: Check = {
     }
     const coverage = valid.length / entries.length;
     if (coverage >= 0.5 && distinct.size > 1 && future.length === 0) {
-      return makeResult(this, 'pass', `${valid.length}/${entries.length} entries have valid, varied <lastmod>`);
+      return makeResult(this, 'pass', t`${valid.length}/${entries.length} entries have valid, varied <lastmod>`);
     }
     const why = future.length > 0 ? `${future.length} future-dated` : distinct.size <= 1 ? 'all identical' : `only ${valid.length}/${entries.length} valid`;
-    return makeResult(this, 'warn', `sitemap <lastmod> weak (${why})`,
+    return makeResult(this, 'warn', t`sitemap <lastmod> weak (${why})`,
       'Give each URL a real, distinct, non-future <lastmod> reflecting its last edit.');
   },
 };
@@ -162,10 +162,10 @@ export const sitemapUrlsValid: Check = {
         offenders.push(`${label} (non-canonical)`);
       }
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `${urls.length} sampled sitemap URL(s) are clean and indexable`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`${urls.length} sampled sitemap URL(s) are clean and indexable`);
     const conform = (urls.length - offenders.length) / urls.length;
     const detail = offenders.slice(0, 3).join(', ') + (offenders.length > 3 ? ` (+${offenders.length - 3} more)` : '');
-    return makeResult(this, conform >= 0.8 ? 'warn' : 'fail', `sitemap lists non-indexable URLs: ${detail}`,
+    return makeResult(this, conform >= 0.8 ? 'warn' : 'fail', t`sitemap lists non-indexable URLs: ${detail}`,
       'List only final, 200, same-origin, self-canonical, indexable URLs in the sitemap.');
   },
 };
@@ -199,8 +199,8 @@ export const sitemapIndexLimits: Check = {
       const count = parseSitemapEntries(res.body).length;
       if (count > SITEMAP_URL_LIMIT) offenders.push(`${u.pathname} (${count} URLs > 50k)`);
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `${children.length} child sitemap(s) valid and within limits`);
-    return makeResult(this, 'fail', `sitemap index child invalid/oversize: ${offenders.slice(0, 3).join(', ')}`,
+    if (offenders.length === 0) return makeResult(this, 'pass', t`${children.length} child sitemap(s) valid and within limits`);
+    return makeResult(this, 'fail', t`sitemap index child invalid/oversize: ${offenders.slice(0, 3).join(', ')}`,
       'Split to <=50,000-URL children under one index; every child must be fetchable, valid XML, same-origin.');
   },
 };
@@ -237,12 +237,12 @@ export const sitemapOrphans: Check = {
     // Internally-linked, sampled pages missing from the sitemap.
     const missing = [...sampled].filter((u) => !sitemapSet.has(u));
     if (unlinked.length === 0 && missing.length === 0) {
-      return makeResult(this, 'pass', `sitemap and internal links agree on ${sitemapSet.size} URL(s)`);
+      return makeResult(this, 'pass', t`sitemap and internal links agree on ${sitemapSet.size} URL(s)`);
     }
     const parts: string[] = [];
     if (unlinked.length > 0) parts.push(`${unlinked.length} in sitemap never linked`);
     if (missing.length > 0) parts.push(`${missing.length} linked but not in sitemap`);
-    return makeResult(this, 'warn', `sitemap/internal-link divergence (${parts.join('; ')})`,
+    return makeResult(this, 'warn', t`sitemap/internal-link divergence (${parts.join('; ')})`,
       'Ensure key pages are both internally linked and listed in the sitemap.');
   },
 };

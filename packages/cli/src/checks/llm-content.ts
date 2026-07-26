@@ -1,6 +1,6 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import type { Check, CrawlContext, FetchedResource } from '../types.js';
-import { makeResult, isPlainText } from '../types.js';
+import { makeResult, isPlainText, t } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { extractJsonLd, flatten, typesOf, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
@@ -54,7 +54,7 @@ export const llmsTxt: Check = {
         'Add a /llms.txt file: an H1 title, a one-line summary, then "## Section" blocks of descriptive links.');
     }
     if (!isPlainText(res)) {
-      return makeResult(this, 'fail', `llms.txt served with content-type "${res.contentType}" (SPA fallback?)`,
+      return makeResult(this, 'fail', t`llms.txt served with content-type "${res.contentType}" (SPA fallback?)`,
         'Serve /llms.txt as text/plain, not an HTML fallback page.');
     }
     const body = res.body;
@@ -66,13 +66,13 @@ export const llmsTxt: Check = {
     const hasSummary = hasSummaryLine(body);
     const links = descriptiveSameOriginLinks(body, ctx.baseUrl.origin);
     if (hasSection && hasSummary && links >= 5) {
-      return makeResult(this, 'pass', `llms.txt structured (summary + section + ${links} descriptive links)`);
+      return makeResult(this, 'pass', t`llms.txt structured (summary + section + ${links} descriptive links)`);
     }
     const missing: string[] = [];
     if (!hasSummary) missing.push('summary line');
     if (!hasSection) missing.push('## section');
     if (links < 5) missing.push(`${links}/5 descriptive same-origin links`);
-    return makeResult(this, 'warn', `llms.txt thin (${missing.join(', ')})`,
+    return makeResult(this, 'warn', t`llms.txt thin (${missing.join(', ')})`,
       'Structure llms.txt: "# Site", a one-line summary, then "## Section" blocks of "- [Title](https://abs-url): note" (≥5 links).');
   },
 };
@@ -90,15 +90,15 @@ export const llmsFullTxt: Check = {
         'Add a /llms-full.txt containing the full text content of your key pages, under headings.');
     }
     if (!isPlainText(res)) {
-      return makeResult(this, 'fail', `llms-full.txt served with content-type "${res.contentType}" (SPA fallback?)`,
+      return makeResult(this, 'fail', t`llms-full.txt served with content-type "${res.contentType}" (SPA fallback?)`,
         'Serve /llms-full.txt as text/plain, not an HTML fallback page.');
     }
     const words = (res.body.match(/\S+/g) ?? []).length;
     const headings = (res.body.match(/^#{1,6}\s+\S/gm) ?? []).length;
     if (words >= 2000 && headings >= 2) {
-      return makeResult(this, 'pass', `llms-full.txt has ${words} words under ${headings} headings`);
+      return makeResult(this, 'pass', t`llms-full.txt has ${words} words under ${headings} headings`);
     }
-    return makeResult(this, 'warn', `llms-full.txt is thin (${words} words, ${headings} heading(s))`,
+    return makeResult(this, 'warn', t`llms-full.txt is thin (${words} words, ${headings} heading(s))`,
       'Concatenate the full text of your key pages under headings at build time (aim for a rich, multi-section file).');
   },
 };
@@ -120,10 +120,10 @@ export const contentWithoutJs: Check = {
       if (text.length < 200) offenders.push(pathOf(p));
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `static text ≥200 chars on ${pages.length} sampled page(s)`);
+      return makeResult(this, 'pass', t`static text ≥200 chars on ${pages.length} sampled page(s)`);
     }
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `static text too thin on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`static text too thin on: ${agg.detail}`,
       'Server-render (SSR/SSG) your main content: AI crawlers do not execute JavaScript.');
   },
 };
@@ -142,10 +142,10 @@ export const contentDepth: Check = {
       if (mainContent(p).wordCount < depthThreshold(p)) offenders.push(pathOf(p));
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `main content above the word threshold on ${pages.length} page(s)`);
+      return makeResult(this, 'pass', t`main content above the word threshold on ${pages.length} page(s)`);
     }
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `thin content on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`thin content on: ${agg.detail}`,
       'Expand or consolidate thin pages with substantive copy (≥300 words for articles, ≥150 for other pages).');
   },
 };
@@ -186,8 +186,8 @@ export const contentLeadAnswer: Check = {
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
     const items: SeverityItem[] = pages.map((p) => ({ path: pathOf(p), status: leadVerdict(p) }));
     const roll = rollupBySeverity(items);
-    if (roll.status === 'pass') return makeResult(this, 'pass', `direct-answer lead on ${pages.length} page(s)`);
-    return makeResult(this, roll.status, `no direct-answer lead on: ${roll.detail}`,
+    if (roll.status === 'pass') return makeResult(this, 'pass', t`direct-answer lead on ${pages.length} page(s)`);
+    return makeResult(this, roll.status, t`no direct-answer lead on: ${roll.detail}`,
       'Open each page with a 1–2 sentence direct answer/definition (≈40–320 chars) or a TL;DR block right after the H1.');
   },
 };
@@ -221,9 +221,9 @@ export const answerHeadings: Check = {
     }
     if (longPages === 0) return makeResult(this, 'skip', 'no long content pages to evaluate');
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `question-style subheadings on ${longPages} long page(s)`);
+      return makeResult(this, 'pass', t`question-style subheadings on ${longPages} long page(s)`);
     }
-    return makeResult(this, 'warn', `no question-style subheadings on: ${offenderList(offenders)}`,
+    return makeResult(this, 'warn', t`no question-style subheadings on: ${offenderList(offenders)}`,
       'Phrase subheads as the questions readers ask (start with what/how/why/… or end with "?").');
   },
 };
@@ -261,9 +261,9 @@ export const extractableStructure: Check = {
     if (items.length === 0) return makeResult(this, 'skip', 'no substantial pages to evaluate');
     const roll = rollupBySeverity(items);
     if (roll.status === 'pass') {
-      return makeResult(this, 'pass', `lists/tables in main content on ${items.length} substantial page(s)`);
+      return makeResult(this, 'pass', t`lists/tables in main content on ${items.length} substantial page(s)`);
     }
-    return makeResult(this, roll.status, `no lists/tables in main content on: ${roll.detail}`,
+    return makeResult(this, roll.status, t`no lists/tables in main content on: ${roll.detail}`,
       'Break comparisons/steps/specs into <ul>/<ol> bullets or a data <table> with <th> headers.');
   },
 };
@@ -323,8 +323,8 @@ export const contentFreshness: Check = {
       return { path, status: 'pass' };
     });
     const roll = rollupBySeverity(items);
-    if (roll.status === 'pass') return makeResult(this, 'pass', `fresh, dated content on ${articlePages.length} article page(s)`);
-    return makeResult(this, roll.status, `missing/stale content date on: ${roll.detail}`,
+    if (roll.status === 'pass') return makeResult(this, 'pass', t`fresh, dated content on ${articlePages.length} article page(s)`);
+    return makeResult(this, roll.status, t`missing/stale content date on: ${roll.detail}`,
       'Emit ISO-8601 datePublished + dateModified (and a visible date) on article pages; keep them real and recent.');
   },
 };
@@ -369,8 +369,8 @@ export const contentAuthorEeat: Check = {
       return { path, status: 'fail', reason: 'no author' };
     });
     const roll = rollupBySeverity(items);
-    if (roll.status === 'pass') return makeResult(this, 'pass', `named author + byline on ${articlePages.length} article page(s)`);
-    return makeResult(this, roll.status, `no author (E-E-A-T) on: ${roll.detail}`,
+    if (roll.status === 'pass') return makeResult(this, 'pass', t`named author + byline on ${articlePages.length} article page(s)`);
+    return makeResult(this, roll.status, t`no author (E-E-A-T) on: ${roll.detail}`,
       'Add a visible byline linking a bio plus JSON-LD author {@type:Person, name, url, jobTitle}.');
   },
 };
@@ -412,8 +412,8 @@ export const outboundCitations: Check = {
     }
     if (items.length === 0) return makeResult(this, 'skip', 'no substantial pages to evaluate');
     const roll = rollupBySeverity(items);
-    if (roll.status === 'pass') return makeResult(this, 'pass', `outbound citations on ${items.length} substantial page(s)`);
-    return makeResult(this, roll.status, `no outbound citations on: ${roll.detail}`,
+    if (roll.status === 'pass') return makeResult(this, 'pass', t`outbound citations on ${items.length} substantial page(s)`);
+    return makeResult(this, roll.status, t`no outbound citations on: ${roll.detail}`,
       'Cite primary/authoritative sources with real outbound links in your main content.');
   },
 };
@@ -436,10 +436,10 @@ export const contentUniqueness: Check = {
         if (jaccard(sigs[i].sh, sigs[j].sh) >= DUPLICATE_JACCARD) pairs.push([sigs[i].path, sigs[j].path]);
       }
     }
-    if (pairs.length === 0) return makeResult(this, 'pass', `no near-duplicate bodies across ${pages.length} pages`);
+    if (pairs.length === 0) return makeResult(this, 'pass', t`no near-duplicate bodies across ${pages.length} pages`);
     const offenders = [...new Set(pairs.flat())];
     const status = pairs.length >= 2 ? 'fail' : 'warn';
-    return makeResult(this, status, `near-duplicate content: ${offenderList(offenders)}`,
+    return makeResult(this, status, t`near-duplicate content: ${offenderList(offenders)}`,
       'Give each URL unique content, or canonicalize duplicates to one URL.');
   },
 };
@@ -501,10 +501,10 @@ export const csrContentParity: Check = {
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
     const offenders = pages.filter(isCsrOffender).map(pathOf);
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `server-rendered main content on ${pages.length} sampled page(s), no empty CSR mount roots`);
+      return makeResult(this, 'pass', t`server-rendered main content on ${pages.length} sampled page(s), no empty CSR mount roots`);
     }
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `CSR-only content (empty mount root, no server-rendered text) on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`CSR-only content (empty mount root, no server-rendered text) on: ${agg.detail}`,
       'Server-render (SSR/SSG) the initial HTML for #root/#__next/#app and similar mount points: AI crawlers do not execute JavaScript, so an empty mount root is invisible to them.');
   },
 };
@@ -568,7 +568,7 @@ export const aboutContact: Check = {
     if (!hasAbout) missing.push('About page');
     if (!hasContactPage) missing.push('Contact page');
     if (!contactMethod) missing.push('contact method');
-    return makeResult(this, 'warn', `About/Contact incomplete (missing: ${missing.join(', ')})`,
+    return makeResult(this, 'warn', t`About/Contact incomplete (missing: ${missing.join(', ')})`,
       'Publish linked /about and /contact pages; add a ContactPoint (tel/email) to your Organization JSON-LD.');
   },
 };

@@ -1,5 +1,5 @@
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import {
   parsePage, isValidBcp47, detectLandmarks, accessibleLinkName, formControlHasName,
@@ -27,16 +27,16 @@ export const htmlLang: Check = {
       else if (!isValidBcp47(lang)) malformed.push(pathOf(p));
     }
     if (absent.length === 0 && malformed.length === 0) {
-      return makeResult(this, 'pass', `valid <html lang> on ${pages.length} sampled page(s)`);
+      return makeResult(this, 'pass', t`valid <html lang> on ${pages.length} sampled page(s)`);
     }
     // Absent is the worst case (screen readers cannot announce the language); grade it
     // by conformance ratio. A page with only a malformed code is a warn regardless.
     if (absent.length > 0) {
       const agg = aggregate(pages.length, [...absent, ...malformed]);
-      return makeResult(this, agg.status, `html lang missing/invalid on: ${agg.detail}`,
+      return makeResult(this, agg.status, t`html lang missing/invalid on: ${agg.detail}`,
         'Add <html lang="…"> with a valid BCP-47 code (e.g. "en", "fr-CA") to every page.');
     }
-    return makeResult(this, 'warn', `html lang malformed on: ${offenderList(malformed)}`,
+    return makeResult(this, 'warn', t`html lang malformed on: ${offenderList(malformed)}`,
       'Use a valid BCP-47 language code in <html lang="…"> (e.g. "en", "en-US").');
   },
 };
@@ -82,8 +82,8 @@ export const altDescriptive: Check = {
     if (total === 0) return makeResult(this, 'skip', 'no non-empty alt text to assess');
     const ratio = descriptive / total;
     const pct = Math.round(ratio * 100);
-    if (ratio >= 0.9) return makeResult(this, 'pass', `${descriptive}/${total} non-empty alts are descriptive (${pct}%)`);
-    return makeResult(this, ratio >= 0.7 ? 'warn' : 'fail', `non-descriptive alt text (${pct}% descriptive)`,
+    if (ratio >= 0.9) return makeResult(this, 'pass', t`${descriptive}/${total} non-empty alts are descriptive (${pct}%)`);
+    return makeResult(this, ratio >= 0.7 ? 'warn' : 'fail', t`non-descriptive alt text (${pct}% descriptive)`,
       'Replace filename/placeholder alt text ("image", "IMG_1234.jpg") with a real description of the image.');
   },
 };
@@ -115,14 +115,14 @@ export const landmarks: Check = {
     }
     if (failing.length > 0) {
       const agg = aggregate(pages.length, failing);
-      return makeResult(this, agg.status, `no semantic landmarks on: ${agg.detail}`,
+      return makeResult(this, agg.status, t`no semantic landmarks on: ${agg.detail}`,
         'Wrap page content in a single <main> and use <header>/<nav>/<footer> landmark regions.');
     }
     if (incomplete.length > 0) {
-      return makeResult(this, 'warn', `incomplete landmarks (main only / no main) on: ${offenderList(incomplete)}`,
+      return makeResult(this, 'warn', t`incomplete landmarks (main only / no main) on: ${offenderList(incomplete)}`,
         'Provide both a <main> and at least two of <header>/<nav>/<footer>.');
     }
-    return makeResult(this, 'pass', `semantic landmarks on ${pages.length} sampled page(s)`);
+    return makeResult(this, 'pass', t`semantic landmarks on ${pages.length} sampled page(s)`);
   },
 };
 
@@ -155,10 +155,10 @@ export const formLabels: Check = {
       }
     }
     if (total === 0) return makeResult(this, 'skip', 'no labelable form controls on sampled pages');
-    if (unlabelled === 0) return makeResult(this, 'pass', `all ${total} form control(s) have an accessible name`);
+    if (unlabelled === 0) return makeResult(this, 'pass', t`all ${total} form control(s) have an accessible name`);
     const ratio = unlabelled / total;
     const status = unlabelled > 2 || ratio > 0.2 ? 'fail' : 'warn';
-    return makeResult(this, status, `${unlabelled}/${total} form control(s) without an accessible name`,
+    return makeResult(this, status, t`${unlabelled}/${total} form control(s) without an accessible name`,
       'Associate every input/select/textarea with a <label>, aria-label, or aria-labelledby.');
   },
 };
@@ -184,9 +184,9 @@ export const linkText: Check = {
       }
     }
     if (total === 0) return makeResult(this, 'pass', 'no links to evaluate on sampled pages');
-    if (nameless === 0) return makeResult(this, 'pass', `all ${total} link(s) have an accessible name`);
+    if (nameless === 0) return makeResult(this, 'pass', t`all ${total} link(s) have an accessible name`);
     const status = nameless <= 2 ? 'warn' : 'fail';
-    return makeResult(this, status, `${nameless} link(s) without an accessible name on: ${offenderList([...offenders])}`,
+    return makeResult(this, status, t`${nameless} link(s) without an accessible name on: ${offenderList([...offenders])}`,
       'Give icon/image links an accessible name via link text, aria-label, or a child <img alt>.');
   },
 };
@@ -215,10 +215,10 @@ export const viewportZoom: Check = {
     const maxScale = Number.parseFloat(props.get('maximum-scale') ?? '');
     if (!Number.isNaN(maxScale) && maxScale < 2) {
       if (maxScale <= 1) {
-        return makeResult(this, 'fail', `zoom disabled (maximum-scale=${maxScale}) — fails WCAG 1.4.4`,
+        return makeResult(this, 'fail', t`zoom disabled (maximum-scale=${maxScale}) — fails WCAG 1.4.4`,
           'Remove the maximum-scale restriction (or set it to at least 2).');
       }
-      return makeResult(this, 'warn', `zoom limited (maximum-scale=${maxScale})`,
+      return makeResult(this, 'warn', t`zoom limited (maximum-scale=${maxScale})`,
         'Allow zoom up to at least 2x; prefer omitting maximum-scale entirely.');
     }
     return makeResult(this, 'pass', 'viewport allows pinch-zoom');
@@ -245,8 +245,8 @@ export const iframeTitle: Check = {
       }
     }
     if (total === 0) return makeResult(this, 'skip', 'no iframes on sampled pages');
-    if (untitled === 0) return makeResult(this, 'pass', `all ${total} iframe(s) have a title`);
-    return makeResult(this, untitled >= 2 ? 'fail' : 'warn', `${untitled}/${total} iframe(s) untitled`,
+    if (untitled === 0) return makeResult(this, 'pass', t`all ${total} iframe(s) have a title`);
+    return makeResult(this, untitled >= 2 ? 'fail' : 'warn', t`${untitled}/${total} iframe(s) untitled`,
       'Add a descriptive title="…" to every <iframe>.');
   },
 };

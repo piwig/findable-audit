@@ -1,6 +1,6 @@
 import { parse } from 'node-html-parser';
 import type { Check, FetchedResource } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import {
   extractJsonLd, flatten, typesOf, byId, resolveValue, isOrganizationType,
@@ -77,7 +77,7 @@ export const sdArticle: Check = {
     if (!found) return makeResult(this, 'skip', 'no Article/NewsArticle/BlogPosting page in the sample');
     const rollup = rollupBySeverity(items);
     if (rollup.status === 'pass') return makeResult(this, 'pass', 'Article markup complete on all sampled article pages');
-    return makeResult(this, rollup.status, `Article markup incomplete on: ${rollup.detail}`,
+    return makeResult(this, rollup.status, t`Article markup incomplete on: ${rollup.detail}`,
       'Add headline/author/datePublished + dateModified/image/publisher.logo.');
   },
 };
@@ -153,7 +153,7 @@ export const sdProduct: Check = {
     if (!found) return makeResult(this, 'skip', 'no Product page in the sample');
     const rollup = rollupBySeverity(items);
     if (rollup.status === 'pass') return makeResult(this, 'pass', 'Product offer markup complete on all sampled product pages');
-    return makeResult(this, rollup.status, `Product offer incomplete on: ${rollup.detail}`,
+    return makeResult(this, rollup.status, t`Product offer incomplete on: ${rollup.detail}`,
       'Add offers(price/priceCurrency/availability) + brand + gtin/mpn.');
   },
 };
@@ -229,7 +229,7 @@ export const sdFaq: Check = {
     if (offenders.length === 0) return makeResult(this, 'pass', 'FAQ content backed by FAQPage/QAPage schema');
     const shown = offenders.slice(0, 3).join(', ');
     const more = offenders.length > 3 ? ` (+${offenders.length - 3} more)` : '';
-    return makeResult(this, 'warn', `FAQ present without FAQPage schema on: ${shown}${more}`,
+    return makeResult(this, 'warn', t`FAQ present without FAQPage schema on: ${shown}${more}`,
       'Mark FAQs as FAQPage → Question → acceptedAnswer.text.');
   },
 };
@@ -280,7 +280,7 @@ export const sdBreadcrumb: Check = {
     if (offenders.length === 0) return makeResult(this, 'pass', 'breadcrumbs present on all interior pages');
     const shown = offenders.slice(0, 3).join(', ');
     const more = offenders.length > 3 ? ` (+${offenders.length - 3} more)` : '';
-    return makeResult(this, 'warn', `no breadcrumbs on interior pages: ${shown}${more}`,
+    return makeResult(this, 'warn', t`no breadcrumbs on interior pages: ${shown}${more}`,
       'Emit BreadcrumbList with ordered position/name/item.');
   },
 };
@@ -403,7 +403,7 @@ export const napConsistency: Check = {
 
     const status = dims.some((d) => d.status === 'fail') ? 'fail' : 'warn';
     const detail = dims.filter((d) => d.status !== 'pass').map((d) => `${d.label} ${d.detail}`).join('; ');
-    return makeResult(this, status, `inconsistent NAP across pages: ${detail}`,
+    return makeResult(this, status, t`inconsistent NAP across pages: ${detail}`,
       'Render one canonical NAP from a single source; match JSON-LD.');
   },
 };

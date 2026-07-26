@@ -1,6 +1,6 @@
 import { parse } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { extractJsonLd } from './structured-data.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { robotsDirectiveSet, hasDirectiveToken, directiveValue, type RobotsDirectiveSet } from '../robots.js';
@@ -54,23 +54,23 @@ export const metaRobotsNoindex: Check = {
     // Any unambiguously noindexed sampled page is a hard fail: it is invisible to search and AI crawlers.
     const noindexOffenders = rows.filter((r) => r.verdict === 'noindex').map((r) => r.path);
     if (noindexOffenders.length > 0) {
-      return makeResult(this, 'fail', `noindex found on: ${offenderList(noindexOffenders)}`,
+      return makeResult(this, 'fail', t`noindex found on: ${offenderList(noindexOffenders)}`,
         'Remove noindex/none from meta robots or the X-Robots-Tag header on pages that should be discoverable.');
     }
 
     const conflictOffenders = rows.filter((r) => r.verdict === 'conflict').map((r) => r.path);
     if (conflictOffenders.length > 0) {
-      return makeResult(this, 'warn', `X-Robots-Tag header and meta robots disagree on: ${offenderList(conflictOffenders)}`,
+      return makeResult(this, 'warn', t`X-Robots-Tag header and meta robots disagree on: ${offenderList(conflictOffenders)}`,
         'Make the X-Robots-Tag header and <meta name="robots"> agree on indexability.');
     }
 
     const nofollowOffenders = rows.filter((r) => r.verdict === 'nofollow').map((r) => r.path);
     if (nofollowOffenders.length > 0) {
-      return makeResult(this, 'warn', `nofollow found on: ${offenderList(nofollowOffenders)}`,
+      return makeResult(this, 'warn', t`nofollow found on: ${offenderList(nofollowOffenders)}`,
         'Remove nofollow from meta robots / X-Robots-Tag unless intentionally blocking link equity.');
     }
 
-    return makeResult(this, 'pass', `no noindex on ${pages.length} sampled page(s)`);
+    return makeResult(this, 'pass', t`no noindex on ${pages.length} sampled page(s)`);
   },
 };
 
@@ -99,17 +99,17 @@ export const snippetPreviewDirectives: Check = {
 
     const restrictive = rows.filter((r) => isPreviewRestrictive(r.set)).map((r) => r.path);
     if (restrictive.length > 0) {
-      return makeResult(this, 'fail', `preview-limiting directive on: ${offenderList(restrictive)}`,
+      return makeResult(this, 'fail', t`preview-limiting directive on: ${offenderList(restrictive)}`,
         'Set max-image-preview:large, max-snippet:-1, max-video-preview:-1; remove stray nosnippet/max-snippet:0.');
     }
 
     const missing = rows.filter((r) => !hasPreviewDirective(r.set)).map((r) => r.path);
     if (missing.length > 0) {
-      return makeResult(this, 'warn', `no preview directives set on: ${offenderList(missing)}`,
+      return makeResult(this, 'warn', t`no preview directives set on: ${offenderList(missing)}`,
         'Set max-image-preview:large, max-snippet:-1, max-video-preview:-1 on every page to guarantee full search/AI previews.');
     }
 
-    return makeResult(this, 'pass', `preview directives set on ${pages.length} sampled page(s)`);
+    return makeResult(this, 'pass', t`preview directives set on ${pages.length} sampled page(s)`);
   },
 };
 
@@ -134,9 +134,9 @@ export const uniqueTitles: Check = {
         if (group.length > 1) for (const p of group) offenders.add(p);
       }
     }
-    if (offenders.size === 0) return makeResult(this, 'pass', `titles and descriptions unique across ${pages.length} pages`);
+    if (offenders.size === 0) return makeResult(this, 'pass', t`titles and descriptions unique across ${pages.length} pages`);
     const agg = aggregate(pages.length, [...offenders]);
-    return makeResult(this, agg.status, `duplicated <title>/description on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`duplicated <title>/description on: ${agg.detail}`,
       'Give every page a unique <title> and meta description so results and AI citations are distinguishable.');
   },
 };

@@ -28,7 +28,7 @@ const report: AuditReport = {
   sampledPages: ['/'],
   results: [
     r({ id: 'robots-exists', message: 'robots.txt found' }),
-    r({ id: 'ai-crawlers-allowed', status: 'fail', points: 0, maxPoints: 12, message: 'AI crawlers blocked: GPTBot', fix: 'Remove the Disallow rules.', docUrl: 'https://example.com/docs/ai-crawlers' }),
+    r({ id: 'ai-crawlers-allowed', status: 'fail', points: 0, maxPoints: 12, message: 'AI crawlers blocked: GPTBot', messageTemplate: 'AI crawlers blocked: {0}', messageParams: ['GPTBot'], fix: 'Remove the Disallow rules.', docUrl: 'https://example.com/docs/ai-crawlers' }),
     r({ id: 'meta-description', family: 'on-page', status: 'warn', points: 2, message: 'description | too short', fix: 'Write 150 chars.' }),
     r({ id: 'sitemap-ok', family: 'on-page', status: 'skip', points: 0, message: 'skipped' }),
   ],
@@ -109,9 +109,10 @@ describe('renderMarkdown in French', () => {
     expect(md).toContain('## On-page & contenu (2/4)');
     expect(md).toContain('## Corrections recommandées');
   });
-  it('localizes the fix and appends a French "why" per check (dynamic message stays EN)', () => {
-    // dynamic check message stays English for now (#1 follow-up)
-    expect(md).toContain('AI crawlers blocked: GPTBot');
+  it('localizes the message, the fix and appends a French "why" per check', () => {
+    // the dynamic message is rebuilt in French, keeping its interpolated value (#1, lot E)
+    expect(md).toContain('robots d’IA bloqués : GPTBot');
+    expect(md).not.toContain('AI crawlers blocked: GPTBot');
     // the fix is translated on a French report (#1/#53) — no English fix leak
     expect(md).toContain('Ne mettez jamais'); // FR fix for ai-crawlers-allowed
     expect(md).not.toContain('Remove the Disallow rules.');

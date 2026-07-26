@@ -1,6 +1,6 @@
 import { parse } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { parsePage } from './dom.js';
 import {
   extractJsonLd, extractJsonLdBlocks, typesOf, flatten, isRef, isOrganizationType,
@@ -22,7 +22,7 @@ export const jsonLd: Check = {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
     const blocks = extractJsonLd(res.body);
-    if (blocks.length > 0) return makeResult(this, 'pass', `${blocks.length} valid JSON-LD block(s)`);
+    if (blocks.length > 0) return makeResult(this, 'pass', t`${blocks.length} valid JSON-LD block(s)`);
     return makeResult(this, 'fail', 'no valid JSON-LD found',
       'Add a <script type="application/ld+json"> block describing your business or content.');
   },
@@ -51,14 +51,14 @@ export const twitterCard: Check = {
         'Add <meta name="twitter:card" content="summary_large_image"> or a complete Open Graph set.');
     }
     if (!KNOWN_TYPES.has(card)) {
-      return makeResult(this, 'warn', `twitter:card has a non-standard type (${card})`,
+      return makeResult(this, 'warn', t`twitter:card has a non-standard type (${card})`,
         'Use "summary" or "summary_large_image".');
     }
     if (!title || !description || !imageAbsoluteHttps) {
       return makeResult(this, 'warn', 'Twitter Card missing title/description/absolute image',
         'Set twitter:title/twitter:description/twitter:image, or rely on a complete Open Graph fallback.');
     }
-    return makeResult(this, 'pass', `twitter:card=${card} complete`);
+    return makeResult(this, 'pass', t`twitter:card=${card} complete`);
   },
 };
 
@@ -78,11 +78,11 @@ export const jsonLdEntity: Check = {
     if (types.some((t) => NAP_REQUIRED_TYPES.has(t))) {
       const missing = ['name', 'address', 'telephone'].filter((k) => !typed[k]);
       if (missing.length > 0) {
-        return makeResult(this, 'warn', `${label} found but NAP incomplete (missing: ${missing.join(', ')})`,
+        return makeResult(this, 'warn', t`${label} found but NAP incomplete (missing: ${missing.join(', ')})`,
           'Add name, address and telephone so AI assistants can cite your business consistently.');
       }
     }
-    return makeResult(this, 'pass', `relevant entity found: ${label}`);
+    return makeResult(this, 'pass', t`relevant entity found: ${label}`);
   },
 };
 
@@ -128,16 +128,16 @@ export const jsonLdValid: Check = {
     }
     for (const b of blocks) {
       if (b.parseError !== undefined) {
-        return makeResult(this, 'fail', `invalid JSON-LD block (parse error: ${b.parseError})`,
+        return makeResult(this, 'fail', t`invalid JSON-LD block (parse error: ${b.parseError})`,
           'Fix trailing commas/unescaped quotes in the JSON-LD block.');
       }
       const reason = invalidReason(b.parsed);
       if (reason) {
-        return makeResult(this, 'fail', `invalid JSON-LD block (${reason})`,
+        return makeResult(this, 'fail', t`invalid JSON-LD block (${reason})`,
           'Set "@context":"https://schema.org" and an explicit @type on every node.');
       }
     }
-    return makeResult(this, 'pass', `${blocks.length} JSON-LD block(s) all valid (parse + @context + @type)`);
+    return makeResult(this, 'pass', t`${blocks.length} JSON-LD block(s) all valid (parse + @context + @type)`);
   },
 };
 
@@ -181,10 +181,10 @@ export const sdOrganization: Check = {
     if (!logoAbsHttps) missing.push('logo (absolute https)');
     if (sameAs.length === 0) missing.push('sameAs');
     if (missing.length > 0) {
-      return makeResult(this, 'warn', `Organization entity incomplete (missing: ${missing.join(', ')})`,
+      return makeResult(this, 'warn', t`Organization entity incomplete (missing: ${missing.join(', ')})`,
         'Add name/url/square-logo/sameAs to the homepage @graph.');
     }
-    return makeResult(this, 'pass', `Organization entity complete: ${name}`);
+    return makeResult(this, 'pass', t`Organization entity complete: ${name}`);
   },
 };
 
@@ -209,10 +209,10 @@ export const sdEntityGrounding: Check = {
     }
     const hasKgAnchor = [...urls].some((u) => WIKI_KG_RE.test(u) || WIKIDATA_KG_RE.test(u));
     if (urls.size >= 2 && hasKgAnchor) {
-      return makeResult(this, 'pass', `${urls.size} sameAs profile(s) incl. a knowledge-graph anchor`);
+      return makeResult(this, 'pass', t`${urls.size} sameAs profile(s) incl. a knowledge-graph anchor`);
     }
     if (urls.size >= 2) {
-      return makeResult(this, 'warn', `${urls.size} sameAs profile(s) but no Wikipedia/Wikidata anchor`,
+      return makeResult(this, 'warn', t`${urls.size} sameAs profile(s) but no Wikipedia/Wikidata anchor`,
         'Add a Wikipedia or Wikidata sameAs entry for stronger entity grounding.');
     }
     return makeResult(this, 'warn', 'only 1 sameAs profile URL',
@@ -266,7 +266,7 @@ export const sdLocalBusiness: Check = {
     if (!entity.geo) warnings.push('missing geo');
     if (!entity.openingHoursSpecification) warnings.push('missing openingHoursSpecification');
     if (warnings.length > 0) {
-      return makeResult(this, 'warn', `LocalBusiness NAP/geo/hours incomplete (${warnings.join('; ')})`,
+      return makeResult(this, 'warn', t`LocalBusiness NAP/geo/hours incomplete (${warnings.join('; ')})`,
         'Use structured PostalAddress + GeoCoordinates + openingHoursSpecification.');
     }
     return makeResult(this, 'pass', 'LocalBusiness NAP + geo + opening hours complete');
@@ -354,14 +354,14 @@ export const sdVideo: Check = {
     if (!/^https:\/\//i.test(str(video.thumbnailUrl))) missing.push('absolute thumbnailUrl');
     if (!str(video.uploadDate) || Number.isNaN(Date.parse(str(video.uploadDate)))) missing.push('ISO uploadDate');
     if (missing.length > 0) {
-      return makeResult(this, 'fail', `video without complete VideoObject (missing: ${missing.join(', ')})`,
+      return makeResult(this, 'fail', t`video without complete VideoObject (missing: ${missing.join(', ')})`,
         'Add VideoObject name/description/absolute thumbnailUrl/ISO uploadDate.');
     }
     const bonusMissing: string[] = [];
     if (!str(video.contentUrl) && !str(video.embedUrl)) bonusMissing.push('contentUrl/embedUrl');
     if (!isIso8601Duration(video.duration)) bonusMissing.push('ISO duration');
     if (bonusMissing.length > 0) {
-      return makeResult(this, 'warn', `VideoObject missing recommended ${bonusMissing.join(' and ')}`,
+      return makeResult(this, 'warn', t`VideoObject missing recommended ${bonusMissing.join(' and ')}`,
         'Add contentUrl/embedUrl and an ISO-8601 duration.');
     }
     return makeResult(this, 'pass', 'VideoObject complete');
@@ -418,11 +418,11 @@ export const sdSpecialTypes: Check = {
       const type = typesOf(node).find((t) => SPECIAL_TYPES.includes(t))!;
       const problems = validateSpecialType(node, type);
       if (problems.length > 0) {
-        return makeResult(this, 'fail', `${type} missing required fields (${problems.join(', ')})`,
+        return makeResult(this, 'fail', t`${type} missing required fields (${problems.join(', ')})`,
           'Fill the required fields for the declared type; ISO dates, structured Place.');
       }
     }
-    return makeResult(this, 'pass', `${present.length} special type(s) fully marked up`);
+    return makeResult(this, 'pass', t`${present.length} special type(s) fully marked up`);
   },
 };
 
@@ -454,15 +454,15 @@ export const sdGraphIntegrity: Check = {
     for (const n of nodes) collectRefs(n, refs);
     const dangling = [...new Set(refs)].filter((r) => !idOwners.has(r));
     if (dangling.length > 0) {
-      return makeResult(this, 'fail', `dangling @id reference: ${dangling.slice(0, 3).join(', ')}`,
+      return makeResult(this, 'fail', t`dangling @id reference: ${dangling.slice(0, 3).join(', ')}`,
         'Use one @graph with a stable @id per entity; reference by @id.');
     }
     const duplicated = [...idOwners.entries()].filter(([, count]) => count > 1).map(([id]) => id);
     if (duplicated.length > 0) {
-      return makeResult(this, 'warn', `duplicated @id: ${duplicated.slice(0, 3).join(', ')}`,
+      return makeResult(this, 'warn', t`duplicated @id: ${duplicated.slice(0, 3).join(', ')}`,
         'Declare each entity once and reference it by @id elsewhere.');
     }
-    return makeResult(this, 'pass', `${idOwners.size} @id-linked entities, no dangling references`);
+    return makeResult(this, 'pass', t`${idOwners.size} @id-linked entities, no dangling references`);
   },
 };
 
@@ -507,9 +507,9 @@ export const sdConsistency: Check = {
     const bodyText = (root.querySelector('body')?.textContent ?? root.textContent ?? '').toLowerCase();
     const unmatched = values.filter((v) => !bodyText.includes(v.toLowerCase()));
     if (unmatched.length > 0) {
-      return makeResult(this, 'warn', `JSON-LD may describe hidden content (unmatched: ${unmatched.slice(0, 3).join(', ')})`,
+      return makeResult(this, 'warn', t`JSON-LD may describe hidden content (unmatched: ${unmatched.slice(0, 3).join(', ')})`,
         'Only mark up content visible on the page.');
     }
-    return makeResult(this, 'pass', `${values.length} JSON-LD value(s) confirmed visible on the page`);
+    return makeResult(this, 'pass', t`${values.length} JSON-LD value(s) confirmed visible on the page`);
   },
 };

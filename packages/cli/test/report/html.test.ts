@@ -22,9 +22,10 @@ const report: AuditReport = {
   sampledPages: ['/', '/about'],
   results: [
     { id: 'llms-txt', family: 'llm-content', status: 'fail', points: 0, maxPoints: 10,
-      message: 'llms.txt missing', fix: 'Add a /llms.txt file.', docUrl: 'https://llmstxt.org/' },
+      message: 'llms.txt missing', messageTemplate: 'llms.txt missing', messageParams: [],
+      fix: 'Add a /llms.txt file.', docUrl: 'https://llmstxt.org/' },
     { id: 'json-ld', family: 'structured-data', status: 'pass', points: 10, maxPoints: 10,
-      message: '1 valid JSON-LD block(s)' },
+      message: '1 valid JSON-LD block(s)', messageTemplate: '{0} valid JSON-LD block(s)', messageParams: [1] },
     { id: 'evil', family: 'security', status: 'warn', points: 2, maxPoints: 4,
       message: 'weird <script>alert(1)</script> title', fix: 'Fix the <title>.' },
   ],
@@ -257,9 +258,12 @@ describe('renderHtml in French', () => {
     expect(html).toContain('Pages auditées :');
     expect(html).toContain('En savoir plus →');
   });
-  it('localizes the fix and adds a French "why" per check (dynamic message stays EN)', () => {
-    // The dynamic check message stays English for now (#1 follow-up).
-    expect(html).toContain('llms.txt missing');
+  it('localizes the message, the fix and adds a French "why" per check', () => {
+    // The dynamic message is rebuilt in French from its template (#1, lot E).
+    expect(html).toContain('llms.txt absent');
+    expect(html).not.toContain('llms.txt missing');
+    // An interpolated message keeps its values while the wording changes.
+    expect(html).toContain('1 bloc(s) JSON-LD valides');
     // The fix is now translated on a French report (#1/#53) — no English fix leak.
     expect(html).toContain('Ajoutez un fichier /llms.txt');
     expect(html).not.toContain('Add a /llms.txt file.');

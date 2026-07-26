@@ -1,6 +1,6 @@
 // AUTO-GENERATED per-check bilingual catalogue (#1/#53): purpose ("why") + localized
 // fix for every check. Generated from each check source, sample-verified for accuracy.
-// The dynamic per-check `message` stays English for now (see backlog #1).
+// The dynamic per-check `message` is localized separately, in message-i18n.ts.
 import type { Lang } from './i18n.js';
 
 export interface CheckI18n { why: Record<Lang, string>; fix?: Record<Lang, string>; }

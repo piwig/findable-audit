@@ -5,6 +5,7 @@ import { renderCwvMarkdown } from './cwv.js';
 import { collectRecommendations } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
+import { localizeMessage } from './message-i18n.js';
 import { renderDiffMarkdown, type ReportDiff } from './diff.js';
 
 const ICONS: Record<CheckResult['status'], string> = {
@@ -54,7 +55,8 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push('|---|---|---|---|');
     for (const r of results) {
       const why = checkWhy(r.id, lang);
-      const msg = why ? `${cell(r.message)} — _${cell(why)}_` : cell(r.message);
+      const text = localizeMessage(r, lang);
+      const msg = why ? `${cell(text)} — _${cell(why)}_` : cell(text);
       // The human title leads, the technical id follows in code — same order as
       // the HTML report, so a reader moving between the two formats is not lost.
       lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${r.id}\` | ${r.points}/${r.maxPoints} | ${msg} |`);

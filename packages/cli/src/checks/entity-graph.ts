@@ -1,5 +1,5 @@
 import type { Check, CrawlContext } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import {
   buildEntityGraph, componentIndex, ENTITY_ROOT_TYPES, type EntityGraph,
 } from '../report/entity-graph.js';
@@ -25,7 +25,7 @@ export const entityGraphConnectivity: Check = {
     const dangling = g.nodes.filter((n) => n.synthetic && n.types.length === 0).map((n) => n.id);
     if (dangling.length > 0) {
       return makeResult(this, 'fail',
-        `dangling @id reference(s): ${dangling.slice(0, 3).join(', ')}`,
+        t`dangling @id reference(s): ${dangling.slice(0, 3).join(', ')}`,
         'Define every entity referenced by @id somewhere in your JSON-LD (ideally one @graph), so references resolve.');
     }
 
@@ -40,11 +40,11 @@ export const entityGraphConnectivity: Check = {
     const rootComponents = new Set(namedRoots.map((n) => comp.get(n.id)));
     if (namedRoots.length >= 2 && rootComponents.size >= 2) {
       return makeResult(this, 'warn',
-        `core entities are not linked (${rootComponents.size} disconnected identity clusters)`,
+        t`core entities are not linked (${rootComponents.size} disconnected identity clusters)`,
         'Cross-reference Organization ↔ WebSite (and Person/LocalBusiness) with @id so they form one connected entity graph.');
     }
 
     return makeResult(this, 'pass',
-      `${g.stats.nodes} entities, ${g.stats.edges} links, no dangling references (${g.stats.components} component(s))`);
+      t`${g.stats.nodes} entities, ${g.stats.edges} links, no dangling references (${g.stats.components} component(s))`);
   },
 };

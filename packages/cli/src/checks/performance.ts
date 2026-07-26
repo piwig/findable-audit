@@ -1,6 +1,6 @@
 import { HTMLElement } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { parsePage, classifyHeadResources } from './dom.js';
 import { headerOf } from './security.js';
@@ -39,8 +39,8 @@ export const renderBlockingJs: Check = {
       return { path: pathOf(p), status, reason: n > 0 ? `${n} render-blocking script(s)` : undefined };
     });
     const roll = rollupBySeverity(items);
-    if (roll.status === 'pass') return makeResult(this, 'pass', `no render-blocking head scripts on ${pages.length} page(s)`);
-    return makeResult(this, roll.status, `render-blocking head scripts on: ${roll.detail}`,
+    if (roll.status === 'pass') return makeResult(this, 'pass', t`no render-blocking head scripts on ${pages.length} page(s)`);
+    return makeResult(this, roll.status, t`render-blocking head scripts on: ${roll.detail}`,
       'Add defer/async (or type=module) to head <script src>, or move scripts to the end of <body>.');
   },
 };
@@ -120,10 +120,10 @@ export const imgLazyLoading: Check = {
     if (belowFold.length === 0) return makeResult(this, 'pass', 'hero image is eager; no below-fold images to assess');
     const eager = belowFold.filter((img) => (img.getAttribute('loading') ?? '').toLowerCase() !== 'lazy').length;
     if (eager / belowFold.length > 0.5) {
-      return makeResult(this, 'warn', `${eager}/${belowFold.length} off-screen images not lazy-loaded`,
+      return makeResult(this, 'warn', t`${eager}/${belowFold.length} off-screen images not lazy-loaded`,
         'Add loading="lazy" to images below the fold; keep the first/LCP image eager.');
     }
-    return makeResult(this, 'pass', `${belowFold.length - eager}/${belowFold.length} below-fold images lazy-loaded, hero eager`);
+    return makeResult(this, 'pass', t`${belowFold.length - eager}/${belowFold.length} below-fold images lazy-loaded, hero eager`);
   },
 };
 
@@ -193,9 +193,9 @@ export const resourceHints: Check = {
     }
     const missing = [...crossOrigins].filter((o) => !hinted.has(o));
     if (missing.length === 0) {
-      return makeResult(this, 'pass', `preconnect/dns-prefetch present for ${crossOrigins.size} third-party origin(s)`);
+      return makeResult(this, 'pass', t`preconnect/dns-prefetch present for ${crossOrigins.size} third-party origin(s)`);
     }
-    return makeResult(this, 'warn', `no preconnect/dns-prefetch hint for: ${missing.slice(0, 3).join(', ')}`,
+    return makeResult(this, 'warn', t`no preconnect/dns-prefetch hint for: ${missing.slice(0, 3).join(', ')}`,
       'Add <link rel="preconnect" href="..."> for critical third-party origins and rel=preload for the LCP image/key font.');
   },
 };
@@ -221,7 +221,7 @@ export const domSize: Check = {
     const elements = root.querySelectorAll('*').length;
     const depth = maxDepth(root);
     const fix = 'Simplify markup; virtualize long lists; flatten deep nesting.';
-    if (elements > 1400) return makeResult(this, 'fail', `large DOM (${elements} nodes)`, fix);
+    if (elements > 1400) return makeResult(this, 'fail', t`large DOM (${elements} nodes)`, fix);
     const msg = `DOM has ${elements} element(s), max nesting depth ${depth}`;
     if (elements > 800 || depth > 32) return makeResult(this, 'warn', msg, fix);
     return makeResult(this, 'pass', msg);
@@ -239,7 +239,7 @@ export const textCompression: Check = {
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
     const encoding = (headerOf(res, 'content-encoding') ?? '').toLowerCase();
     if (/\b(br|zstd|gzip)\b/.test(encoding)) {
-      return makeResult(this, 'pass', `HTML served with Content-Encoding: ${encoding}`);
+      return makeResult(this, 'pass', t`HTML served with Content-Encoding: ${encoding}`);
     }
     return makeResult(this, 'fail', 'HTML not compressed',
       'Enable Brotli/gzip compression for text responses at the server/CDN.');
@@ -267,12 +267,12 @@ export const assetCaching: Check = {
     }
     if (!assetPath) return makeResult(this, 'skip', 'no same-origin CSS/JS asset to sample');
     const asset = await ctx.fetch(assetPath);
-    if (!asset || asset.status !== 200) return makeResult(this, 'skip', `sampled asset not reachable (${assetPath})`);
+    if (!asset || asset.status !== 200) return makeResult(this, 'skip', t`sampled asset not reachable (${assetPath})`);
     const cacheControl = headerOf(asset, 'cache-control') ?? '';
     const maxAge = /max-age\s*=\s*(\d+)/i.exec(cacheControl);
     const cached = (maxAge !== null && Number(maxAge[1]) > 0) || headerOf(asset, 'etag') !== undefined;
-    if (cached) return makeResult(this, 'pass', `caching headers present on ${assetPath}`);
-    return makeResult(this, 'warn', `no caching headers on assets (sampled ${assetPath})`,
+    if (cached) return makeResult(this, 'pass', t`caching headers present on ${assetPath}`);
+    return makeResult(this, 'warn', t`no caching headers on assets (sampled ${assetPath})`,
       'Cache-Control: public, max-age=31536000, immutable on hashed assets.');
   },
 };

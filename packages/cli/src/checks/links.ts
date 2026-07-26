@@ -1,6 +1,6 @@
 import { parse } from 'node-html-parser';
 import type { Check, FetchedResource } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { isLocalOrPrivateHost } from './fundamentals.js';
 import { pagesOf, aggregate } from './aggregate.js';
 import { isContentPath } from '../crawl-filters.js';
@@ -39,8 +39,8 @@ export const brokenInternalLinks: Check = {
       if (res === null || res.status >= 400) offenders.push(new URL(link).pathname);
     }
     const agg = aggregate(links.length, offenders);
-    if (agg.status === 'pass') return makeResult(this, 'pass', `${links.length} internal link(s) resolve`);
-    return makeResult(this, agg.status, `broken internal links: ${agg.detail}`,
+    if (agg.status === 'pass') return makeResult(this, 'pass', t`${links.length} internal link(s) resolve`);
+    return makeResult(this, agg.status, t`broken internal links: ${agg.detail}`,
       'Fix or remove links returning >= 400 so crawlers do not waste budget on dead ends.');
   },
 };
@@ -67,7 +67,7 @@ export const redirectHygiene: Check = {
       return makeResult(this, 'pass', 'http:// 301-redirects to https://');
     }
     if (isRedirect && finalHttps) {
-      return makeResult(this, 'warn', `http:// redirects to https:// with a ${first.status} (should be 301)`,
+      return makeResult(this, 'warn', t`http:// redirects to https:// with a ${first.status} (should be 301)`,
         'Use a permanent 301 (not 302/307) from http:// to https://.');
     }
     return makeResult(this, 'fail', 'http:// is not 301-redirected to https://',
@@ -132,9 +132,9 @@ export const hreflang: Check = {
       }
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `${refs.length} hreflang alternate(s) reachable and reciprocal`);
+      return makeResult(this, 'pass', t`${refs.length} hreflang alternate(s) reachable and reciprocal`);
     }
-    return makeResult(this, 'fail', `broken or non-reciprocal hreflang alternates: ${offenders.slice(0, 3).join(', ')}`,
+    return makeResult(this, 'fail', t`broken or non-reciprocal hreflang alternates: ${offenders.slice(0, 3).join(', ')}`,
       'Every hreflang alternate must return 200 and declare hreflang links back to its language variants.');
   },
 };

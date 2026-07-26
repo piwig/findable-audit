@@ -1,6 +1,6 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { extractJsonLd, flatten, typesOf, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
@@ -116,7 +116,7 @@ export const agentUsability: Check = {
 
     const roll = rollupBySeverity(items);
     if (roll.status !== 'pass') {
-      return makeResult(this, roll.status, `forms an agent cannot submit on: ${roll.detail}`,
+      return makeResult(this, roll.status, t`forms an agent cannot submit on: ${roll.detail}`,
         'Give every form a real submit button that is never disabled server-side, a non-JavaScript action, and a name on every field — an assistant acting for a visitor cannot run your click handlers.');
     }
     if (contactPages === 0) {
@@ -124,6 +124,6 @@ export const agentUsability: Check = {
         'Expose at least one machine-readable way to reach you: a mailto: or tel: link, a submittable form, or email/telephone/contactPoint in your JSON-LD.');
     }
     const formNote = formCount > 0 ? `${formCount} form(s) submittable without JS` : 'no form to submit';
-    return makeResult(this, 'pass', `${formNote}; contact reachable on ${contactPages}/${pages.length} page(s)`);
+    return makeResult(this, 'pass', t`${formNote}; contact reachable on ${contactPages}/${pages.length} page(s)`);
   },
 };

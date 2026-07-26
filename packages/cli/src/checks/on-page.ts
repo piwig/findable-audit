@@ -1,6 +1,6 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { parsePage, headingOutline, hasHeadingSkip, tokenize, isGenericAnchorText } from './dom.js';
 
@@ -22,9 +22,9 @@ export const metaPerPage: Check = {
       const descOk = desc.length >= 50 && desc.length <= 160;
       if (!titleOk || !descOk) offenders.push(pathOf(p));
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `title and description in range on ${pages.length} page(s)`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`title and description in range on ${pages.length} page(s)`);
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `title/description out of range on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`title/description out of range on: ${agg.detail}`,
       'Give every sampled page a unique 10-70 char <title> and a 50-160 char meta description.');
   },
 };
@@ -76,7 +76,7 @@ export const titleH1Alignment: Check = {
     const title = root.querySelector('title')?.textContent.trim() ?? '';
     const h1 = root.querySelector('h1')?.textContent.trim() ?? '';
     if (!title || !h1) {
-      return makeResult(this, 'fail', `missing ${!title ? '<title>' : '<h1>'}`,
+      return makeResult(this, 'fail', t`missing ${!title ? '<title>' : '<h1>'}`,
         'Add both a <title> and a single <h1> describing the page topic.');
     }
     // Exclude the brand (the title's trailing segment after a separator, as in
@@ -91,7 +91,7 @@ export const titleH1Alignment: Check = {
       return makeResult(this, 'warn', 'title and H1 topics diverge (no shared meaningful tokens)',
         'Keep the <h1> on the same subject as the <title>.');
     }
-    return makeResult(this, 'pass', `title and H1 share ${shared.size} meaningful token(s)`);
+    return makeResult(this, 'pass', t`title and H1 share ${shared.size} meaningful token(s)`);
   },
 };
 
@@ -110,9 +110,9 @@ export const headingsOutline: Check = {
       const h1Count = outline.filter((h) => h.level === 1 && h.text).length;
       if (h1Count !== 1 || hasHeadingSkip(outline)) offenders.push(pathOf(p));
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `heading outline clean on ${pages.length} page(s)`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`heading outline clean on ${pages.length} page(s)`);
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `heading outline broken on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`heading outline broken on: ${agg.detail}`,
       'Use exactly one <h1> per page and nest H2/H3/... without skipping a level.');
   },
 };
@@ -154,9 +154,9 @@ export const anchorText: Check = {
     if (total === 0) return makeResult(this, 'pass', 'no internal links on sampled pages');
     const ratio = generic / total;
     const pct = Math.round(ratio * 100);
-    if (ratio < 0.1) return makeResult(this, 'pass', `${pct}% generic internal anchor text (${generic}/${total})`);
+    if (ratio < 0.1) return makeResult(this, 'pass', t`${pct}% generic internal anchor text (${generic}/${total})`);
     const status = ratio < 0.5 ? 'warn' : 'fail';
-    return makeResult(this, status, `generic anchor text (${pct}%)`,
+    return makeResult(this, status, t`generic anchor text (${pct}%)`,
       'Name the destination in the anchor text instead of "click here" / "read more" / bare URLs.');
   },
 };
@@ -176,7 +176,7 @@ export const charset: Check = {
     const declared = (metaMatch?.[1] ?? headerMatch?.[1] ?? '').toLowerCase();
     if (!declared) return makeResult(this, 'fail', 'no charset declared', 'Add <meta charset="utf-8"> first in <head>.');
     if (declared === 'utf-8' || declared === 'utf8') return makeResult(this, 'pass', 'UTF-8 charset declared');
-    return makeResult(this, 'warn', `legacy charset declared (${declared})`,
+    return makeResult(this, 'warn', t`legacy charset declared (${declared})`,
       'Switch to <meta charset="utf-8"> as the first element in <head>.');
   },
 };
@@ -236,8 +236,8 @@ export const contentReadability: Check = {
     const sentences = (text.match(/[^.!?]+[.!?]+/g) ?? [text]).filter((s) => s.trim().length > 0);
     const syllables = words.reduce((s, w) => s + countSyllables(w), 0);
     const grade = 0.39 * (words.length / Math.max(sentences.length, 1)) + 11.8 * (syllables / words.length) - 15.59;
-    if (grade <= 12) return makeResult(this, 'pass', `main content reads at approximately grade ${grade.toFixed(1)}`);
-    return makeResult(this, 'warn', `dense/hard-to-read main content (grade ~${grade.toFixed(1)})`,
+    if (grade <= 12) return makeResult(this, 'pass', t`main content reads at approximately grade ${grade.toFixed(1)}`);
+    return makeResult(this, 'warn', t`dense/hard-to-read main content (grade ~${grade.toFixed(1)})`,
       'Break long sentences and paragraphs into shorter, simpler ones.');
   },
 };
@@ -269,8 +269,8 @@ export const figureCaption: Check = {
       }
     }
     if (total === 0) return makeResult(this, 'skip', 'no explanatory content images on sampled pages');
-    if (captioned === total) return makeResult(this, 'pass', `${captioned}/${total} content image(s) have a figure/figcaption`);
-    return makeResult(this, 'warn', `${captioned}/${total} content image(s) wrapped in figure/figcaption`,
+    if (captioned === total) return makeResult(this, 'pass', t`${captioned}/${total} content image(s) have a figure/figcaption`);
+    return makeResult(this, 'warn', t`${captioned}/${total} content image(s) wrapped in figure/figcaption`,
       'Wrap explanatory images in <figure> with a <figcaption>.');
   },
 };

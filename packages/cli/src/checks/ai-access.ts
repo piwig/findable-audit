@@ -1,5 +1,5 @@
 import type { Check, FetchedResource } from '../types.js';
-import { makeResult, isPlainText } from '../types.js';
+import { makeResult, isPlainText, t } from '../types.js';
 import {
   parseRobots, isBlocked, robotsWellformed,
   robotsDirectiveSet, hasDirectiveToken,
@@ -15,7 +15,7 @@ export const robotsExists: Check = {
     const res = await ctx.fetch('/robots.txt');
     if (res?.status === 200) {
       if (!isPlainText(res)) {
-        return makeResult(this, 'warn', `robots.txt served with content-type "${res.contentType}" (SPA fallback?)`,
+        return makeResult(this, 'warn', t`robots.txt served with content-type "${res.contentType}" (SPA fallback?)`,
           'Serve /robots.txt as text/plain, not an HTML fallback page.');
       }
       return makeResult(this, 'pass', 'robots.txt found');
@@ -36,10 +36,10 @@ export const robotsWellformedCheck: Check = {
     const result = robotsWellformed(res);
     if (result.status === 'pass') return makeResult(this, 'pass', 'robots.txt is well-formed');
     if (result.status === 'warn') {
-      return makeResult(this, 'warn', `robots.txt malformed (${result.reason})`,
+      return makeResult(this, 'warn', t`robots.txt malformed (${result.reason})`,
         'Keep only User-agent/Allow/Disallow/Sitemap/Crawl-delay/Host directives, each after a User-agent line.');
     }
-    return makeResult(this, 'fail', `robots.txt malformed (${result.reason})`,
+    return makeResult(this, 'fail', t`robots.txt malformed (${result.reason})`,
       'Serve a valid text/plain robots.txt with a User-agent group and a Sitemap: line; never return HTML for it.');
   },
 };
@@ -54,7 +54,7 @@ export const searchCrawlersAllowed: Check = {
     const groups = parseRobots(res.body);
     const blocked = SEARCH_BOTS.filter((b) => isBlocked(groups, b, '/'));
     if (blocked.length === 0) return makeResult(this, 'pass', 'search crawlers (Googlebot, Bingbot, *) allowed');
-    return makeResult(this, 'fail', `search crawlers blocked: ${blocked.join(', ')}`,
+    return makeResult(this, 'fail', t`search crawlers blocked: ${blocked.join(', ')}`,
       'Remove the site-wide "Disallow: /" rule for these user-agents; scope disallows to cart/search/admin paths.');
   },
 };
@@ -71,10 +71,10 @@ export const aiCrawlersAllowed: Check = {
     if (blocked.length === 0) return makeResult(this, 'pass', 'all AI crawlers (training + citation-time) allowed');
     const citationBlocked = blocked.filter((b) => CITATION_BOTS.includes(b));
     if (citationBlocked.length > 0) {
-      return makeResult(this, 'fail', `AI crawlers blocked: ${blocked.join(', ')}`,
+      return makeResult(this, 'fail', t`AI crawlers blocked: ${blocked.join(', ')}`,
         'Never "Disallow: /" a citation-time fetcher (e.g. OAI-SearchBot, Claude-User, PerplexityBot — any of the 13 in the roster) — it hides the site from live AI answers.');
     }
-    return makeResult(this, 'warn', `AI crawlers blocked: ${blocked.join(', ')}`,
+    return makeResult(this, 'warn', t`AI crawlers blocked: ${blocked.join(', ')}`,
       'These are training-time crawlers only; blocking them is a valid policy choice, but allow them if you want future model training coverage.');
   },
 };
@@ -84,7 +84,7 @@ export const homepageOk: Check = {
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status === 200) return makeResult(this, 'pass', 'homepage responds 200');
-    return makeResult(this, 'fail', `homepage returned ${res?.status ?? 'no response'}`,
+    return makeResult(this, 'fail', t`homepage returned ${res?.status ?? 'no response'}`,
       'Ensure the root URL serves a 200 HTML page without requiring JavaScript.');
   },
 };
@@ -97,7 +97,7 @@ export const robotsDirectives: Check = {
     const set = robotsDirectiveSet(res);
     if (hasDirectiveToken(set, 'noindex') || hasDirectiveToken(set, 'noai')) {
       const raw = [set.headerRaw, set.metaRaw].filter(Boolean).join(' | ');
-      return makeResult(this, 'warn', `blocking robots directive found: ${raw}`,
+      return makeResult(this, 'warn', t`blocking robots directive found: ${raw}`,
         'Remove noindex/noai from the X-Robots-Tag header and <meta name="robots"> unless intentional.');
     }
     return makeResult(this, 'pass', 'no blocking robots directives (X-Robots-Tag / meta robots)');
@@ -258,9 +258,9 @@ export const aiServingParity: Check = {
     }
     const roll = rollupBySeverity(items);
     if (roll.status === 'pass') {
-      return makeResult(this, 'pass', `same document served across ${probes.length} AI/mobile UA probe(s)`);
+      return makeResult(this, 'pass', t`same document served across ${probes.length} AI/mobile UA probe(s)`);
     }
-    return makeResult(this, roll.status, `serving diverges by User-Agent: ${roll.detail}`,
+    return makeResult(this, roll.status, t`serving diverges by User-Agent: ${roll.detail}`,
       'Compare what your CDN/WAF/bot-management gives GPTBot/ClaudeBot against a normal browser fetch — AI crawlers must receive the same document, not a blocked or truncated one.');
   },
 };

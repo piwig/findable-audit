@@ -22,6 +22,67 @@ export interface CheckResult {
   fix?: string;
   /** Resolved documentation link (check override or family fallback). Present on every result. */
   docUrl?: string;
+  /**
+   * The English `message` with every interpolated value replaced by `{0}`, `{1}`, … —
+   * the lookup key of the localized catalogue (see report/message-i18n.ts). Present only
+   * when the check built its message with the `t` tag below.
+   */
+  messageTemplate?: string;
+  /** The values that filled `messageTemplate`, in order. */
+  messageParams?: MsgParam[];
+}
+
+/**
+ * A value a check can interpolate into its message. `undefined`/`null` are allowed
+ * because a template literal accepts them too — widening here keeps the tag a drop-in
+ * for the untagged literal rather than forcing call sites to add guards.
+ */
+export type MsgParam = string | number | undefined | null;
+
+/**
+ * A message that remembers how it was built.
+ *
+ * A check writes its message once, in English, as a template literal. Rendering that
+ * literal throws away the seam between the wording and the values, which is exactly
+ * what a translator needs: "3 of 12 images" is not translatable, "{0} of {1} images"
+ * is. Tagging the literal keeps both — `text` stays the English string every consumer
+ * already reads, and `template`/`params` let the HTML and Markdown reports rebuild the
+ * same sentence in French.
+ */
+export interface Msg {
+  text: string;
+  template: string;
+  params: MsgParam[];
+}
+
+/** Type guard: a message argument that carries its template, not a bare string. */
+export function isMsg(value: unknown): value is Msg {
+  return typeof value === 'object' && value !== null && 'template' in value && 'text' in value;
+}
+
+/**
+ * Tagged template that turns a check's English message into a translatable one.
+ *
+ *   t`missing alt on ${n} of ${total} images`
+ *     → text:     "missing alt on 3 of 12 images"
+ *       template: "missing alt on {0} of {1} images"
+ *       params:   [3, 12]
+ *
+ * The produced `text` is byte-identical to what the untagged literal produced, so
+ * adding the tag never changes the CLI, JSON, SARIF or JUnit output.
+ */
+export function t(strings: TemplateStringsArray, ...values: MsgParam[]): Msg {
+  let text = '';
+  let template = '';
+  strings.forEach((chunk, i) => {
+    text += chunk;
+    template += chunk;
+    if (i < values.length) {
+      text += String(values[i]);
+      template += `{${i}}`;
+    }
+  });
+  return { text, template, params: values };
 }
 
 export interface FetchedResource {
@@ -124,12 +185,19 @@ export interface Check {
 export function makeResult(
   check: Pick<Check, 'id' | 'family' | 'maxPoints' | 'docUrl'>,
   status: CheckStatus,
-  message: string,
+  message: string | Msg,
   fix?: string,
 ): CheckResult {
   const points =
     status === 'pass' ? check.maxPoints :
     status === 'warn' ? Math.floor(check.maxPoints / 2) : 0;
   const docUrl = check.docUrl ?? FAMILY_DOC_URL[check.family];
-  return { id: check.id, family: check.family, status, points, maxPoints: check.maxPoints, message, fix, docUrl };
+  // A bare string is its own template: no interpolation, nothing to re-fill.
+  const text = isMsg(message) ? message.text : message;
+  const template = isMsg(message) ? message.template : message;
+  const params = isMsg(message) ? message.params : [];
+  return {
+    id: check.id, family: check.family, status, points, maxPoints: check.maxPoints,
+    message: text, fix, docUrl, messageTemplate: template, messageParams: params,
+  };
 }

@@ -1,6 +1,6 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { Check, FetchedResource } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { parsePage } from './dom.js';
 import { isLocalOrPrivateHost } from './fundamentals.js';
@@ -97,14 +97,14 @@ export const mixedContent: Check = {
       else if (refs.passive.length > 0) passivePages.push(pathOf(p));
     }
     if (activePages.length > 0) {
-      return makeResult(this, 'fail', `active mixed content on: ${offenderList(activePages)}`,
+      return makeResult(this, 'fail', t`active mixed content on: ${offenderList(activePages)}`,
         'Serve every script/stylesheet/iframe over https:// (or protocol-relative URLs).');
     }
     if (passivePages.length > 0) {
-      return makeResult(this, 'warn', `passive mixed content (images/media) on: ${offenderList(passivePages)}`,
+      return makeResult(this, 'warn', t`passive mixed content (images/media) on: ${offenderList(passivePages)}`,
         'Serve images and media over https:// so the page stays fully secure.');
     }
-    return makeResult(this, 'pass', `no mixed content across ${pages.length} sampled page(s)`);
+    return makeResult(this, 'pass', t`no mixed content across ${pages.length} sampled page(s)`);
   },
 };
 
@@ -131,8 +131,8 @@ export const hsts: Check = {
     const maxAge = m ? Number(m[1]) : 0;
     const extras = [/includesubdomains/i.test(h) && 'includeSubDomains', /preload/i.test(h) && 'preload'].filter(Boolean);
     const suffix = extras.length ? ` (+${extras.join(', ')})` : '';
-    if (maxAge >= HSTS_MIN_AGE) return makeResult(this, 'pass', `HSTS max-age=${maxAge}${suffix}`);
-    return makeResult(this, 'warn', `HSTS max-age=${maxAge} is below 180 days`,
+    if (maxAge >= HSTS_MIN_AGE) return makeResult(this, 'pass', t`HSTS max-age=${maxAge}${suffix}`);
+    return makeResult(this, 'warn', t`HSTS max-age=${maxAge} is below 180 days`,
       'Raise HSTS max-age to at least 15552000 (180 days); prefer 31536000 with includeSubDomains.');
   },
 };
@@ -187,7 +187,7 @@ export const clickjacking: Check = {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
     const xfo = (headerOf(res, 'x-frame-options') ?? '').trim().toUpperCase();
-    if (xfo === 'DENY' || xfo === 'SAMEORIGIN') return makeResult(this, 'pass', `X-Frame-Options: ${xfo}`);
+    if (xfo === 'DENY' || xfo === 'SAMEORIGIN') return makeResult(this, 'pass', t`X-Frame-Options: ${xfo}`);
     // frame-ancestors is ONLY enforced when delivered via the HTTP CSP header — browsers
     // ignore frame-ancestors in a <meta> CSP. Read the header directly, not cspOf (meta fallback).
     const headerPolicy = headerOf(res, 'content-security-policy');
@@ -221,14 +221,14 @@ export const referrerPolicy: Check = {
     const values = h.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
     const recognized = values.filter((v) => REFERRER_POLICY_TOKENS.has(v));
     if (recognized.length === 0) {
-      return makeResult(this, 'warn', `Referrer-Policy has no recognized value (${h})`,
+      return makeResult(this, 'warn', t`Referrer-Policy has no recognized value (${h})`,
         'Use a recognized token such as strict-origin-when-cross-origin.');
     }
     if (recognized.includes('unsafe-url')) {
       return makeResult(this, 'warn', 'Referrer-Policy is leaky (unsafe-url)',
         'Use a non-leaky value such as strict-origin-when-cross-origin.');
     }
-    return makeResult(this, 'pass', `Referrer-Policy: ${h}`);
+    return makeResult(this, 'pass', t`Referrer-Policy: ${h}`);
   },
 };
 

@@ -32,7 +32,7 @@ Useful options:
   so pass a PSI key when the user has one.
 - `--indexnow-key <key>`: lets the IndexNow check verify the key file.
 - `--user-agent <ua>` (e.g. `"GPTBot/1.0"`): test UA-based blocking.
-- `--lang <en|fr>`: report chrome language (check texts stay in English).
+- `--lang <en|fr>`: report language, including each check's title, message and fix.
 - `--compare <url2,url3,...>`: side-by-side competitor scorecard (overall +
   per-family, with the gaps where the user trails).
 - `--baseline <file.json>` + `--fail-on-regression`

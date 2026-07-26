@@ -1,6 +1,6 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { Check } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { rollupBySeverity, type SeverityItem } from './jsonld.js';
@@ -64,13 +64,13 @@ export const chunkRetrievalSim: Check = {
     const pct = Math.round((survivors / total) * 100);
     if (offenders.length === 0) {
       return makeResult(this, 'pass',
-        `${survivors}/${total} ~${CHUNK_TOKENS}-token chunk(s) survive isolated retrieval (${pct}%)`);
+        t`${survivors}/${total} ~${CHUNK_TOKENS}-token chunk(s) survive isolated retrieval (${pct}%)`);
     }
     const worst = offenders
       .sort((a, b) => a.ratio - b.ratio)
       .map((o) => `${o.path} (${Math.round(o.ratio * 100)}%)`);
     return makeResult(this, 'warn',
-      `chunks that cannot stand alone on: ${offenderList(worst)}`,
+      t`chunks that cannot stand alone on: ${offenderList(worst)}`,
       'Open each section with a named subject rather than "it"/"this"/"cela", and keep a descriptive heading above every passage — a retriever hands the model one window, not the page.');
   },
 };
@@ -188,9 +188,9 @@ export const injectionHygiene: Check = {
     }
     const roll = rollupBySeverity(items);
     if (roll.status === 'pass') {
-      return makeResult(this, 'pass', `no hidden text or unattributed UGC across ${pages.length} page(s)`);
+      return makeResult(this, 'pass', t`no hidden text or unattributed UGC across ${pages.length} page(s)`);
     }
-    return makeResult(this, roll.status, `ingestion hygiene issues on: ${roll.detail}`,
+    return makeResult(this, roll.status, t`ingestion hygiene issues on: ${roll.detail}`,
       'Remove inline-hidden copy (an assistant reads it even when a visitor cannot), and mark user-contributed links rel="ugc".');
   },
 };

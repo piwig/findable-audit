@@ -5,6 +5,7 @@ import { renderCwvHtml } from './cwv.js';
 import { collectRecommendations, type Recommendation } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
+import { localizeMessage } from './message-i18n.js';
 import { checkSnippet } from './snippets.js';
 import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
 import { renderScoreGauge, renderPriorityBars } from './charts.js';
@@ -314,7 +315,7 @@ export function renderHtml(
         <td class="st ${r.status}">${STATUS_LABEL[r.status]}</td>
         <td>
           <div class="row-head"><span class="ck-title">${escapeHtml(checkTitle(r.id, lang))}</span><code class="ck-id">${escapeHtml(r.id)}</code></div>
-          <div class="msg">${escapeHtml(r.message)}</div>${whyHtml}${fix}
+          <div class="msg">${escapeHtml(localizeMessage(r, lang))}</div>${whyHtml}${fix}
         </td>
         <td class="pts">${r.points}/${r.maxPoints}</td>
       </tr>`;

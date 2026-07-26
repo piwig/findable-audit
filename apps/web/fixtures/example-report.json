@@ -65,7 +65,8 @@
     "/fr/",
     "/en/about/",
     "/en/contact/",
-    "/fr/about/"
+    "/fr/about/",
+    "/fr/contact/"
   ],
   "results": [
     {
@@ -75,7 +76,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "robots.txt found",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "robots.txt found",
+      "messageParams": []
     },
     {
       "id": "robots-wellformed",
@@ -84,7 +87,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "robots.txt is well-formed",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "robots.txt is well-formed",
+      "messageParams": []
     },
     {
       "id": "search-crawlers-allowed",
@@ -93,7 +98,9 @@
       "points": 6,
       "maxPoints": 6,
       "message": "search crawlers (Googlebot, Bingbot, *) allowed",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "search crawlers (Googlebot, Bingbot, *) allowed",
+      "messageParams": []
     },
     {
       "id": "ai-crawlers-allowed",
@@ -102,7 +109,9 @@
       "points": 12,
       "maxPoints": 12,
       "message": "all AI crawlers (training + citation-time) allowed",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "all AI crawlers (training + citation-time) allowed",
+      "messageParams": []
     },
     {
       "id": "homepage-ok",
@@ -111,7 +120,9 @@
       "points": 6,
       "maxPoints": 6,
       "message": "homepage responds 200",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "homepage responds 200",
+      "messageParams": []
     },
     {
       "id": "robots-directives",
@@ -120,7 +131,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "no blocking robots directives (X-Robots-Tag / meta robots)",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no blocking robots directives (X-Robots-Tag / meta robots)",
+      "messageParams": []
     },
     {
       "id": "ai-serving-parity",
@@ -129,7 +142,11 @@
       "points": 8,
       "maxPoints": 8,
       "message": "same document served across 5 AI/mobile UA probe(s)",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "same document served across {0} AI/mobile UA probe(s)",
+      "messageParams": [
+        5
+      ]
     },
     {
       "id": "snippet-preview-directives",
@@ -137,8 +154,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "preview directives set on 5 sampled page(s)",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "message": "preview directives set on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "preview directives set on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "llms-txt",
@@ -147,7 +168,11 @@
       "points": 10,
       "maxPoints": 10,
       "message": "llms.txt structured (summary + section + 5 descriptive links)",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "llms.txt structured (summary + section + {0} descriptive links)",
+      "messageParams": [
+        5
+      ]
     },
     {
       "id": "llms-full-txt",
@@ -156,7 +181,12 @@
       "points": 4,
       "maxPoints": 4,
       "message": "llms-full.txt has 2243 words under 30 headings",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "llms-full.txt has {0} words under {1} headings",
+      "messageParams": [
+        2243,
+        30
+      ]
     },
     {
       "id": "content-without-js",
@@ -164,8 +194,12 @@
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
-      "message": "static text ≥200 chars on 5 sampled page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "static text ≥200 chars on 6 sampled page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "static text ≥200 chars on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "csr-content-parity",
@@ -173,8 +207,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "server-rendered main content on 5 sampled page(s), no empty CSR mount roots",
-      "docUrl": "https://llmstxt.org/"
+      "message": "server-rendered main content on 6 sampled page(s), no empty CSR mount roots",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "server-rendered main content on {0} sampled page(s), no empty CSR mount roots",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "content-depth",
@@ -182,8 +220,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "main content above the word threshold on 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "main content above the word threshold on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "main content above the word threshold on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "content-lead-answer",
@@ -191,8 +233,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "direct-answer lead on 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "direct-answer lead on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "direct-answer lead on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "answer-headings",
@@ -201,7 +247,11 @@
       "points": 4,
       "maxPoints": 4,
       "message": "question-style subheadings on 4 long page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "question-style subheadings on {0} long page(s)",
+      "messageParams": [
+        4
+      ]
     },
     {
       "id": "extractable-structure",
@@ -209,8 +259,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "lists/tables in main content on 5 substantial page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "lists/tables in main content on 6 substantial page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "lists/tables in main content on {0} substantial page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "content-freshness",
@@ -219,7 +273,9 @@
       "points": 0,
       "maxPoints": 5,
       "message": "no article-type pages to date",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no article-type pages to date",
+      "messageParams": []
     },
     {
       "id": "content-author-eeat",
@@ -228,7 +284,9 @@
       "points": 0,
       "maxPoints": 5,
       "message": "no article-type pages to attribute",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no article-type pages to attribute",
+      "messageParams": []
     },
     {
       "id": "outbound-citations",
@@ -236,8 +294,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "outbound citations on 5 substantial page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "outbound citations on 6 substantial page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "outbound citations on {0} substantial page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "content-uniqueness",
@@ -245,8 +307,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "no near-duplicate bodies across 5 pages",
-      "docUrl": "https://llmstxt.org/"
+      "message": "no near-duplicate bodies across 6 pages",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no near-duplicate bodies across {0} pages",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "about-contact",
@@ -255,7 +321,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "About and Contact reachable with a contact method",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "About and Contact reachable with a contact method",
+      "messageParams": []
     },
     {
       "id": "well-known-ai-json",
@@ -264,7 +332,9 @@
       "points": 1,
       "maxPoints": 1,
       "message": "/.well-known/ai.json serves a JSON object manifest",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "/.well-known/ai.json serves a JSON object manifest",
+      "messageParams": []
     },
     {
       "id": "images-alt",
@@ -273,7 +343,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "no <img> elements on sampled pages",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no <img> elements on sampled pages",
+      "messageParams": []
     },
     {
       "id": "freshness-coherence",
@@ -281,8 +353,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "freshness signals coherent (24h tolerance) on 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "freshness signals coherent (24h tolerance) on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "freshness signals coherent (24h tolerance) on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "hedging-rate",
@@ -290,8 +366,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "direct, hedge-free leads on 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "direct, hedge-free leads on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "direct, hedge-free leads on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "answer-units",
@@ -300,7 +380,12 @@
       "points": 4,
       "maxPoints": 4,
       "message": "41 liftable answer unit(s) across 4 pillar page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0} liftable answer unit(s) across {1} pillar page(s)",
+      "messageParams": [
+        41,
+        4
+      ]
     },
     {
       "id": "chunk-boundary",
@@ -308,8 +393,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "chunk-safe structure on 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "chunk-safe structure on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "chunk-safe structure on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "chunk-retrieval-sim",
@@ -318,7 +407,14 @@
       "points": 4,
       "maxPoints": 4,
       "message": "8/8 ~512-token chunk(s) survive isolated retrieval (100%)",
-      "docUrl": "https://llmstxt.org/"
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0}/{1} ~{2}-token chunk(s) survive isolated retrieval ({3}%)",
+      "messageParams": [
+        8,
+        8,
+        512,
+        100
+      ]
     },
     {
       "id": "injection-hygiene",
@@ -326,8 +422,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "no hidden text or unattributed UGC across 5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "no hidden text or unattributed UGC across 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no hidden text or unattributed UGC across {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "agent-usability",
@@ -335,8 +435,14 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "4 form(s) submittable without JS; contact reachable on 3/5 page(s)",
-      "docUrl": "https://llmstxt.org/"
+      "message": "4 form(s) submittable without JS; contact reachable on 4/6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0}; contact reachable on {1}/{2} page(s)",
+      "messageParams": [
+        "4 form(s) submittable without JS",
+        4,
+        6
+      ]
     },
     {
       "id": "json-ld",
@@ -345,7 +451,11 @@
       "points": 10,
       "maxPoints": 10,
       "message": "1 valid JSON-LD block(s)",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} valid JSON-LD block(s)",
+      "messageParams": [
+        1
+      ]
     },
     {
       "id": "json-ld-entity",
@@ -354,7 +464,11 @@
       "points": 6,
       "maxPoints": 6,
       "message": "relevant entity found: Organization",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "relevant entity found: {0}",
+      "messageParams": [
+        "Organization"
+      ]
     },
     {
       "id": "schema-coverage",
@@ -362,8 +476,10 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "5/5 sampled pages carry valid JSON-LD",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "message": "6/6 sampled pages carry valid JSON-LD",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "6/6 sampled pages carry valid JSON-LD",
+      "messageParams": []
     },
     {
       "id": "sitemap",
@@ -372,7 +488,9 @@
       "points": 10,
       "maxPoints": 10,
       "message": "valid sitemap, referenced in robots.txt",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "valid sitemap, referenced in robots.txt",
+      "messageParams": []
     },
     {
       "id": "indexnow",
@@ -381,7 +499,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "no IndexNow key provided (use --indexnow-key to enable)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no IndexNow key provided (use --indexnow-key to enable)",
+      "messageParams": []
     },
     {
       "id": "title-description",
@@ -390,7 +510,9 @@
       "points": 8,
       "maxPoints": 8,
       "message": "title and meta description look good",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and meta description look good",
+      "messageParams": []
     },
     {
       "id": "canonical",
@@ -398,8 +520,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "self-referential canonical on 5 sampled page(s)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "self-referential canonical on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "self-referential canonical on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "open-graph",
@@ -408,7 +534,9 @@
       "points": 5,
       "maxPoints": 5,
       "message": "Open Graph complete (core set + site_name + locale)",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "Open Graph complete (core set + site_name + locale)",
+      "messageParams": []
     },
     {
       "id": "twitter-card",
@@ -417,7 +545,11 @@
       "points": 2,
       "maxPoints": 2,
       "message": "twitter:card=summary_large_image complete",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "twitter:card={0} complete",
+      "messageParams": [
+        "summary_large_image"
+      ]
     },
     {
       "id": "https",
@@ -426,7 +558,9 @@
       "points": 5,
       "maxPoints": 5,
       "message": "served over HTTPS",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "served over HTTPS",
+      "messageParams": []
     },
     {
       "id": "viewport",
@@ -435,7 +569,9 @@
       "points": 5,
       "maxPoints": 5,
       "message": "mobile viewport set",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "mobile viewport set",
+      "messageParams": []
     },
     {
       "id": "meta-robots-noindex",
@@ -443,8 +579,12 @@
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
-      "message": "no noindex on 5 sampled page(s)",
-      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+      "message": "no noindex on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no noindex on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "unique-titles",
@@ -452,8 +592,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "titles and descriptions unique across 5 pages",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "message": "titles and descriptions unique across 6 pages",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "titles and descriptions unique across {0} pages",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "broken-internal-links",
@@ -462,7 +606,11 @@
       "points": 8,
       "maxPoints": 8,
       "message": "9 internal link(s) resolve",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} internal link(s) resolve",
+      "messageParams": [
+        9
+      ]
     },
     {
       "id": "redirect-hygiene",
@@ -471,7 +619,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "http:// 301-redirects to https://",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "http:// 301-redirects to https://",
+      "messageParams": []
     },
     {
       "id": "hreflang",
@@ -480,7 +630,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "5 hreflang alternate(s) reachable and reciprocal",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} hreflang alternate(s) reachable and reciprocal",
+      "messageParams": [
+        5
+      ]
     },
     {
       "id": "meta-per-page",
@@ -488,8 +642,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "title and description in range on 5 page(s)",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "message": "title and description in range on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and description in range on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "title-pattern",
@@ -498,7 +656,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "title is topic-first with a brand suffix",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title is topic-first with a brand suffix",
+      "messageParams": []
     },
     {
       "id": "title-h1-alignment",
@@ -507,7 +667,11 @@
       "points": 2,
       "maxPoints": 2,
       "message": "title and H1 share 4 meaningful token(s)",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and H1 share {0} meaningful token(s)",
+      "messageParams": [
+        4
+      ]
     },
     {
       "id": "headings-outline",
@@ -515,8 +679,12 @@
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
-      "message": "heading outline clean on 5 page(s)",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "message": "heading outline clean on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "heading outline clean on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "anchor-text",
@@ -524,8 +692,14 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "0% generic internal anchor text (0/23)",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "message": "0% generic internal anchor text (0/28)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "{0}% generic internal anchor text ({1}/{2})",
+      "messageParams": [
+        0,
+        0,
+        28
+      ]
     },
     {
       "id": "charset",
@@ -534,7 +708,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "UTF-8 charset declared",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "UTF-8 charset declared",
+      "messageParams": []
     },
     {
       "id": "favicon",
@@ -543,7 +719,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "favicon and apple-touch-icon present",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "favicon and apple-touch-icon present",
+      "messageParams": []
     },
     {
       "id": "content-readability",
@@ -552,7 +730,11 @@
       "points": 2,
       "maxPoints": 2,
       "message": "main content reads at approximately grade 11.0",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "main content reads at approximately grade {0}",
+      "messageParams": [
+        "11.0"
+      ]
     },
     {
       "id": "figure-caption",
@@ -561,7 +743,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no explanatory content images on sampled pages",
-      "docUrl": "https://developers.google.com/search/docs/appearance"
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "no explanatory content images on sampled pages",
+      "messageParams": []
     },
     {
       "id": "json-ld-valid",
@@ -570,7 +754,11 @@
       "points": 4,
       "maxPoints": 4,
       "message": "1 JSON-LD block(s) all valid (parse + @context + @type)",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} JSON-LD block(s) all valid (parse + @context + @type)",
+      "messageParams": [
+        1
+      ]
     },
     {
       "id": "sd-organization",
@@ -579,7 +767,11 @@
       "points": 4,
       "maxPoints": 4,
       "message": "Organization entity complete: findable-audit",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "Organization entity complete: {0}",
+      "messageParams": [
+        "findable-audit"
+      ]
     },
     {
       "id": "sd-entity-grounding",
@@ -589,7 +781,9 @@
       "maxPoints": 4,
       "message": "only 1 sameAs profile URL",
       "fix": "List ≥2 official profile URLs in sameAs, including Wikipedia/Wikidata if available.",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "only 1 sameAs profile URL",
+      "messageParams": []
     },
     {
       "id": "sd-localbusiness",
@@ -598,7 +792,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "no LocalBusiness entity on the homepage",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no LocalBusiness entity on the homepage",
+      "messageParams": []
     },
     {
       "id": "sd-article",
@@ -607,7 +803,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "no Article/NewsArticle/BlogPosting page in the sample",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no Article/NewsArticle/BlogPosting page in the sample",
+      "messageParams": []
     },
     {
       "id": "sd-product",
@@ -616,7 +814,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "no Product page in the sample",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no Product page in the sample",
+      "messageParams": []
     },
     {
       "id": "sd-faq",
@@ -625,7 +825,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "FAQ content backed by FAQPage/QAPage schema",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "FAQ content backed by FAQPage/QAPage schema",
+      "messageParams": []
     },
     {
       "id": "sd-breadcrumb",
@@ -634,7 +836,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "breadcrumbs present on all interior pages",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "breadcrumbs present on all interior pages",
+      "messageParams": []
     },
     {
       "id": "sd-website-searchaction",
@@ -644,7 +848,9 @@
       "maxPoints": 2,
       "message": "WebSite present but no SearchAction (no sitelinks searchbox)",
       "fix": "Add potentialAction SearchAction with a urlTemplate and query-input.",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "WebSite present but no SearchAction (no sitelinks searchbox)",
+      "messageParams": []
     },
     {
       "id": "sd-video",
@@ -653,7 +859,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no video content on the homepage",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no video content on the homepage",
+      "messageParams": []
     },
     {
       "id": "sd-special-types",
@@ -662,7 +870,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "no HowTo/Event/Recipe on the homepage",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no HowTo/Event/Recipe on the homepage",
+      "messageParams": []
     },
     {
       "id": "sd-graph-integrity",
@@ -671,7 +881,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "5 @id-linked entities, no dangling references",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} @id-linked entities, no dangling references",
+      "messageParams": [
+        5
+      ]
     },
     {
       "id": "sd-consistency",
@@ -680,7 +894,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "1 JSON-LD value(s) confirmed visible on the page",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} JSON-LD value(s) confirmed visible on the page",
+      "messageParams": [
+        1
+      ]
     },
     {
       "id": "nap-consistency",
@@ -689,7 +907,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "no NAP (phone/address) to check",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no NAP (phone/address) to check",
+      "messageParams": []
     },
     {
       "id": "entity-graph-connectivity",
@@ -697,8 +917,14 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "38 entities, 46 links, no dangling references (1 component(s))",
-      "docUrl": "https://schema.org/docs/schemas.html"
+      "message": "43 entities, 52 links, no dangling references (1 component(s))",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} entities, {1} links, no dangling references ({2} component(s))",
+      "messageParams": [
+        43,
+        52,
+        1
+      ]
     },
     {
       "id": "canonical-resolves",
@@ -706,8 +932,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "5 declared canonical(s) resolve 200 and are indexable",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "6 declared canonical(s) resolve 200 and are indexable",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} declared canonical(s) resolve 200 and are indexable",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "www-consolidation",
@@ -716,7 +946,12 @@
       "points": 5,
       "maxPoints": 5,
       "message": "apex host serves the site; www host not live",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} host serves the site; {1} host not live",
+      "messageParams": [
+        "apex",
+        "www"
+      ]
     },
     {
       "id": "trailing-slash",
@@ -724,8 +959,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "slash-toggled variants of 5 path(s) do not duplicate",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "slash-toggled variants of 6 path(s) do not duplicate",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "slash-toggled variants of {0} path(s) do not duplicate",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "redirect-chains",
@@ -733,8 +972,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "no redirect chains across 6 URL(s)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "no redirect chains across 7 URL(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no redirect chains across {0} URL(s)",
+      "messageParams": [
+        7
+      ]
     },
     {
       "id": "soft-404",
@@ -743,7 +986,11 @@
       "points": 6,
       "maxPoints": 6,
       "message": "missing route returns 404",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "missing route returns {0}",
+      "messageParams": [
+        404
+      ]
     },
     {
       "id": "custom-404",
@@ -752,7 +999,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "404 page offers a way back (links/nav/search)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "404 page offers a way back (links/nav/search)",
+      "messageParams": []
     },
     {
       "id": "url-structure",
@@ -761,7 +1010,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "9 sampled URL(s) are clean and readable",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled URL(s) are clean and readable",
+      "messageParams": [
+        9
+      ]
     },
     {
       "id": "pagination-canonical",
@@ -770,7 +1023,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no pagination detected (single page series)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no pagination detected (single page series)",
+      "messageParams": []
     },
     {
       "id": "meta-refresh",
@@ -778,8 +1033,12 @@
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "no meta-refresh redirects on 5 sampled page(s)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "no meta-refresh redirects on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no meta-refresh redirects on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "hreflang-x-default",
@@ -787,8 +1046,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "hreflang set complete on 5 page(s)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "hreflang set complete on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "hreflang set complete on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "internal-linking",
@@ -796,8 +1059,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "5 sampled page(s) linked and shallow",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "6 sampled page(s) linked and shallow",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled page(s) linked and shallow",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "link-equity-map",
@@ -805,8 +1072,13 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "link equity well-distributed across 5 page(s) — top: /en/ (25.74%), /fr/ (25.74%), /en/contact/ (18.13%)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "link equity well-distributed across 6 page(s) — top: /en/ (23.27%), /fr/ (23.27%), /en/contact/ (13.75%)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "link equity well-distributed across {0} page(s) — top: {1}",
+      "messageParams": [
+        6,
+        "/en/ (23.27%), /fr/ (23.27%), /en/contact/ (13.75%)"
+      ]
     },
     {
       "id": "crawlable-nav",
@@ -814,8 +1086,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "44 crawlable link(s); navigation works without JavaScript",
-      "docUrl": "https://developers.google.com/search/docs"
+      "message": "52 crawlable link(s); navigation works without JavaScript",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} crawlable link(s); navigation works without JavaScript",
+      "messageParams": [
+        52
+      ]
     },
     {
       "id": "sitemap-lastmod",
@@ -824,7 +1100,12 @@
       "points": 4,
       "maxPoints": 4,
       "message": "6/6 entries have valid, varied <lastmod>",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0}/{1} entries have valid, varied <lastmod>",
+      "messageParams": [
+        6,
+        6
+      ]
     },
     {
       "id": "sitemap-urls-valid",
@@ -833,7 +1114,11 @@
       "points": 4,
       "maxPoints": 4,
       "message": "6 sampled sitemap URL(s) are clean and indexable",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled sitemap URL(s) are clean and indexable",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "sitemap-index-limits",
@@ -842,7 +1127,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no <sitemapindex> (single urlset sitemap)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no <sitemapindex> (single urlset sitemap)",
+      "messageParams": []
     },
     {
       "id": "sitemap-orphans",
@@ -851,7 +1138,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "sitemap and internal links agree on 6 URL(s)",
-      "docUrl": "https://developers.google.com/search/docs"
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "sitemap and internal links agree on {0} URL(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "html-lang",
@@ -859,8 +1150,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "valid <html lang> on 5 sampled page(s)",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "message": "valid <html lang> on 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "valid <html lang> on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "alt-descriptive",
@@ -869,7 +1164,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "no non-empty alt text to assess",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no non-empty alt text to assess",
+      "messageParams": []
     },
     {
       "id": "landmarks",
@@ -877,8 +1174,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "semantic landmarks on 5 sampled page(s)",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "message": "semantic landmarks on 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "semantic landmarks on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "form-labels",
@@ -887,7 +1188,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "all 6 form control(s) have an accessible name",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "all {0} form control(s) have an accessible name",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "link-text",
@@ -895,8 +1200,12 @@
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "all 44 link(s) have an accessible name",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "message": "all 52 link(s) have an accessible name",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "all {0} link(s) have an accessible name",
+      "messageParams": [
+        52
+      ]
     },
     {
       "id": "viewport-zoom",
@@ -905,7 +1214,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "viewport allows pinch-zoom",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "viewport allows pinch-zoom",
+      "messageParams": []
     },
     {
       "id": "iframe-title",
@@ -914,7 +1225,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no iframes on sampled pages",
-      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/"
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no iframes on sampled pages",
+      "messageParams": []
     },
     {
       "id": "mixed-content",
@@ -922,8 +1235,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "no mixed content across 5 sampled page(s)",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "message": "no mixed content across 6 sampled page(s)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "no mixed content across {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "hsts",
@@ -932,7 +1249,12 @@
       "points": 4,
       "maxPoints": 4,
       "message": "HSTS max-age=31536000 (+includeSubDomains)",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "HSTS max-age={0}{1}",
+      "messageParams": [
+        31536000,
+        " (+includeSubDomains)"
+      ]
     },
     {
       "id": "x-content-type-options",
@@ -941,7 +1263,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "X-Content-Type-Options: nosniff",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "X-Content-Type-Options: nosniff",
+      "messageParams": []
     },
     {
       "id": "csp",
@@ -950,7 +1274,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "Content-Security-Policy present",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Content-Security-Policy present",
+      "messageParams": []
     },
     {
       "id": "clickjacking",
@@ -959,7 +1285,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "CSP frame-ancestors restricts framing",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "CSP frame-ancestors restricts framing",
+      "messageParams": []
     },
     {
       "id": "referrer-policy",
@@ -968,7 +1296,11 @@
       "points": 2,
       "maxPoints": 2,
       "message": "Referrer-Policy: no-referrer",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Referrer-Policy: {0}",
+      "messageParams": [
+        "no-referrer"
+      ]
     },
     {
       "id": "permissions-policy",
@@ -977,7 +1309,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "Permissions-Policy present",
-      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security"
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Permissions-Policy present",
+      "messageParams": []
     },
     {
       "id": "html-weight",
@@ -986,7 +1320,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "HTML document is 23KB",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "HTML document is 23KB",
+      "messageParams": []
     },
     {
       "id": "render-blocking-js",
@@ -994,8 +1330,12 @@
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "no render-blocking head scripts on 5 page(s)",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "message": "no render-blocking head scripts on 6 page(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no render-blocking head scripts on {0} page(s)",
+      "messageParams": [
+        6
+      ]
     },
     {
       "id": "render-blocking-css",
@@ -1004,7 +1344,9 @@
       "points": 3,
       "maxPoints": 3,
       "message": "0 render-blocking stylesheet(s)",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "0 render-blocking stylesheet(s)",
+      "messageParams": []
     },
     {
       "id": "img-dimensions",
@@ -1013,7 +1355,9 @@
       "points": 4,
       "maxPoints": 4,
       "message": "no <img> elements on sampled pages",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no <img> elements on sampled pages",
+      "messageParams": []
     },
     {
       "id": "img-lazy-loading",
@@ -1022,7 +1366,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "no images to assess",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no images to assess",
+      "messageParams": []
     },
     {
       "id": "img-next-gen",
@@ -1031,7 +1377,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "no raster <img> elements to assess",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no raster <img> elements to assess",
+      "messageParams": []
     },
     {
       "id": "resource-hints",
@@ -1040,7 +1388,11 @@
       "points": 2,
       "maxPoints": 2,
       "message": "preconnect/dns-prefetch present for 1 third-party origin(s)",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "preconnect/dns-prefetch present for {0} third-party origin(s)",
+      "messageParams": [
+        1
+      ]
     },
     {
       "id": "dom-size",
@@ -1049,7 +1401,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "DOM has 165 element(s), max nesting depth 9",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "DOM has 165 element(s), max nesting depth 9",
+      "messageParams": []
     },
     {
       "id": "text-compression",
@@ -1058,7 +1412,11 @@
       "points": 3,
       "maxPoints": 3,
       "message": "HTML served with Content-Encoding: br",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "HTML served with Content-Encoding: {0}",
+      "messageParams": [
+        "br"
+      ]
     },
     {
       "id": "asset-caching",
@@ -1067,7 +1425,9 @@
       "points": 0,
       "maxPoints": 2,
       "message": "no same-origin CSS/JS asset to sample",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no same-origin CSS/JS asset to sample",
+      "messageParams": []
     },
     {
       "id": "inline-head-volume",
@@ -1076,7 +1436,9 @@
       "points": 2,
       "maxPoints": 2,
       "message": "13KB inline <style>/<script> in <head>",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "13KB inline <style>/<script> in <head>",
+      "messageParams": []
     },
     {
       "id": "lighthouse-perf",
@@ -1085,7 +1447,9 @@
       "points": 0,
       "maxPoints": 5,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "cwv-lcp",
@@ -1094,7 +1458,9 @@
       "points": 0,
       "maxPoints": 6,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "cwv-cls",
@@ -1103,7 +1469,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "cwv-inp",
@@ -1112,7 +1480,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "cwv-assessment",
@@ -1121,7 +1491,9 @@
       "points": 0,
       "maxPoints": 4,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "cwv-ttfb",
@@ -1130,7 +1502,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "lab-tbt",
@@ -1139,7 +1513,9 @@
       "points": 0,
       "maxPoints": 3,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     },
     {
       "id": "lab-fcp",
@@ -1148,9 +1524,11 @@
       "points": 0,
       "maxPoints": 3,
       "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
-      "docUrl": "https://web.dev/explore/learn-core-web-vitals"
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
     }
   ],
-  "generatedAt": "2026-07-26T18:51:58.931Z",
+  "generatedAt": "2026-07-26T19:20:13.567Z",
   "toolVersion": "0.2.0"
 }

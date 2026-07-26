@@ -1,6 +1,6 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import type { Check, CrawlContext } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { extractCanonicals, isSelfReferential, canonicalIdentity } from './canonical.js';
 
@@ -17,13 +17,13 @@ export const titleDescription: Check = {
     const title = root.querySelector('title')?.textContent.trim() ?? '';
     const desc = root.querySelector('meta[name="description"]')?.getAttribute('content')?.trim() ?? '';
     if (!title || !desc) {
-      return makeResult(this, 'fail', `missing ${!title ? '<title>' : 'meta description'}`,
+      return makeResult(this, 'fail', t`missing ${!title ? '<title>' : 'meta description'}`,
         'Add a <title> (10-70 chars) and a meta description (50-160 chars).');
     }
     const titleOk = title.length >= 10 && title.length <= 70;
     const descOk = desc.length >= 50 && desc.length <= 160;
     if (titleOk && descOk) return makeResult(this, 'pass', 'title and meta description look good');
-    return makeResult(this, 'warn', `length out of range (title: ${title.length}, description: ${desc.length})`,
+    return makeResult(this, 'warn', t`length out of range (title: ${title.length}, description: ${desc.length})`,
       'Aim for a 10-70 char title and a 50-160 char meta description.');
   },
 };
@@ -55,9 +55,9 @@ export const canonical: Check = {
       return makeResult(this, 'fail', 'every sampled page canonicalizes to the homepage',
         'Give each page a self-referential canonical, not a blanket canonical to /.');
     }
-    if (offenders.length === 0) return makeResult(this, 'pass', `self-referential canonical on ${pages.length} sampled page(s)`);
+    if (offenders.length === 0) return makeResult(this, 'pass', t`self-referential canonical on ${pages.length} sampled page(s)`);
     const agg = aggregate(pages.length, offenders);
-    return makeResult(this, agg.status, `canonical missing or non-self on: ${agg.detail}`,
+    return makeResult(this, agg.status, t`canonical missing or non-self on: ${agg.detail}`,
       'One absolute, self-referential canonical per page (tag or HTTP Link header).');
   },
 };
@@ -82,13 +82,13 @@ export const openGraph: Check = {
         !title && 'og:title',
         !image ? 'og:image' : !imageAbsoluteHttps && 'og:image (must be an absolute https URL)',
       ].filter(Boolean).join(', ');
-      return makeResult(this, 'fail', `Open Graph incomplete (missing: ${missing})`,
+      return makeResult(this, 'fail', t`Open Graph incomplete (missing: ${missing})`,
         'Add the full Open Graph set: og:title, og:description, og:image (absolute https, >=1200x630), og:type, og:url.');
     }
     const missingCore = [!description && 'og:description', !type && 'og:type', !url && 'og:url'].filter(Boolean) as string[];
     const missingBonus = [!siteName && 'og:site_name', !locale && 'og:locale'].filter(Boolean) as string[];
     if (missingCore.length > 0 || missingBonus.length > 0) {
-      return makeResult(this, 'warn', `Open Graph missing: ${[...missingCore, ...missingBonus].join(', ')}`,
+      return makeResult(this, 'warn', t`Open Graph missing: ${[...missingCore, ...missingBonus].join(', ')}`,
         'Fill out the full Open Graph set including og:site_name and og:locale.');
     }
     return makeResult(this, 'pass', 'Open Graph complete (core set + site_name + locale)');

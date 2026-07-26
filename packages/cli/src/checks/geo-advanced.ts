@@ -1,6 +1,6 @@
 import type { HTMLElement } from 'node-html-parser';
 import type { Check, CrawlContext, FetchedResource } from '../types.js';
-import { makeResult } from '../types.js';
+import { makeResult, t } from '../types.js';
 import { parsePage } from './dom.js';
 import { pagesOf, pathOf } from './aggregate.js';
 import { extractJsonLd, flatten, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
@@ -130,9 +130,9 @@ export const freshnessCoherence: Check = {
     }
     const roll = rollupBySeverity(items);
     if (roll.status === 'pass') {
-      return makeResult(this, 'pass', `freshness signals coherent (24h tolerance) on ${items.length} page(s)`);
+      return makeResult(this, 'pass', t`freshness signals coherent (24h tolerance) on ${items.length} page(s)`);
     }
-    return makeResult(this, roll.status, `freshness signals diverge on: ${roll.detail}`,
+    return makeResult(this, roll.status, t`freshness signals diverge on: ${roll.detail}`,
       'Align HTTP Last-Modified, JSON-LD dateModified and sitemap <lastmod> on the real last-edit date, never in the future — divergent signals get your freshness ignored.');
   },
 };
@@ -157,9 +157,9 @@ export const hedgingRate: Check = {
       if (n >= HEDGE_OFFENDER_MIN) offenders.push(`${pathOf(p)} (${n} hedges)`);
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `direct, hedge-free leads on ${scored.length} page(s)`);
+      return makeResult(this, 'pass', t`direct, hedge-free leads on ${scored.length} page(s)`);
     }
-    return makeResult(this, 'warn', `hedged (evasive) lead on: ${offenderList(offenders)}`,
+    return makeResult(this, 'warn', t`hedged (evasive) lead on: ${offenderList(offenders)}`,
       'Open with one crisp, committed claim and move hedged nuance (maybe / it seems / peut-être / il semble) below the lead — engines quote confident statements.');
   },
 };
@@ -199,9 +199,9 @@ export const answerUnits: Check = {
       if (n === 0) offenders.push(pathOf(p));
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `${units} liftable answer unit(s) across ${pillars.length} pillar page(s)`);
+      return makeResult(this, 'pass', t`${units} liftable answer unit(s) across ${pillars.length} pillar page(s)`);
     }
-    return makeResult(this, 'warn', `no liftable answer unit on: ${offenderList(offenders)}`,
+    return makeResult(this, 'warn', t`no liftable answer unit on: ${offenderList(offenders)}`,
       'Add short, self-contained statements (8-40 words) carrying a number, date or named entity — passages an engine can quote verbatim.');
   },
 };
@@ -296,9 +296,9 @@ export const chunkBoundary: Check = {
       if (reasons.length > 0) offenders.push(`${pathOf(p)} (${reasons.join(', ')})`);
     }
     if (offenders.length === 0) {
-      return makeResult(this, 'pass', `chunk-safe structure on ${scored.length} page(s)`);
+      return makeResult(this, 'pass', t`chunk-safe structure on ${scored.length} page(s)`);
     }
-    return makeResult(this, 'warn', `chunk-boundary hazards on: ${offenderList(offenders)}`,
+    return makeResult(this, 'warn', t`chunk-boundary hazards on: ${offenderList(offenders)}`,
       'Give long tables <thead>/<th> headers, keep FAQ answers directly under their question, and title every list — chunked retrieval loses distant context.');
   },
 };
