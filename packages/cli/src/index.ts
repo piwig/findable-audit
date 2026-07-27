@@ -192,9 +192,18 @@ if (values.baseline !== undefined) {
   baseline = b as AuditReport;
 }
 
+// The HTML report draws the entity graph (#58), so it needs the graph attached
+// — same rule as --entity-graph and --emit. Decided before the audit because
+// the default report targets (md + html) are known up front. A JSON-only run
+// (the CI shape: `--report baseline.json`) stays lean, so committed baselines
+// do not silently grow; a .json written alongside a .html carries the graph.
+const htmlReportWanted = values.report === undefined
+  ? !values['no-report']
+  : values.report.some((f) => /\.html?$/i.test(f));
+
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined };
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 

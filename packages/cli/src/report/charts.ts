@@ -16,6 +16,7 @@
 import type { AuditReport } from '../runner.js';
 import type { Family } from '../types.js';
 import type { FamilyScore } from '../scoring.js';
+import { componentIndex, type EntityGraph, type EntityNode, type EntityEdge } from './entity-graph.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 
 /** Fixed categorical series colors for compare mode: you, competitor 1, competitor 2. */
@@ -173,4 +174,201 @@ ${legend}
 ${rows}
 </svg>
 </div>`;
+}
+
+// --- JSON-LD entity graph (#58) --------------------------------------------
+//
+// The runner builds this graph on every audit (it feeds
+// entity-graph-connectivity); until now only `--entity-graph` exported it, so
+// the reader never saw it. Drawn here as inline SVG rather than Mermaid: the
+// report ships with zero client JS, and that constraint is not worth trading
+// for a diagram.
+//
+// Layout is a deterministic layered BFS — root of each component is its
+// highest-degree node, depth becomes the column, discovery order becomes the
+// row. Components stack vertically, never overlap. No force simulation: it
+// would need randomness, and identical inputs must yield identical markup.
+
+/** Above this many entities the drawing stops being readable — we say so instead of truncating. */
+export const ENTITY_GRAPH_NODE_CAP = 24;
+
+const EG = { nodeW: 132, nodeH: 34, colGap: 56, rowGap: 14, pad: 10, componentGap: 26 };
+
+function clip(text: string, max: number): string {
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+/**
+ * Collapse the per-entity graph to a TYPE-level one: every entity sharing a
+ * type signature becomes a single box carrying a ×N count, and parallel
+ * references between two signatures merge into one arrow.
+ *
+ * Why: a 6-page crawl of our own site yields 43 entities and 52 references —
+ * six near-identical WebPage/BreadcrumbList/ListItem clusters. Drawn one box
+ * per entity that is an unreadable hairball; drawn per type it is the eight
+ * boxes a reader actually wants ("what can an engine assemble about you?").
+ * Per-entity identity is not lost, it lives in the uncapped --entity-graph
+ * export.
+ */
+function collapseByType(graph: EntityGraph): {
+  nodes: EntityNode[];
+  edges: EntityEdge[];
+  count: Map<string, number>;
+  samples: Map<string, string[]>;
+} {
+  const key = (n: EntityNode) => (n.types.length ? n.types.join(' + ') : ' ref');
+  const byKey = new Map<string, EntityNode>();
+  const count = new Map<string, number>();
+  const samples = new Map<string, string[]>();
+  const idToKey = new Map<string, string>();
+  for (const n of graph.nodes) {
+    const k = key(n);
+    idToKey.set(n.id, k);
+    count.set(k, (count.get(k) ?? 0) + 1);
+    if (n.name) {
+      const list = samples.get(k) ?? samples.set(k, []).get(k)!;
+      if (!list.includes(n.name)) list.push(n.name);
+    }
+    const existing = byKey.get(k);
+    if (!existing) {
+      byKey.set(k, { id: k, types: [...n.types], name: n.name, pages: [...n.pages], synthetic: n.synthetic });
+      continue;
+    }
+    for (const p of n.pages) if (!existing.pages.includes(p)) existing.pages.push(p);
+    if (!existing.name && n.name) existing.name = n.name;
+    if (!n.synthetic) existing.synthetic = false;
+  }
+  const merged = new Map<string, EntityEdge>();
+  for (const e of graph.edges) {
+    const from = idToKey.get(e.from);
+    const to = idToKey.get(e.to);
+    if (from === undefined || to === undefined || from === to) continue; // self-loops add noise, not information
+    const pairKey = `${from} ${to}`;
+    const existing = merged.get(pairKey);
+    if (!existing) merged.set(pairKey, { from, to, property: e.property });
+    else if (!existing.property.split(', ').includes(e.property)) existing.property += `, ${e.property}`;
+  }
+  return { nodes: [...byKey.values()], edges: [...merged.values()], count, samples };
+}
+
+/**
+ * Inline SVG of the JSON-LD entity graph, one box per entity TYPE (see
+ * `collapseByType`) and one arrow per reference between two types — the
+ * property lives in the arrow's <title>, discoverable without cluttering the
+ * diagram. Returns '' for an empty graph, and a plain note — not a truncated
+ * picture — above the node cap.
+ */
+export function renderEntityGraphSvg(graph: EntityGraph, lang: Lang): string {
+  const m = messages(lang);
+  const { nodes, edges, count, samples } = collapseByType(graph);
+  if (nodes.length === 0) return '';
+  if (nodes.length > ENTITY_GRAPH_NODE_CAP) {
+    return `<p class="eg-note">${esc(m.egTooBig(graph.nodes.length, graph.edges.length))}</p>`;
+  }
+
+  const order = new Map(nodes.map((n, i) => [n.id, i]));
+  const adj = new Map<string, string[]>(nodes.map((n) => [n.id, []]));
+  for (const e of edges) {
+    if (!adj.has(e.from) || !adj.has(e.to)) continue;
+    adj.get(e.from)!.push(e.to);
+    adj.get(e.to)!.push(e.from);
+  }
+  const degree = (id: string) => adj.get(id)!.length;
+
+  // Group by connected component, biggest first (ties: earliest declared).
+  const comp = componentIndex(nodes, edges);
+  const groups = new Map<string, string[]>();
+  for (const n of nodes) {
+    const key = comp.get(n.id)!;
+    (groups.get(key) ?? groups.set(key, []).get(key)!).push(n.id);
+  }
+  const ordered = [...groups.values()].sort((a, b) =>
+    b.length - a.length || order.get(a[0])! - order.get(b[0])!);
+
+  const pos = new Map<string, { x: number; y: number }>();
+  let top = EG.pad;
+  let maxDepth = 0;
+  for (const ids of ordered) {
+    const root = [...ids].sort((a, b) => degree(b) - degree(a) || order.get(a)! - order.get(b)!)[0];
+    const depth = new Map<string, number>([[root, 0]]);
+    const queue = [root];
+    for (let i = 0; i < queue.length; i++) {
+      const cur = queue[i];
+      for (const next of [...adj.get(cur)!].sort((a, b) => order.get(a)! - order.get(b)!)) {
+        if (depth.has(next)) continue;
+        depth.set(next, depth.get(cur)! + 1);
+        queue.push(next);
+      }
+    }
+    // An id unreachable from the root cannot happen inside one component, but
+    // a defensive default keeps a malformed graph drawable instead of crashing.
+    const columns = new Map<number, string[]>();
+    for (const id of ids) {
+      const d = depth.get(id) ?? 0;
+      (columns.get(d) ?? columns.set(d, []).get(d)!).push(id);
+    }
+    let rows = 0;
+    for (const [d, column] of [...columns.entries()].sort((a, b) => a[0] - b[0])) {
+      maxDepth = Math.max(maxDepth, d);
+      rows = Math.max(rows, column.length);
+      column.forEach((id, i) => pos.set(id, {
+        x: EG.pad + d * (EG.nodeW + EG.colGap),
+        y: top + i * (EG.nodeH + EG.rowGap),
+      }));
+    }
+    top += rows * (EG.nodeH + EG.rowGap) - EG.rowGap + EG.componentGap;
+  }
+  const width = EG.pad * 2 + maxDepth * (EG.nodeW + EG.colGap) + EG.nodeW;
+  const height = top - EG.componentGap + EG.pad;
+
+  const edgeMarkup = edges.map((e) => {
+    const a = pos.get(e.from);
+    const b = pos.get(e.to);
+    if (!a || !b) return '';
+    const forward = b.x >= a.x;
+    const x1 = forward ? a.x + EG.nodeW : a.x;
+    const x2 = forward ? b.x - 5 : b.x + EG.nodeW + 5;
+    const y1 = a.y + EG.nodeH / 2;
+    const y2 = b.y + EG.nodeH / 2;
+    // Same-column pairs get a sideways bow so the line never hides under a box.
+    const bow = Math.abs(x2 - x1) < 1 ? (forward ? 34 : -34) : (x2 - x1) / 2;
+    const d = `M${x1} ${y1} C${x1 + bow} ${y1}, ${x2 - bow} ${y2}, ${x2} ${y2}`;
+    return `<g><title>${esc(e.property)}</title><path class="eg-edge" d="${d}" fill="none" stroke="${FAINT}" stroke-width="1.2" marker-end="url(#eg-arrow)"/></g>`;
+  }).filter(Boolean).join('\n');
+
+  const nodeMarkup = nodes.map((n) => {
+    const p = pos.get(n.id)!;
+    const broken = n.synthetic && n.types.length === 0;
+    const n0 = count.get(n.id) ?? 1;
+    const named = samples.get(n.id) ?? [];
+    // The box is keyed on the whole type signature, so the label must carry it:
+    // a site with `WebPage` and `WebPage + FAQPage` gets two boxes, and showing
+    // only the first type would print the same word on both.
+    const signature = n.types.length ? n.types.join(' + ') : m.egBroken;
+    // One entity of its type → show who it is, with the signature underneath.
+    // Several → the signature is the identity, and ×N says how many.
+    const alone = n0 === 1 && named.length === 1;
+    const line1 = alone ? named[0] : signature;
+    const line2 = n0 > 1 ? `×${n0}` : (alone ? signature : '');
+    const detail = [
+      n.types.length ? n.types.join(', ') : m.egBroken,
+      n0 > 1 ? `×${n0}` : '',
+      named.slice(0, 3).join(' · '),
+      n.pages.length ? n.pages.join(', ') : '',
+    ].filter(Boolean).join(' — ');
+    return `<g class="eg-node" data-y="${p.y}">
+<title>${esc(detail)}</title>
+<rect class="eg-box${broken ? ' eg-node-broken' : ''}" x="${p.x}" y="${p.y}" width="${EG.nodeW}" height="${EG.nodeH}" rx="6" fill="${'var(--panel, #fff)'}" stroke="${broken ? '#b42318' : 'var(--panel-line, #ddd)'}"${broken ? ' stroke-dasharray="4 3"' : ''}/>
+<text x="${p.x + 9}" y="${line2 ? p.y + 15 : p.y + 21}" font-family="${FONT}" font-size="11" font-weight="600" fill="${INK}">${esc(clip(line1, 18))}</text>
+${line2 ? `<text x="${p.x + 9}" y="${p.y + 27}" font-family="${FONT}" font-size="9.5" fill="${MUTED}">${esc(clip(line2, 22))}</text>` : ''}
+</g>`;
+  }).join('\n');
+
+  const label = m.egLabel(nodes.length, edges.length); // counts of what is DRAWN: types and merged references
+  return `<svg class="eg-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${esc(label)}" xmlns="http://www.w3.org/2000/svg">
+<title>${esc(label)}</title>
+<defs><marker id="eg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="${FAINT}"/></marker></defs>
+${edgeMarkup}
+${nodeMarkup}
+</svg>`;
 }

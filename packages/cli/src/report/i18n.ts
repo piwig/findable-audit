@@ -74,6 +74,13 @@ export interface ReportMessages {
   vizScoreLabel: (score: number, grade: string) => string; // gauge aria-label/<title>
   vizTitle: string;          // priority-bars panel heading + aria-label
   compareChartLabel: string; // compare grouped-bars aria-label/<title>
+  // JSON-LD entity graph drawn inline in the report (#58)
+  egTitle: string;                          // section heading
+  egCaption: string;                        // one line: what the reader is looking at
+  egLabel: (types: number, refs: number) => string;  // svg aria-label/<title>, counting what is DRAWN
+  egBroken: string;                         // legend for a referenced-but-undeclared entity
+  egIslands: (n: number) => string;         // note when the graph is not one connected whole
+  egTooBig: (nodes: number, edges: number) => string; // above the draw cap: say so, don't truncate
   // ---- report redesign (three layers: verdict / plan / detail) ----
   /** Sticky nav anchors. */
   nav: { verdict: string; plan: string; cwv: string; detail: string };
@@ -167,6 +174,12 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Overall score: ${score} out of 100 — grade ${grade}`,
     vizTitle: 'Where to regain points',
     compareChartLabel: 'Family scores by site',
+    egTitle: 'Entity graph',
+    egCaption: 'The entity types your JSON-LD declares across the sampled pages, and the references between them — what an engine can assemble about you. Entities of the same type are grouped (×N); hover a box or an arrow for the detail. The uncapped per-entity graph is the --entity-graph export.',
+    egLabel: (types, refs) => `JSON-LD entity graph: ${types} entity types, ${refs} references`,
+    egBroken: 'referenced but never declared',
+    egIslands: (n) => `${n} disconnected groups: an engine reads them as unrelated facts rather than one description.`,
+    egTooBig: (nodes, edges) => `Too large to draw here (${nodes} entities, ${edges} references). Export it with --entity-graph graph.mmd (or .dot / .json), which has no cap.`,
     nav: { verdict: 'Verdict', plan: 'The plan', cwv: 'Core Web Vitals', detail: 'Detail' },
     axisLabel: { reachable: 'Reachable', understood: 'Understood', usable: 'Usable' },
     axisQuestion: {
@@ -256,6 +269,12 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Score global : ${score} sur 100 — note ${grade}`,
     vizTitle: 'Où regagner des points',
     compareChartLabel: 'Scores par famille et par site',
+    egTitle: 'Graphe d\'entités',
+    egCaption: 'Les types d\'entités déclarés par votre JSON-LD sur les pages échantillonnées et les références entre eux — ce qu\'un moteur peut assembler à votre sujet. Les entités de même type sont regroupées (×N) ; survolez une boîte ou une flèche pour le détail. Le graphe entité par entité, sans plafond, est l\'export --entity-graph.',
+    egLabel: (types, refs) => `Graphe d'entités JSON-LD : ${types} types d'entités, ${refs} références`,
+    egBroken: 'référencée mais jamais déclarée',
+    egIslands: (n) => `${n} groupes déconnectés : un moteur y lit des faits sans rapport plutôt qu'une seule description.`,
+    egTooBig: (nodes, edges) => `Trop grand pour être dessiné ici (${nodes} entités, ${edges} références). Exportez-le avec --entity-graph graph.mmd (ou .dot / .json), qui n'a pas de plafond.`,
     nav: { verdict: 'Verdict', plan: 'Le plan', cwv: 'Core Web Vitals', detail: 'Le détail' },
     axisLabel: { reachable: 'Trouvable', understood: 'Compréhensible', usable: 'Utilisable' },
     axisQuestion: {

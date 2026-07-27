@@ -132,7 +132,7 @@ findable-audit uses a **weighted per-family model**:
 | `--baseline <file.json>` | Diff this run against a prior `--report *.json`: overall/per-family score deltas, plus which checks regressed, improved, appeared or disappeared. Shown in the terminal and added as a "Change vs baseline" section to the md/html reports. |
 | `--fail-on-regression` | Exit `1` when the score drops below the baseline by more than `--regression-tolerance` points. Requires `--baseline`. The CI gate for "did this change hurt our findability?". |
 | `--regression-tolerance <n>` | Points the score may drop below the baseline before `--fail-on-regression` trips (default `0`). |
-| `--entity-graph <file>` | Write the JSON-LD entity graph across the sampled pages. Format by extension: `.json`, `.dot` (Graphviz), or `.mmd` (Mermaid). |
+| `--entity-graph <file>` | Write the JSON-LD entity graph across the sampled pages. Format by extension: `.json`, `.dot` (Graphviz), or `.mmd` (Mermaid). The HTML report already **draws** it (grouped by entity type); this exports it entity by entity, uncapped. |
 | `--emit <dir>` | Write ready-to-deploy indexing files (`robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, `jsonld-stubs.json`, `GENERATED-README.md`) into `<dir>`. Content is generic — review before deploying, especially `robots.txt`. Works alongside `--report`/`--no-report` (independent flags); bilingual via `--lang`. |
 | `--json` | Output the full report as JSON (for scripts and CI). |
 | `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
@@ -283,7 +283,7 @@ npx findable-audit https://your-site.com \
 In the action, the same gate is three inputs: `baseline: baseline.json`,
 `fail-on-regression: 'true'`, `regression-tolerance: '2'`.
 
-Export the entity graph for inspection or diagrams:
+Every HTML report now draws that graph inline — one box per entity **type** with a ×N count, one arrow per reference, zero client JS. Export it when you want it entity by entity, or in a diagramming tool:
 
 ```bash
 npx findable-audit https://your-site.com --entity-graph graph.mmd  # or .dot / .json

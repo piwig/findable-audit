@@ -272,3 +272,51 @@ describe('renderHtml in French', () => {
     expect(html).toMatch(/Vérifie que \/llms\.txt/);
   });
 });
+
+describe('renderHtml — entity graph section (#58)', () => {
+  const withGraph: AuditReport = {
+    ...report,
+    entityGraph: {
+      nodes: [
+        { id: '#org', types: ['Organization'], name: 'Acme', pages: ['/'], synthetic: false },
+        { id: '#site', types: ['WebSite'], name: 'acme.com', pages: ['/'], synthetic: false },
+        { id: '#ghost', types: [], pages: [], synthetic: true },
+      ],
+      edges: [
+        { from: '#site', to: '#org', property: 'publisher' },
+        { from: '#org', to: '#ghost', property: 'parentOrganization' },
+      ],
+      stats: { nodes: 3, edges: 2, danglingRefs: 1, components: 1 },
+    },
+  };
+
+  it('draws the graph when the report carries one', () => {
+    const html = renderHtml(withGraph, new Date('2026-07-27T00:00:00Z'));
+    expect(html).toContain('class="eg"');
+    expect(html).toContain('class="eg-svg"');
+    expect(html).toContain('Acme');
+  });
+
+  it('legends the dangling reference it just drew', () => {
+    const html = renderHtml(withGraph, new Date('2026-07-27T00:00:00Z'));
+    expect(html).toContain('eg-legend');
+    expect(html).toContain('eg-node-broken');
+  });
+
+  it('warns when the graph is not one connected whole', () => {
+    const split = { ...withGraph, entityGraph: { ...withGraph.entityGraph!, stats: { ...withGraph.entityGraph!.stats, components: 2 } } };
+    expect(renderHtml(split, new Date('2026-07-27T00:00:00Z'))).toMatch(/eg-note/);
+  });
+
+  it('omits the whole section when the audit carries no graph', () => {
+    const html = renderHtml(report, new Date('2026-07-27T00:00:00Z'));
+    expect(html).not.toContain('<div class="eg">');
+    // The stylesheet always ships every rule; it is the markup that must be absent.
+    expect(html).not.toContain('<svg class="eg-svg"');
+  });
+
+  it('translates the section heading', () => {
+    const fr = renderHtml(withGraph, new Date('2026-07-27T00:00:00Z'), 'fr');
+    expect(fr).toContain("Graphe d&#39;entités");
+  });
+});

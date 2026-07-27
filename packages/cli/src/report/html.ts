@@ -8,7 +8,7 @@ import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
 import { localizeMessage } from './message-i18n.js';
 import { checkSnippet } from './snippets.js';
 import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
-import { renderScoreGauge, renderPriorityBars } from './charts.js';
+import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg } from './charts.js';
 import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
 import type { Effort } from './effort.js';
 
@@ -204,6 +204,16 @@ const STYLE = `
   .viz-bars svg { width: 100%; height: auto; display: block; }
   footer { margin-top: 2rem; color: var(--faint); font-size: .8rem; border-top: 1px solid var(--line); padding-top: .75rem; }
 
+  /* --- JSON-LD entity graph (#58): drawn from data every audit already builds --- */
+  .eg { margin: 1.25rem 0 1.75rem; border: 1px solid var(--panel-line); background: var(--panel); border-radius: 12px; padding: .9rem 1.15rem 1.1rem; }
+  .eg > h3 { margin: .1rem 0 .35rem; font-size: 1rem; }
+  .eg-caption { color: var(--muted); font-size: .85rem; margin: 0 0 .6rem; }
+  .eg-scroll { overflow-x: auto; }
+  .eg-svg { display: block; max-width: 100%; height: auto; }
+  .eg-note { color: var(--muted); font-size: .85rem; margin: .4rem 0 0; }
+  .eg-legend { display: flex; flex-wrap: wrap; gap: .9rem; margin: .55rem 0 0; font-size: .8rem; color: var(--muted); }
+  .eg-legend .eg-key { display: inline-block; width: 14px; height: 9px; border: 1px dashed #b42318; border-radius: 2px; margin-right: .3rem; vertical-align: middle; }
+
   /* --- Core Web Vitals panel (unchanged structure, themed tokens) --- */
   .cwv { margin: 1.5rem 0; border: 1px solid var(--panel-line); background: var(--panel); border-radius: 12px; padding: 1rem 1.15rem 1.15rem; }
   .cwv > h2 { margin-top: .1rem; border-bottom: none; }
@@ -391,6 +401,24 @@ ${renderPriorityBars(report.familyScores, lang)}
     ? renderCwvHtml(report.psi, lang)
     : `<p class="cwv-note">${m.cwvNotMeasured}</p>`;
 
+  // Entity graph (#58): the runner builds it on every audit for the
+  // entity-graph-connectivity check; drawing it costs nothing extra and is the
+  // one view that shows *why* a disconnected @graph reads as unrelated facts.
+  // `stats` is read defensively: a report can also reach this renderer from
+  // outside the runner (an older audit.json, a user-supplied file), and a
+  // missing summary must drop the two notes, never throw mid-render.
+  const graph = report.entityGraph;
+  const graphDrawing = graph && graph.nodes.length > 0 ? renderEntityGraphSvg(graph, lang) : '';
+  const entityGraphSection = graph && graphDrawing
+    ? `<div class="eg">
+<h3>${escapeHtml(m.egTitle)}</h3>
+<p class="eg-caption">${escapeHtml(m.egCaption)}</p>
+<div class="eg-scroll">${graphDrawing}</div>
+${(graph.stats?.components ?? 1) > 1 ? `<p class="eg-note">${escapeHtml(m.egIslands(graph.stats.components))}</p>` : ''}
+${(graph.stats?.danglingRefs ?? 0) > 0 ? `<p class="eg-legend"><span><span class="eg-key"></span>${escapeHtml(m.egBroken)}</span></p>` : ''}
+</div>`
+    : '';
+
   // ---------------------------------------------------------------- layer 1
   const axes = axisScores(report.familyScores);
   // "Blocked at the door" outranks every other finding: a disallowed
@@ -503,6 +531,7 @@ ${actionPlan}
 ${diff ? renderDiffHtmlSection(diff, lang) : ''}
 <section id="detail">
 <h2>${escapeHtml(m.detailTitle)}</h2>
+${entityGraphSection}
 ${breakdown}
 ${sections.join('\n')}
 </section>

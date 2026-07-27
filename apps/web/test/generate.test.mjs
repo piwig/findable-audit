@@ -163,10 +163,13 @@ test('web audit whose report has entityGraph: jsonld-stubs.json only stubs types
     // Organization + WebSite are already present on the (simulated) site;
     // BreadcrumbList and FAQPage are not.
     nodes: [
-      { id: 'org', types: ['Organization'] },
-      { id: 'site', types: ['WebSite'] },
+      { id: 'org', types: ['Organization'], pages: ['/'], synthetic: false },
+      { id: 'site', types: ['WebSite'], pages: ['/'], synthetic: false },
     ],
     edges: [],
+    // Present because the real buildEntityGraph always returns it — the HTML
+    // report reads it to decide whether to warn about disconnected groups.
+    stats: { nodes: 2, edges: 0, danglingRefs: 0, components: 2 },
   };
   setRunAuditForTest(async (url, checks, opts) => ({
     url,
