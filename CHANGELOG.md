@@ -7,6 +7,37 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.10.0 — 2026-07-27
+
+### Changed — scoring
+
+Auditing twelve real sites (static generators, framework docs, news, e-commerce, public
+sector, a minimal-HTML forum) found two things wrong with **this tool**, not with them.
+Both change your score, both raise it, and neither is grade inflation — they remove
+verdicts the tool could not justify.
+
+- **`llms-txt` was the heaviest check in the whole tool**: 10 points, declared `measured`,
+  failing 10 of the 12 sites. But this project's own guide calls `llms.txt` a *signal of
+  unproven value* — large studies find no measurable citation gain, adoption is ~3%, and
+  Google states it has no ranking impact. Declaring it `measured` claimed the bar came
+  from outside this project, which is exactly the overclaim the `evidence` field exists to
+  prevent. It is now **`heuristic`, 3 points, `warn` at worst**; `llms-full-txt` drops to
+  2 points and also warns at worst. Together they are 5 of `llm-content`'s 78 points
+  instead of 14 of 87.
+- **"No JSON-LD at all" was charged four times.** `json-ld`, `json-ld-valid`,
+  `json-ld-entity` and `sd-organization` all failed on one missing thing — 24 of 88 points
+  in a single family. The three derived checks now **`skip`** when the page carries no
+  JSON-LD to inspect, exactly as every other check does when its precondition is absent.
+  `json-ld` alone owns that verdict, and still costs 10 points.
+- **Two heuristics could fail an audit.** `extractable-structure` and `outbound-citations`
+  escalated to `fail` on long pages, which the project's own verdict policy forbids: a bar
+  we chose may advise, never condemn. Both now `warn` at worst, and the page length that
+  used to drive the severity survives in the offender reason instead.
+  `extractable-structure` also `skip`s rather than fails when no page could be fetched.
+
+On the same twelve sites, the median moved **67 → 69** and no site gained more than 6
+points — but failures fell sharply, from 9 to 4 on the strongest site in the sample.
+
 ## 0.9.0 — 2026-07-27
 
 ### Added

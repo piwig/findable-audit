@@ -87,9 +87,11 @@ describe('json-ld-valid', () => {
     const c = homeCtx(`<html><head>${ld({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Test Org' })}</head></html>`);
     expect((await jsonLdValid.run(c)).status).toBe('pass');
   });
-  it('fails when no JSON-LD block is present', async () => {
+  // json-ld already reports "no JSON-LD" and costs 10 points for it. A derived check whose
+  // precondition is absent must skip, or one missing thing is charged four times.
+  it('skips when there is no JSON-LD block at all — json-ld owns that verdict', async () => {
     const c = homeCtx('<html><head></head></html>');
-    expect((await jsonLdValid.run(c)).status).toBe('fail');
+    expect((await jsonLdValid.run(c)).status).toBe('skip');
   });
   it('fails on a JSON parse error', async () => {
     const c = homeCtx('<html><head><script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization"</script></head></html>');

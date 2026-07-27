@@ -67,7 +67,13 @@ export const jsonLdEntity: Check = {
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
-    const entities = flatten(extractJsonLd(res.body));
+    const graph = extractJsonLd(res.body);
+    if (graph.length === 0) {
+      // json-ld already reports the root cause. A derived check whose precondition is
+      // absent must skip, never fail — otherwise one missing thing costs four times.
+      return makeResult(this, 'skip', 'no JSON-LD to look for an entity in (see json-ld)');
+    }
+    const entities = flatten(graph);
     const typed = entities.find((e) => typesOf(e).some((t) => RELEVANT_TYPES.has(t)));
     if (!typed) {
       return makeResult(this, 'fail', 'no LocalBusiness/Organization/Article entity',
@@ -123,8 +129,9 @@ export const jsonLdValid: Check = {
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
     const blocks = extractJsonLdBlocks(res.body);
     if (blocks.length === 0) {
-      return makeResult(this, 'fail', 'no JSON-LD block found',
-        'Add a <script type="application/ld+json"> block.');
+      // json-ld already reports the root cause. A derived check whose precondition is
+      // absent must skip, never fail — otherwise one missing thing costs four times.
+      return makeResult(this, 'skip', 'no JSON-LD block to validate (see json-ld)');
     }
     for (const b of blocks) {
       if (b.parseError !== undefined) {
@@ -165,7 +172,13 @@ export const sdOrganization: Check = {
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
-    const nodes = flatten(extractJsonLd(res.body));
+    const orgGraph = extractJsonLd(res.body);
+    if (orgGraph.length === 0) {
+      // json-ld already reports the root cause. A derived check whose precondition is
+      // absent must skip, never fail — otherwise one missing thing costs four times.
+      return makeResult(this, 'skip', 'no JSON-LD to look for an Organization in (see json-ld)');
+    }
+    const nodes = flatten(orgGraph);
     const entity = nodes.find((n) => typesOf(n).some(isOrganizationType));
     if (!entity) {
       return makeResult(this, 'fail', 'no Organization/LocalBusiness entity found',

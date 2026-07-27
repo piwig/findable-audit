@@ -118,14 +118,21 @@ One nuance worth knowing (per Perplexity's docs): PerplexityBot is the *index-ti
 
 ### What a normal score looks like
 
-Across a 12-site sweep — static-site generators, framework documentation, a news site, an e-commerce store, a public-sector site and a minimal-HTML forum — scores landed between **57 and 81, median 67**: one B, three C, seven D, one F, and **no A**. Sites with dedicated accessibility and platform teams sit in the 70s.
+Across a 12-site sweep — static-site generators, framework documentation, a news site, an e-commerce store, a public-sector site and a minimal-HTML forum — scores land between **63 and 85, median 69**: one B, four C, seven D, and **no A**. Sites with dedicated accessibility and platform teams sit in the high 70s and 80s.
 
-So a 65 is not a broken site. GEO adoption is genuinely early, and the scale is deliberately demanding — but two structural quirks account for part of that spread, and we would rather write them down than quietly tune them away:
+So a 69 is not a broken site. GEO adoption is genuinely early and the scale is demanding. Treat the grade as a ladder rather than a verdict: **the number that matters is the delta between two runs of your own site**, which is exactly what `--baseline` measures.
 
-- **`llms.txt` carries 14 of the 87 points** in the heaviest family, for a convention this project's own documentation calls a *signal of unproven value* (large studies find no measurable citation gain, adoption is ~3%, and Google states it has no ranking impact).
-- **"No JSON-LD at all" costs 24 of 88 points** in structured data, spread over four checks that share a single root cause — so one missing thing is counted four times.
+<details>
+<summary>That sweep also found two things wrong with <em>this tool</em>, and we fixed them</summary>
 
-Both are open calibration questions, tracked in the [roadmap](docs/competitive-analysis-and-roadmap.md). Until they are settled, treat the grade as a ladder rather than a verdict: **the number that matters is the delta between two runs of your own site**, which is exactly what `--baseline` measures.
+Running against real sites is how the calibration gets tested, so here is what the first pass turned up and what changed in `0.10.0`:
+
+- **`llms.txt` was the heaviest check in the tool** — 10 points, labelled *measured*, failing 10 of the 12 sites — for a convention this project's own guide calls a *signal of unproven value* (large studies find no measurable citation gain, adoption is ~3%, Google states it has no ranking impact). Calling that *measured* claimed the bar came from outside this project. It is now **heuristic, 3 points, warn at worst**.
+- **"No JSON-LD at all" was counted four times**: `json-ld`, `json-ld-valid`, `json-ld-entity` and `sd-organization` all failed on the same missing thing, 24 of 88 points in one family. The three derived checks now **skip** when there is no JSON-LD to inspect — `json-ld` alone owns that verdict.
+
+The effect was not grade inflation: the median moved 67 → 69, and no site gained more than 6 points. What dropped sharply was the number of **failures** — from 9 to 4 on the strongest site in the sample — because verdicts the tool could not justify are gone.
+
+</details>
 
 ## Reports
 

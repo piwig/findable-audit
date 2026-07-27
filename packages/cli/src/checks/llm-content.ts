@@ -46,15 +46,20 @@ function hasSummaryLine(body: string): boolean {
 }
 
 export const llmsTxt: Check = {
-  id: 'llms-txt', family: 'llm-content', evidence: 'measured', maxPoints: 10,
+  // Signal of UNPROVEN value, and scored as such. Large studies find no measurable
+  // citation gain, adoption is ~3%, and Google states it has no ranking impact — so the
+  // verdict rests on our judgement, not on a spec: `heuristic`, warn at worst, and a
+  // weight that cannot sink a family. It used to be 10 points and `measured`, which made
+  // the heaviest check in the tool enforce a convention our own guide calls unproven.
+  id: 'llms-txt', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/llms.txt');
     if (res?.status !== 200) {
-      return makeResult(this, 'fail', 'llms.txt missing',
+      return makeResult(this, 'warn', 'llms.txt missing',
         'Add a /llms.txt file: an H1 title, a one-line summary, then "## Section" blocks of descriptive links.');
     }
     if (!isPlainText(res)) {
-      return makeResult(this, 'fail', t`llms.txt served with content-type "${res.contentType}" (SPA fallback?)`,
+      return makeResult(this, 'warn', t`llms.txt served with content-type "${res.contentType}" (SPA fallback?)`,
         'Serve /llms.txt as text/plain, not an HTML fallback page.');
     }
     const body = res.body;
@@ -82,15 +87,15 @@ export const llmsTxt: Check = {
 // ---------------------------------------------------------------------------
 
 export const llmsFullTxt: Check = {
-  id: 'llms-full-txt', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
+  id: 'llms-full-txt', family: 'llm-content', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/llms-full.txt');
     if (res?.status !== 200) {
-      return makeResult(this, 'fail', 'llms-full.txt missing',
+      return makeResult(this, 'warn', 'llms-full.txt missing',
         'Add a /llms-full.txt containing the full text content of your key pages, under headings.');
     }
     if (!isPlainText(res)) {
-      return makeResult(this, 'fail', t`llms-full.txt served with content-type "${res.contentType}" (SPA fallback?)`,
+      return makeResult(this, 'warn', t`llms-full.txt served with content-type "${res.contentType}" (SPA fallback?)`,
         'Serve /llms-full.txt as text/plain, not an HTML fallback page.');
     }
     const words = (res.body.match(/\S+/g) ?? []).length;
@@ -247,7 +252,8 @@ export const extractableStructure: Check = {
   id: 'extractable-structure', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
-    if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
+    // Cannot judge what could not be fetched: skip, never fail.
+    if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
     const items: SeverityItem[] = [];
     for (const p of pages) {
       const mc = mainContent(p);
@@ -255,7 +261,11 @@ export const extractableStructure: Check = {
       if (hasContentStructure(mc.root)) {
         items.push({ path: pathOf(p), status: 'pass' });
       } else {
-        items.push({ path: pathOf(p), status: mc.wordCount >= LONG_PROSE_WORDS ? 'fail' : 'warn', reason: 'no list/table' });
+        // Warn at worst: "this page would read better as a list" is our bar, not a spec,
+        // and the guard-rails forbid a heuristic from failing an audit. The page length
+        // stays in the reason so the signal is not lost.
+        const reason = mc.wordCount >= LONG_PROSE_WORDS ? 'no list/table, long page' : 'no list/table';
+        items.push({ path: pathOf(p), status: 'warn', reason });
       }
     }
     if (items.length === 0) return makeResult(this, 'skip', 'no substantial pages to evaluate');
@@ -407,7 +417,9 @@ export const outboundCitations: Check = {
       if (citationDomains(mc.root, ctx.baseUrl.origin).size >= 1) {
         items.push({ path: pathOf(p), status: 'pass' });
       } else {
-        items.push({ path: pathOf(p), status: mc.wordCount >= LONG_PROSE_WORDS ? 'fail' : 'warn', reason: 'no citation' });
+        // Warn at worst, same reason as extractable-structure: a heuristic advises.
+        const reason = mc.wordCount >= LONG_PROSE_WORDS ? 'no citation, long page' : 'no citation';
+        items.push({ path: pathOf(p), status: 'warn', reason });
       }
     }
     if (items.length === 0) return makeResult(this, 'skip', 'no substantial pages to evaluate');

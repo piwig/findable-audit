@@ -117,11 +117,13 @@ describe('llms-txt', () => {
     const c = stubCtx({ '/llms.txt': { body: 'just some text, no heading at all here\n' } });
     expect((await llmsTxt.run(c)).status).toBe('warn');
   });
-  it('fails when missing', async () => {
-    expect((await llmsTxt.run(await crawler('mini'))).status).toBe('fail');
+  // Warn, not fail: llms.txt is a signal of unproven value by this project's own guide,
+  // so its absence cannot condemn an audit. Weight and evidence moved with the severity.
+  it('warns when missing, never fails', async () => {
+    expect((await llmsTxt.run(await crawler('mini'))).status).toBe('warn');
   });
-  it('fails on a text/html SPA fallback', async () => {
-    expect((await llmsTxt.run(await crawler('spa-fallback', { spaFallback: true }))).status).toBe('fail');
+  it('warns on a text/html SPA fallback', async () => {
+    expect((await llmsTxt.run(await crawler('spa-fallback', { spaFallback: true }))).status).toBe('warn');
   });
 });
 
@@ -139,12 +141,12 @@ describe('llms-full-txt', () => {
     expect(r.status).toBe('warn');
     expect(r.message).toContain('thin');
   });
-  it('fails when missing', async () => {
-    expect((await llmsFullTxt.run(await crawler('mini'))).status).toBe('fail');
+  it('warns when missing, never fails', async () => {
+    expect((await llmsFullTxt.run(await crawler('mini'))).status).toBe('warn');
   });
-  it('fails on a text/html SPA fallback', async () => {
+  it('warns on a text/html SPA fallback', async () => {
     const r = await llmsFullTxt.run(await crawler('spa-fallback', { spaFallback: true }));
-    expect(r.status).toBe('fail');
+    expect(r.status).toBe('warn');
     expect(r.message).toContain('text/html');
   });
 });
@@ -306,8 +308,12 @@ describe('extractable-structure', () => {
     const p = contentPage('/a', 'A', 170, '<ul><li>one item</li><li>two item</li></ul>');
     expect((await extractableStructure.run(mpCtx([p]))).status).toBe('pass');
   });
-  it('fails on a long prose-only page with no list or table', async () => {
-    expect((await extractableStructure.run(mpCtx([contentPage('/a', 'A', 420)]))).status).toBe('fail');
+  // A heuristic advises, it does not condemn — the guard-rails forbid heuristic + fail.
+  // The page length survives in the offender reason instead of in the severity.
+  it('warns on a long prose-only page, and says the page is long', async () => {
+    const r = await extractableStructure.run(mpCtx([contentPage('/a', 'A', 420)]));
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('long page');
   });
   it('warns on a mid-length prose-only page', async () => {
     expect((await extractableStructure.run(mpCtx([contentPage('/a', 'A', 200)]))).status).toBe('warn');
@@ -391,13 +397,15 @@ describe('outbound-citations', () => {
     const p = contentPage('/a', 'A', 170, '<p>See <a href="https://source.org/ref">the primary source</a>.</p>');
     expect((await outboundCitations.run(mpCtx([p]))).status).toBe('pass');
   });
-  it('fails on long content with zero outbound citations', async () => {
-    expect((await outboundCitations.run(mpCtx([contentPage('/a', 'A', 420)]))).status).toBe('fail');
+  it('warns on long content with zero outbound citations, and says the page is long', async () => {
+    const r = await outboundCitations.run(mpCtx([contentPage('/a', 'A', 420)]));
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('long page');
   });
   it('ignores self-links and social links', async () => {
     const p = contentPage('/a', 'A', 420,
       '<p><a href="/internal">self</a> <a href="https://facebook.com/x">social</a></p>');
-    expect((await outboundCitations.run(mpCtx([p]))).status).toBe('fail');
+    expect((await outboundCitations.run(mpCtx([p]))).status).toBe('warn');
   });
   it('skips when no page is substantial', async () => {
     const thin = pageRes('/', doc('<h1>Thin</h1><p>A few words only.</p>'));

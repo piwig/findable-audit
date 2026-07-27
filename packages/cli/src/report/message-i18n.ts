@@ -230,6 +230,12 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'IndexNow key file verified': 'fichier de clé IndexNow vérifié',
   'ingestion hygiene issues on: {0}': 'problèmes d’hygiène d’ingestion sur : {0}',
   'invalid hreflang code(s): {0}': 'code(s) hreflang invalide(s) : {0}',
+  'no JSON-LD block to validate (see json-ld)':
+    'aucun bloc JSON-LD à valider (voir json-ld)',
+  'no JSON-LD to look for an entity in (see json-ld)':
+    'aucun JSON-LD dans lequel chercher une entité (voir json-ld)',
+  'no JSON-LD to look for an Organization in (see json-ld)':
+    'aucun JSON-LD dans lequel chercher une Organization (voir json-ld)',
   'invalid JSON-LD block ({0})': 'bloc JSON-LD invalide ({0})',
   'invalid JSON-LD block (parse error: {0})': 'bloc JSON-LD invalide (erreur d’analyse : {0})',
   'JSON-LD may describe hidden content (unmatched: {0})': 'le JSON-LD décrit peut-être du contenu masqué (sans correspondance : {0})',
@@ -317,7 +323,6 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'no INP field data in PSI response (low-traffic URL)':
     'aucune donnée terrain INP dans la réponse PSI (URL à faible trafic)',
   'no internal links on sampled pages': 'aucun lien interne sur les pages échantillonnées',
-  'no JSON-LD block found': 'aucun bloc JSON-LD trouvé',
   'no JSON-LD entities found across sampled pages': 'aucune entité JSON-LD sur les pages échantillonnées',
   'no lab First Contentful Paint in PSI response': 'aucun First Contentful Paint de laboratoire dans la réponse PSI',
   'no labelable form controls on sampled pages':

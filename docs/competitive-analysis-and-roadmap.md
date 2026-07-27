@@ -287,11 +287,17 @@ Observations sur le rapport HTML rendu après un audit, sur le site live :
 
 ### G. Dettes de calibration relevées en auditant de vrais sites (2026-07-27)
 
+> **#69, #71 et #72 sont CORRIGÉS** (0.10.0). **#70 est vérifié et laissé tel quel** — voir sa
+> ligne. Balayage de contrôle sur les mêmes 12 sites : médiane **67 → 69**, aucun site ne perd
+> de points, et le nombre d'**échecs** chute nettement (9 → 4 sur le meilleur du panel). Ce
+> n'était pas de l'inflation de note : ce sont des verdicts que l'outil ne pouvait pas
+> justifier qui ont disparu.
+
 Deux constats sortis du dogfooding sur pb-ot.fr, masse-motoculture et findable.bordebat.fr.
 Aucun n'est un bug : ce sont des réglages qui ne tiennent pas leur promesse, et ils ne se
 corrigent pas à l'intuition — il faut mesurer sur plusieurs sites avant de bouger un seuil.
 
-- **#69 [Cohérence] Deux checks `heuristic` peuvent `fail`.** `extractable-structure` et
+- ✅ **#69 [Cohérence] Deux checks `heuristic` peuvent `fail`.** *(corrigé)* Les items de `extractable-structure` et `outbound-citations` sortent désormais en `warn` quelle que soit la longueur de la page ; la longueur survit dans le motif (« no list/table, long page »), pas dans la sévérité. `extractable-structure` fait aussi `skip` au lieu de `fail` quand aucune page n'est joignable : on ne juge pas ce qu'on n'a pas pu lire. Constat d'origine : `extractable-structure` et
   `outbound-citations` sont déclarés `evidence: 'heuristic'` et font pourtant échouer un
   audit — vérifié sur pb-ot.fr, qui perd 0/4 et 0/3 dessus. Or `.claude/skills/findable-new-check/SKILL.md`
   est explicite : « If you find yourself wanting `heuristic` **and** `fail`, re-read the
@@ -299,7 +305,7 @@ corrigent pas à l'intuition — il faut mesurer sur plusieurs sites avant de bo
   checks sont en réalité `measured` (« aucune liste ni tableau » est vérifiable), soit ils
   doivent redescendre à `warn`. ⚠️ Les deux options **déplacent la note de tous les
   utilisateurs**, donc mineure et décision explicite — pas un correctif silencieux.
-- **#71 [Honnêteté/scoring] `llms-txt` pèse 10 points et se déclare `measured`.** Balayage de
+- ✅ **#71 [Honnêteté/scoring] `llms-txt` pesait 10 points et se déclarait `measured`.** *(corrigé)* Passé en `heuristic`, **3 points**, `warn` au pire ; `llms-full-txt` à 2 points, `warn` au pire. Les deux valent maintenant 5 des 78 points de `llm-content` au lieu de 14 sur 87. Constat d'origine : Balayage de
   12 sites réels le 2026-07-27 : `llms-txt` échoue sur **10 sites sur 12**, `llms-full-txt`
   sur 11. Ensemble ils valent **14 des 87 points** de `llm-content`, la famille la plus lourde
   (0,18). Or `CLAUDE.md` ligne 109 dit : « `llms.txt` is documented in the guide as a *signal
@@ -311,13 +317,13 @@ corrigent pas à l'intuition — il faut mesurer sur plusieurs sites avant de bo
   jugement comme une mesure. Deux corrections possibles : basculer en `heuristic` + `warn` max
   et redescendre le poids, ou assumer et retirer la mention « valeur non prouvée » du guide —
   mais pas les deux en même temps.
-- **#72 [Scoring] « Pas de JSON-LD » est compté quatre fois.** `json-ld` (10), `json-ld-entity`
+- ✅ **#72 [Scoring] « Pas de JSON-LD » était compté quatre fois.** *(corrigé)* `json-ld-valid`, `json-ld-entity` et `sd-organization` font désormais `skip` quand la page ne porte aucun JSON-LD : leur précondition est absente, et `json-ld` seul porte le verdict — comme n'importe quelle précondition manquante ailleurs dans l'outil. Constat d'origine : `json-ld` (10), `json-ld-entity`
   (6), `json-ld-valid` (4) et `sd-organization` (4) échouent ensemble dès qu'un site n'a aucun
   balisage — **24 des 88 points** de `structured-data` pour une seule cause racine. Observé sur
   9 à 11 sites du balayage. Un défaut unique ne devrait pas coûter quatre fois ; les trois
   checks dérivés devraient `skip` quand `json-ld` a déjà constaté l'absence, comme n'importe
   quelle précondition manquante ailleurs dans l'outil.
-- **#70 [Calibration] `internal-link-context` ne discrimine presque rien.** Son plancher est
+- ⏸️ **#70 [Calibration] `internal-link-context` : mesuré, laissé tel quel.** Le balayage de 12 sites donne la distribution suivante de part de liens contextuels : **4, 4, 11, 14, 24, 27, 32, 35, 74, 96, 98, 100** — médiane 32. Le plancher à 10 % avertit donc 2 sites sur 12, ce qui est *sélectif*, pas inerte : ma critique du matin était excessive. Le seul écart naturel des données (14 → 24) ferait passer le plancher à ~20 %, mais il avertirait alors un grand quotidien dont la navigation est structurellement énorme — le **type de site** explique plausiblement plus de variance que sa qualité. Douze points ne suffisent pas à trancher ça : on ne bouge pas un seuil pour avoir l'air décidé. Constat d'origine : Son plancher est
   à **10 %** de liens internes en contenu principal (`MIN_CONTEXTUAL_SHARE = 0.1`). Le
   commentaire du code assume ce choix — une navigation répétée sur N pages écrase
   numériquement les liens rédactionnels sur *n'importe quel* site — mais la conséquence est
