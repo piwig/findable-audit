@@ -191,3 +191,27 @@ test('both languages claim the same score, in the same words', async () => {
   }
   assert.equal(claims[0], claims[1], `en claims ${claims[0]}, fr claims ${claims[1]}`);
 });
+
+// --- parity clusters, 2026-07-27 --------------------------------------------
+// The four parallel clusters were forbidden from touching this file, so nothing
+// locked their verdicts against our own site. These two tests are that lock. The
+// second matters more than it looks: it pins that a check whose precondition is
+// absent SKIPS rather than fails — the transport probe has no TLS handshake to read
+// on a loopback plain-HTTP fixture, and outbound-link-health is opt-in behind
+// --check-outbound, which the web app never passes.
+
+test('the parity-cluster checks that apply to this site still pass', () => {
+  for (const id of [
+    'topical-focus', 'keyword-cannibalization',
+    'rich-result-eligibility', 'sd-page-entity',
+    'anchor-target-profile', 'internal-link-context', 'internal-equity-leaks',
+  ]) {
+    assert.equal(check(id).status, 'pass', why(id));
+  }
+});
+
+test('the parity-cluster checks whose precondition is absent skip, never fail', () => {
+  for (const id of ['http-protocol', 'tls-version', 'cdn-edge-cache', 'outbound-link-health']) {
+    assert.equal(check(id).status, 'skip', why(id));
+  }
+});
