@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **126 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **137 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 126 checks, **97 sont mesurés et 29 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 137 checks, **102 sont mesurés et 35 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -10,12 +10,12 @@ findable-audit note un site sur 100 à travers **126 checks répartis en 8 famil
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
 | Contenu pour moteurs de réponse | 0,18 | 21 |
-| Données structurées et métadonnées | 0,15 | 21 |
-| SEO technique | 0,15 | 26 |
-| On-page et contenu | 0,12 | 11 |
-| Performance et Core Web Vitals | 0,10 | 19 |
+| Données structurées et métadonnées | 0,15 | 23 |
+| SEO technique | 0,15 | 29 |
+| On-page et contenu | 0,12 | 14 |
+| Performance et Core Web Vitals | 0,10 | 21 |
 | Accessibilité | 0,07 | 9 |
-| Sécurité et confiance | 0,07 | 10 |
+| Sécurité et confiance | 0,07 | 11 |
 
 **Note (grade) :** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 

@@ -1,7 +1,7 @@
 name: 'findable-audit'
 description: >-
   SEO & GEO audit gate: score how findable a site is by search engines and AI
-  assistants (126 checks, 8 families). Fails the job below min-score or on
+  assistants (137 checks, 8 families). Fails the job below min-score or on
   regression vs a baseline; writes SARIF/JUnit/JSON/HTML/Markdown reports.
 author: 'piwig'
 branding:

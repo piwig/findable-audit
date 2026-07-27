@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **126 checks in 8 families**.
+findable-audit scores a site out of 100 across **137 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 126 checks, **97 are measured and 29 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 137 checks, **102 are measured and 35 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -10,12 +10,12 @@ findable-audit scores a site out of 100 across **126 checks in 8 families**.
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
 | Answer-engine content | 0.18 | 21 |
-| Structured data & metadata | 0.15 | 21 |
-| Technical SEO | 0.15 | 26 |
-| On-page & content | 0.12 | 11 |
-| Performance & Core Web Vitals | 0.10 | 19 |
+| Structured data & metadata | 0.15 | 23 |
+| Technical SEO | 0.15 | 29 |
+| On-page & content | 0.12 | 14 |
+| Performance & Core Web Vitals | 0.10 | 21 |
 | Accessibility | 0.07 | 9 |
-| Security & trust | 0.07 | 10 |
+| Security & trust | 0.07 | 11 |
 
 **Grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
