@@ -97,6 +97,7 @@ ignoring `node_modules`, `dist/`, `package-lock.json` and `graphify-out/`).
 |---|---|
 | `README.md` | intro paragraph, "**N checks in 8 families**", the *Checks* column of the family table, and the competitive-comparison line |
 | `packages/cli/README.md` | intro line **and** the *Docs* line — this is the npm package page, the first thing an installer reads |
+| `packages/cli/package.json` | the `description` field — the one-line blurb npm shows in search results and atop the package page. It was missing from this table until 2026-07-27 and had silently rotted two releases behind (it said 121 while the code said 126) |
 | `action.yml` | the `description:` block (Marketplace listing copy) |
 | `docs/guide.md` | intro line, family table row, **new `### <id> (N pts)` section** (Verifies / Why / Fix) |
 | `docs/guide.fr.md` | same three, in French (note the table uses `0,18` with a comma) |

@@ -7,6 +7,45 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.8.0 — 2026-07-27
+
+### Added
+
+- **Eleven checks — 126 → 137.** Four clusters, closing the crawl-only gaps the backlog had
+  been listing since July: transport (`http-protocol`, `tls-version`, `cdn-edge-cache`),
+  structured data (`rich-result-eligibility`, `sd-page-entity`), links
+  (`anchor-target-profile`, `internal-link-context`, `internal-equity-leaks`,
+  `outbound-link-health`) and semantics (`topical-focus`, `keyword-cannibalization`).
+  Families: `structured-data` 23, `technical-seo` 29, `on-page` 14, `performance` 21,
+  `security` 11.
+- **`rich-result-eligibility` grades against Google's published rules, not schema.org's.**
+  A `Product` without `offers.price` is valid markup that still cannot produce a rich
+  result. Each REQUIRED field is encoded in a versioned table carrying its source URL and
+  review date. Where Google has **no** published rules, none were invented: the sitelinks
+  search box has no table because Google removed the feature, and its documentation, on
+  29 November 2024.
+- **`--check-outbound`** — opt-in probing of outbound links. Bounded to 10 URLs, one per
+  host, main content first, under the same SSRF guard as everything else. Only 404 and 410
+  count as broken; 401, 403, 429, 5xx, timeouts and DNS failures are reported as
+  *unverifiable*, never as dead.
+- **A TLS/ALPN probe with no dependency.** One handshake per audit, memoised, reading the
+  negotiated protocol, TLS version and cipher. **HTTP/3 is deliberately not detected**: an
+  `Alt-Svc: h3` header is an advertisement, not a negotiated protocol, and Node 20/22 ships
+  no QUIC client to verify it — so it is reported and never graded.
+
+### Changed
+
+- **`sameas-verified` is no longer the only capability that leaves the audited origin.**
+  With `--check-outbound` there are now two, and **neither implies the other** — each has
+  to be asked for by name. The CLI help and both guides were corrected; the 0.7.0 entry
+  below is left as written, because it was true when it shipped.
+- **`sd-website-searchaction` no longer promises a feature that does not exist.** Its
+  explanation claimed the markup could enable a sitelinks search box in results; Google
+  retired that in 2024. The check stays — the markup still declares a machine-readable
+  entry point to your own search, which an agent can call — but the dead benefit is gone.
+- Effort estimates corrected for the new checks: enabling HTTP/2 or an edge-cache policy is
+  a hosting setting, not the engineering project the `performance` family default implied.
+
 ## 0.7.0 — 2026-07-27
 
 ### Added
