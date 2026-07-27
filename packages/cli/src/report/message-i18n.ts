@@ -16,6 +16,25 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // #22 — transport et livraison modernes (http-protocol, tls-version, cdn-edge-cache).
+  // Les cinq premiers gabarits sont partages par les deux checks qui lisent la sonde.
+  "origin is not served over HTTPS — no TLS transport to negotiate on": "l'origine n'est pas servie en HTTPS — aucun transport TLS sur lequel négocier",
+  "origin answers on a non-standard HTTPS port — transport probe skipped": "l'origine répond sur un port HTTPS non standard — sonde de transport ignorée",
+  "origin resolves to a private or reserved address — transport probe skipped": "l'origine résout vers une adresse privée ou réservée — sonde de transport ignorée",
+  "origin hostname did not resolve — transport probe skipped": "le nom d'hôte de l'origine n'a pas été résolu — sonde de transport ignorée",
+  "TLS handshake did not complete — transport probe skipped": "la poignée de main TLS n'a pas abouti — sonde de transport ignorée",
+  "ALPN negotiated HTTP/2 (h2)": "ALPN a négocié HTTP/2 (h2)",
+  "ALPN negotiated HTTP/2 (h2); the origin also advertises HTTP/3 in Alt-Svc, which this probe cannot verify": "ALPN a négocié HTTP/2 (h2) ; l'origine annonce aussi HTTP/3 dans Alt-Svc, ce que cette sonde ne peut pas vérifier",
+  "the origin answered the ALPN request with no protocol, so connections fall back to HTTP/1.1": "l'origine a répondu à la demande ALPN sans aucun protocole : les connexions retombent sur HTTP/1.1",
+  "ALPN negotiated {0} — the origin does not offer HTTP/2": "ALPN a négocié {0} — l'origine ne propose pas HTTP/2",
+  "the handshake reported no usable TLS version or cipher — nothing to grade": "la poignée de main n'a rapporté ni version de TLS ni chiffrement exploitable — rien à évaluer",
+  "obsolete {0} negotiated ({1})": "{0} obsolète négocié ({1})",
+  "{0} negotiated without forward secrecy ({1})": "{0} négocié sans confidentialité persistante ({1})",
+  "{0} negotiated ({1})": "{0} négocié ({1})",
+  "no CDN or edge-cache headers on the sampled pages — the delivery path cannot be read from here": "aucun en-tête de CDN ou de cache de périphérie sur les pages échantillonnées — le chemin de livraison n'est pas lisible d'ici",
+  "pages served from an edge cache ({0})": "pages servies depuis un cache de périphérie ({0})",
+  "pages declare a cacheable policy but none was served from the edge cache ({0})": "les pages déclarent une politique de mise en cache mais aucune n'a été servie depuis le cache de périphérie ({0})",
+  "edge cache detected ({0}) but no sampled page both declares a cacheable policy and reports a cache status — nothing to grade": "cache de périphérie détecté ({0}) mais aucune page échantillonnée ne déclare à la fois une politique de mise en cache et un état de cache — rien à évaluer",
   // #65 — verification des profils sameAs
   "profile verification is opt-in (run with --verify-profiles)": "la vérification des profils est optionnelle (lancez avec --verify-profiles)",
   "no sameAs profile declared (see sd-entity-grounding)": "aucun profil sameAs déclaré (voir sd-entity-grounding)",

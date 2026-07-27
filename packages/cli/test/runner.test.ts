@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(126);
+    expect(report.results).toHaveLength(129);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -33,16 +33,18 @@ describe('runAudit', () => {
     // (< 2 freshness sources), hedging-rate/chunk-boundary (no substantial page) and
     // answer-units (no pillar page ≥300 words). Of the LOT 5 pair, chunk-retrieval-sim
     // skips for the same reason as answer-units; injection-hygiene runs and passes.
+    // The three #22 transport checks skip on a loopback fixture: it is served over plain
+    // HTTP, so there is no handshake to read, and it emits no CDN/edge headers.
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources', 'canonical-resolves', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
+      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
       'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
-      'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexing-conflicts', 'indexnow', 'internal-linking',
+      'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title', 'indexing-conflicts', 'indexnow', 'internal-linking',
       'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content',
       'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',
       'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article', 'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity',
       'sd-localbusiness', 'sd-product', 'sd-special-types', 'sd-video', 'sd-website-searchaction',
-      'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans', 'sitemap-urls-valid', 'trailing-slash',
+      'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans', 'sitemap-urls-valid', 'tls-version', 'trailing-slash',
       'unique-titles', 'www-consolidation',
     ]);
   });
