@@ -31,3 +31,6 @@ dist/
 /pull_strings.js
 /quote_windows.js
 /final_quotes.js
+
+# Worktrees temporaires des agents (isolation de tache) — jamais versionnes.
+.claude/worktrees/
