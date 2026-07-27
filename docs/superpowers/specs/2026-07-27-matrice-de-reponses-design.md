@@ -163,7 +163,9 @@ Le `fail` est exclu par le § *Honesty guard-rails* de `CLAUDE.md` : les heurist
 en forme du contenu sont **warn max**. Seuls les défauts non ambigus et vérifiables peuvent
 faire échouer un audit, et « ton site ne répond pas à cette question » n'en est pas un.
 
-**125 → 126 checks.**
+**+1 check.** Le compteur de départ est celui asserté dans `test/runner.test.ts`, pas un chiffre
+recopié d'un message de commit — c'est ainsi qu'une erreur de comptage s'est déjà glissée dans
+cette spec. Au moment de la rédaction : 126, plus les checks des grappes de parité en vol.
 
 ## 9. Le rendu
 
