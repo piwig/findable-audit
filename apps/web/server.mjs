@@ -70,6 +70,9 @@ function parsePages(raw) {
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
 const CACHE_MAX_ENTRIES = 500; // bound the result cache so it can't grow unbounded.
 const REPO_URL = 'https://github.com/piwig/findable-audit';
+// IndexNow key, served at /<key>.txt (see the route below). Not a secret: the
+// protocol requires it to be publicly readable — that IS the ownership proof.
+const INDEXNOW_KEY = 'ee645ca362f1983ad6257479b7c02a67';
 // Public origin for canonical/OG/sitemap URLs. Behind nginx we can't infer TLS
 // host reliably, so it is configured explicitly (default = production host).
 const PUBLIC_ORIGIN = (process.env.PUBLIC_ORIGIN ?? 'https://findable.bordebat.fr').replace(/\/$/, '');
@@ -226,6 +229,13 @@ const PAGE_STYLE = `
     padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px;
     background: var(--panel); color: var(--ink); }
   .ld-example { display: inline-block; font-size: .88rem; margin: 0 0 1rem; }
+  /* Developer strip: the site is where the CLI gets discovered. */
+  .ld-cmd { background: var(--chip-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: .6rem .8rem; overflow-x: auto; margin: .2rem 0 .8rem; }
+  .ld-cmd code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+  .ld-dev { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
+  .ld-dev li { font-size: .88rem; color: var(--muted); }
+  .ld-dev a { font-weight: 600; }
   .ld-proof { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--good);
     background: var(--good-bg); padding: .6rem .85rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0 0; }
 
@@ -564,7 +574,7 @@ ${seo}
 <main${wide ? ' class="wide"' : ''}>
 <header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
 ${bodyHtml}
-<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a></footer>
+<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a> · <a href="https://www.npmjs.com/package/findable-audit">npm</a></footer>
 </main>
 </body>
 </html>
@@ -675,6 +685,18 @@ function landingPage(lang = 'en') {
 <section class="ld-sec">
   <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
   <ol class="ld-steps">${steps}</ol>
+</section>
+<section class="ld-sec" id="cli">
+  <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.devTitle)}</h2>
+  <p class="lead" style="margin:.1rem 0 .7rem">${escapeHtml(s.devLead)}</p>
+  <pre class="ld-cmd"><code>${escapeHtml(s.devCmd)}</code></pre>
+  <p class="hint" style="margin:.2rem 0 .5rem">${escapeHtml(s.devList)}</p>
+  <ul class="ld-dev">
+    <li><a href="https://www.npmjs.com/package/findable-audit">npm</a> — ${escapeHtml(s.devNpm)}</li>
+    <li><a href="${REPO_URL}#github-action--ci">GitHub Action</a> — ${escapeHtml(s.devAction)}</li>
+    <li><a href="${REPO_URL}/tree/main/plugin">Claude Code</a> — ${escapeHtml(s.devPlugin)}</li>
+    <li><a href="${REPO_URL}">GitHub</a> — ${escapeHtml(s.devSource)}</li>
+  </ul>
 </section>
 <section class="ld-sec">
   <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.geoTitle)}</h2>
@@ -1900,6 +1922,14 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // IndexNow ownership proof (#61). The key is PUBLIC by construction: it only
+  // works because it is served here, which is exactly what proves we control
+  // this host. Hosting it lets us dogfood `findable --submit` on our own site.
+  if (pathname === `/${INDEXNOW_KEY}.txt`) {
+    send(res, 200, 'text/plain; charset=utf-8', INDEXNOW_KEY, { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+
   if (pathname === '/favicon.svg' || pathname === '/favicon.ico') {
     // Serve the SVG for both: browsers request /favicon.ico by default when a
     // page (e.g. the served report) declares no icon link — modern browsers
@@ -2052,4 +2082,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest, setRunAuditForTest, MAX_PAGES, PAGE_CHOICES, parsePages };
+export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest, setRunAuditForTest, MAX_PAGES, PAGE_CHOICES, parsePages, INDEXNOW_KEY };

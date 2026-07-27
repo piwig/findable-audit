@@ -114,6 +114,19 @@ export const WEB_MESSAGES = {
       // #7: <noscript> fallback shown next to the Turnstile widget (only
       // rendered when Turnstile is env-gated on) — bot verification needs JS.
       captchaNoscript: 'Bot verification requires JavaScript. Please enable it to submit an audit.',
+      // The site is also the distribution surface for the package: without this
+      // section nobody landing here learns the CLI, the Action or the plugin exist.
+      devTitle: 'Run it yourself, or in CI',
+      devLead: 'The same engine that just audited your site is an open-source CLI. No account, no key, nothing leaves your machine.',
+      devCmd: 'npx findable-audit https://your-site.com',
+      // A one-line lead-in before the list: our own chunk-boundary check flags a
+      // list whose preceding element is not a heading or a paragraph, and it
+      // flagged this very section when the list sat right under the command.
+      devList: 'The same engine, packaged four ways:',
+      devNpm: 'the published package, MIT — install it globally or run it with npx.',
+      devAction: 'gate a merge on a score floor or on a regression, with SARIF and JUnit output.',
+      devPlugin: 'the plugin turns a report into a prioritized fix plan, inside your editor.',
+      devSource: 'engine, web app and check guide — issues and pull requests welcome.',
       geoTitle: 'Why GEO matters',
       geoBody: [
         'GEO (Generative Engine Optimization) is the practice of making a website findable, extractable and citable by AI assistants such as ChatGPT, Claude or Perplexity. These assistants answer questions directly, and they can only recommend sites their crawlers can reach, parse and trust. A site that blocks GPTBot, hides its content behind JavaScript or ships no structured data is invisible in AI answers — whatever its classic Google ranking.',
@@ -321,6 +334,16 @@ export const WEB_MESSAGES = {
       // uniquement quand Turnstile est activé via l'env) — la vérification
       // anti-robot nécessite JavaScript.
       captchaNoscript: 'La vérification anti-robot nécessite JavaScript. Veuillez l’activer pour lancer un audit.',
+      // Le site est aussi la surface de distribution du paquet : sans cette section,
+      // personne qui arrive ici n'apprend que la CLI, l'Action et le plugin existent.
+      devTitle: 'À lancer soi-même, ou en CI',
+      devLead: 'Le moteur qui vient d’auditer votre site est une CLI open source. Sans compte, sans clé, et rien ne quitte votre machine.',
+      devCmd: 'npx findable-audit https://votre-site.com',
+      devList: 'Le même moteur, empaqueté de quatre façons :',
+      devNpm: 'le paquet publié, sous licence MIT — à installer globalement ou à lancer avec npx.',
+      devAction: 'bloquez une fusion sous un seuil de score ou en cas de régression, avec sortie SARIF et JUnit.',
+      devPlugin: 'le plugin transforme un rapport en plan de correction priorisé, dans votre éditeur.',
+      devSource: 'moteur, application web et guide des checks — issues et pull requests bienvenues.',
       geoTitle: 'Pourquoi le GEO compte',
       geoBody: [
         'Le GEO (Generative Engine Optimization) consiste à rendre un site trouvable, extractible et citable par les assistants IA comme ChatGPT, Claude ou Perplexity. Ces assistants répondent directement aux questions, et ne peuvent recommander que les sites que leurs crawlers atteignent, comprennent et jugent fiables. Un site qui bloque GPTBot, cache son contenu derrière du JavaScript ou n’expose aucune donnée structurée est invisible dans les réponses IA — quel que soit son classement Google classique.',
