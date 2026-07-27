@@ -285,6 +285,28 @@ Observations sur le rapport HTML rendu après un audit, sur le site live :
 
 - **Forme retenue si le sujet repart** (seul arbitrage tranché le 2026-07-27) : **diagnostic ponctuel, pas de tracker** — une commande, un rapport, zéro stockage serveur ; l'évolution passe par le JSON produit et réutilisé comme `--baseline`, avec `report/diff.ts` déjà écrit (même patron que #59, et cohérent avec le « rien n'est conservé » de la landing). **Le choix des sources à brancher n'a pas été tranché.**
 
+### G. Dettes de calibration relevées en auditant de vrais sites (2026-07-27)
+
+Deux constats sortis du dogfooding sur pb-ot.fr, masse-motoculture et findable.bordebat.fr.
+Aucun n'est un bug : ce sont des réglages qui ne tiennent pas leur promesse, et ils ne se
+corrigent pas à l'intuition — il faut mesurer sur plusieurs sites avant de bouger un seuil.
+
+- **#69 [Cohérence] Deux checks `heuristic` peuvent `fail`.** `extractable-structure` et
+  `outbound-citations` sont déclarés `evidence: 'heuristic'` et font pourtant échouer un
+  audit — vérifié sur pb-ot.fr, qui perd 0/4 et 0/3 dessus. Or `.claude/skills/findable-new-check/SKILL.md`
+  est explicite : « If you find yourself wanting `heuristic` **and** `fail`, re-read the
+  verdict policy — that combination is what the guard-rails exist to prevent. » Soit ces deux
+  checks sont en réalité `measured` (« aucune liste ni tableau » est vérifiable), soit ils
+  doivent redescendre à `warn`. ⚠️ Les deux options **déplacent la note de tous les
+  utilisateurs**, donc mineure et décision explicite — pas un correctif silencieux.
+- **#70 [Calibration] `internal-link-context` ne discrimine presque rien.** Son plancher est
+  à **10 %** de liens internes en contenu principal (`MIN_CONTEXTUAL_SHARE = 0.1`). Le
+  commentaire du code assume ce choix — une navigation répétée sur N pages écrase
+  numériquement les liens rédactionnels sur *n'importe quel* site — mais la conséquence est
+  qu'un site dont 90 % des liens sont du gabarit passe quand même. En pratique le check ne
+  signale que les graphes sans aucun maillage rédactionnel : 3 points que presque tout le
+  monde empoche. À remesurer sur une dizaine de sites réels avant de relever le plancher.
+
 **Note stratégie** : la victoire durable n'est pas « plus de checks » (SEOmator a 251 règles) mais **la combinaison + trois angles que personne ne couvre ensemble** : (1) **historique/tendance** (#10) qui rapproche audit et monitoring, (2) **auto-remédiation** (#11) qui ferme la boucle, (3) **checks agentic/RAG** (#14) qui prennent de l'avance sur la prochaine vague GEO — le tout **gratuit, OSS, auto-hébergeable, sans fuite de données**.
 
 
