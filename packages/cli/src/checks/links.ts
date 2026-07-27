@@ -9,8 +9,15 @@ import { isContentPath } from '../crawl-filters.js';
 const MAX_LINKS = 30;
 const MAX_HREFLANG = 5;
 
-/** Distinct same-origin <a href> targets across the sampled pages (bounded). */
-function internalLinks(pages: FetchedResource[], baseUrl: URL): string[] {
+/**
+ * Distinct same-origin <a href> targets across the sampled pages (bounded).
+ *
+ * Exported so `internal-equity-leaks` probes the EXACT same URL list in the
+ * exact same order: the crawler caches by URL, so the second check spends zero
+ * extra requests on the audited site. Any divergence here would silently double
+ * the probe traffic.
+ */
+export function internalLinks(pages: FetchedResource[], baseUrl: URL): string[] {
   const seen = new Set<string>();
   for (const p of pages) {
     for (const a of parse(p.body).querySelectorAll('a[href]')) {

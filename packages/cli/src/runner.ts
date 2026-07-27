@@ -75,6 +75,8 @@ export interface AuditOptions {
   psiStrategy?: 'mobile' | 'desktop';
   /** Verify declared sameAs profiles by fetching them off-origin (#65). Opt-in: see CrawlContext.fetchExternal. */
   verifyProfiles?: boolean;
+  /** Probe outbound `<a href>` targets for liveness (#26/#51). Opt-in: see CrawlContext.fetchOutbound. */
+  checkOutbound?: boolean;
   /** Include the built entity graph in the returned AuditReport (for --entity-graph export). */
   includeEntityGraph?: boolean;
   /**
@@ -93,6 +95,8 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     // #65: off-origin verification is wired up only when asked for, so the
     // default audit still touches nothing but the audited origin.
     verifyProfiles: opts.verifyProfiles,
+    // #26/#51: outbound link probing is its own opt-in, never implied by the above.
+    checkOutbound: opts.checkOutbound,
     signal: opts.signal,
   });
 

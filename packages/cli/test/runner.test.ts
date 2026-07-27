@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(133);
+    expect(report.results).toHaveLength(137);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -41,17 +41,18 @@ describe('runAudit', () => {
     // to grade: rich-result-eligibility (no Google-documented type) and sd-page-entity
     // (no WebPage/CreativeWork node to carry `about`).
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources',
-      'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat', 'content-freshness',
-      'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
-      'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
-      'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title', 'indexing-conflicts',
-      'indexnow', 'internal-linking', 'keyword-cannibalization', 'lab-fcp', 'lab-tbt', 'lighthouse-perf',
-      'link-equity-map', 'mixed-content', 'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains',
-      'redirect-hygiene', 'rich-result-eligibility', 'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article',
-      'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-page-entity', 'sd-product',
-      'sd-special-types', 'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans',
-      'sitemap-urls-valid', 'tls-version', 'topical-focus', 'trailing-slash', 'unique-titles', 'www-consolidation',
+      'alt-descriptive', 'anchor-target-profile', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links',
+      'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
+      'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp',
+      'cwv-ttfb', 'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate',
+      'hreflang', 'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title',
+      'indexing-conflicts', 'indexnow', 'internal-equity-leaks', 'internal-link-context', 'internal-linking', 'keyword-cannibalization',
+      'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content', 'nap-consistency',
+      'outbound-citations', 'outbound-link-health', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene', 'rich-result-eligibility',
+      'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article', 'sd-breadcrumb', 'sd-faq',
+      'sd-graph-integrity', 'sd-localbusiness', 'sd-page-entity', 'sd-product', 'sd-special-types', 'sd-video',
+      'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans', 'sitemap-urls-valid', 'tls-version',
+      'topical-focus', 'trailing-slash', 'unique-titles', 'www-consolidation',
     ]);
   });
   it('marks a crashing check as skip and excludes it from the score', async () => {

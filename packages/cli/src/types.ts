@@ -180,6 +180,34 @@ export interface CrawlContext {
    * Dependent checks MUST skip when it is absent, never assume it.
    */
   fetchExternal?(url: string): Promise<FetchedResource | null>;
+  /**
+   * Probe an OFF-ORIGIN `<a href>` target for liveness — the second (and last)
+   * capability that leaves the audited site, and the only one a *link* can
+   * trigger. It exists for `outbound-link-health` (#26/#51): a citation that
+   * 404s is a dead reference, and nothing on-page reveals that.
+   *
+   * Same narrowness as `fetchExternal`, with the bar raised where a link
+   * deserves less trust than a declaration:
+   *
+   * - **Opt-in.** Absent unless the caller asked for it (`--check-outbound`).
+   *   `--verify-profiles` does NOT enable it and vice-versa: each option keeps
+   *   its own promise about what leaves the origin.
+   * - **Budgeted.** At most `MAX_OUTBOUND_PROBES` distinct URLs per audit,
+   *   whatever a check asks for, with a shorter per-request timeout than the
+   *   audit's own — a third-party server is not the one being audited.
+   * - **Guarded, always.** Unlike every other fetch, the SSRF guard is forced on
+   *   here even when `blockPrivateHosts` is off: these URLs come from the
+   *   audited page's markup, not from the operator, so `http://192.168.1.1/`
+   *   in someone's footer must never become a request we make on their behalf.
+   *   It is the same guard (`src/ssrf.ts`), never a second validation path.
+   * - **HEAD first.** A ranged GET is only the fallback for servers that refuse
+   *   HEAD, so a liveness probe normally costs no body at all.
+   *
+   * `null` means "we could not find out" (DNS failure, timeout, blocked
+   * address) and must NEVER be read as a broken link; only the returned status
+   * can say that. Dependent checks MUST skip when the method is absent.
+   */
+  fetchOutbound?(url: string): Promise<FetchedResource | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
   /** JSON-LD entity graph across the sampled pages. Attached by the runner; absent in unit tests. */

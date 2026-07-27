@@ -19,7 +19,7 @@ import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--verify-profiles] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -32,10 +32,16 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
   the three highest-gain actions with their cost, and what they would be worth together. Format by extension
   (.html or anything else Markdown). No check table — that is what --report is for.
 --verify-profiles fetches the profiles your JSON-LD declares in sameAs and checks each one links back
-  to your site — the return link is what turns a claim into a verified identity. This is the ONLY option
-  that fetches anything off your own origin (at most 8 URLs, http(s) only, same SSRF guard); without it
-  the audit touches nothing but the audited site. It never hunts for a presence you did not declare, and
-  a platform that refuses robots (LinkedIn, Instagram...) is reported as unverifiable, never held against you.
+  to your site — the return link is what turns a claim into a verified identity. It never hunts for a
+  presence you did not declare, and a platform that refuses robots (LinkedIn, Instagram...) is reported
+  as unverifiable, never held against you. At most 8 URLs, http(s) only, same SSRF guard.
+--check-outbound probes the external links your pages publish and reports the dead ones (outbound-link-health),
+  because a citation that 404s is a dead reference nothing on-page reveals. HEAD first (ranged GET only for
+  servers that refuse it), at most 10 URLs, one per host, main content first, shorter timeout, SSRF guard
+  always on. A host that times out or refuses robots is reported as unverifiable — only a 404/410 counts
+  as broken, so a network hiccup never fails your audit.
+--verify-profiles and --check-outbound are the ONLY options that fetch anything off your own origin, and
+  neither implies the other; without them the audit touches nothing but the audited site.
 --submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
   Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
@@ -89,6 +95,7 @@ const parseCliArgs = () =>
       emit: { type: 'string' },
       submit: { type: 'boolean', default: false },
       'verify-profiles': { type: 'boolean', default: false },
+      'check-outbound': { type: 'boolean', default: false },
       summary: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
@@ -238,7 +245,7 @@ const htmlReportWanted = values.report === undefined
 
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 
