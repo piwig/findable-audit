@@ -88,6 +88,26 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   emit({ phase: 'connect', done: 1, total: 1 });
 
+  // Core Web Vitals: at most ONE PageSpeed Insights call per run, started HERE —
+  // as soon as the site is known reachable — and awaited further down, just
+  // before the checks that read it.
+  //
+  // It used to run after sampling, so its latency added to the crawl's. PSI is
+  // an independent call to Google about a URL we already know; overlapping it
+  // with our own crawl turns `crawl + psi` into `max(crawl, psi)`. Measured on a
+  // real production site: 57s of crawl followed by a PSI call that hit its own
+  // 45s ceiling made a 103s audit, past the web app's 90s cap — the site could
+  // never be audited from the browser. Nothing else changes: the promise is
+  // created eagerly, and a rejection is impossible because fetchPsi resolves to
+  // null on any failure.
+  const psiPromise = opts.cwv
+    ? (emit({ phase: 'cwv', done: 0, total: 1 }), fetchPsi(crawler.baseUrl.toString(), {
+      key: opts.psiKey,
+      strategy: opts.psiStrategy ?? 'mobile',
+      signal: opts.signal,
+    }))
+    : null;
+
   crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
   emit({ phase: 'sample', done: crawler.sample.pages.length, total: opts.maxPages ?? 10 });
 
@@ -99,15 +119,11 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     return { path, html: p.body };
   }));
 
-  // Core Web Vitals: at most ONE PageSpeed Insights call for the whole run, made
-  // only on opt-in. The 8 CWV/lab checks read the cached result from ctx.psi.
-  if (opts.cwv) {
-    emit({ phase: 'cwv', done: 0, total: 1 });
-    crawler.psi = await fetchPsi(crawler.baseUrl.toString(), {
-      key: opts.psiKey,
-      strategy: opts.psiStrategy ?? 'mobile',
-      signal: opts.signal,
-    });
+  // Await the call started before sampling. The 8 CWV/lab checks read the
+  // result from ctx.psi, so it has to be settled before they run — but by now
+  // it has been in flight for the whole crawl.
+  if (psiPromise !== null) {
+    crawler.psi = await psiPromise;
     emit({ phase: 'cwv', done: 1, total: 1 });
   }
   const results: CheckResult[] = [];

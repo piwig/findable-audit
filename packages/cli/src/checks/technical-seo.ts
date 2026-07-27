@@ -1,3 +1,4 @@
+import { mapProbes } from './concurrency.js';
 import type { Check, CrawlContext, FetchedResource, FetchChainResult } from '../types.js';
 import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
@@ -38,14 +39,22 @@ export const canonicalResolves: Check = {
 
     const hard: string[] = []; // 4xx/5xx/unreachable/noindex
     const soft: string[] = []; // redirecting canonical
-    for (const c of [...declared].slice(0, MAX_CANONICALS)) {
-      let u: URL;
-      try { u = new URL(c); } catch { hard.push(`${c} (invalid)`); continue; }
-      const label = u.pathname + u.search;
-      const res = await ctx.fetch(u.toString());
-      if (res === null || res.status !== 200) { hard.push(`${label} (${res?.status ?? 'unreachable'})`); continue; }
-      if (hasNoindex(res)) { hard.push(`${label} (noindex)`); continue; }
-      if (canonicalIdentity(res.finalUrl) !== canonicalIdentity(u.toString())) soft.push(`${label} (redirects)`);
+    // Probed a few at a time; mapProbes keeps input order, so both lists read
+    // exactly as they did when this loop awaited one canonical after another.
+    const verdicts = await mapProbes([...declared].slice(0, MAX_CANONICALS),
+      async (c): Promise<{ kind: 'hard' | 'soft'; label: string } | null> => {
+        let u: URL;
+        try { u = new URL(c); } catch { return { kind: 'hard', label: `${c} (invalid)` }; }
+        const label = u.pathname + u.search;
+        const res = await ctx.fetch(u.toString());
+        if (res === null || res.status !== 200) return { kind: 'hard', label: `${label} (${res?.status ?? 'unreachable'})` };
+        if (hasNoindex(res)) return { kind: 'hard', label: `${label} (noindex)` };
+        if (canonicalIdentity(res.finalUrl) !== canonicalIdentity(u.toString())) return { kind: 'soft', label: `${label} (redirects)` };
+        return null;
+      });
+    for (const v of verdicts) {
+      if (v === null) continue;
+      (v.kind === 'hard' ? hard : soft).push(v.label);
     }
     if (hard.length === 0 && soft.length === 0) {
       return makeResult(this, 'pass', t`${Math.min(declared.size, MAX_CANONICALS)} declared canonical(s) resolve 200 and are indexable`);

@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { existsSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -24,16 +23,9 @@ function runCli(args: string[], cwd?: string): Promise<{ code: number; stdout: s
   });
 }
 
-beforeAll(async () => {
-  // Compile the package with tsc (cross-platform: run lib/tsc.js with node),
-  // same pattern as cli.test.ts, so this file always exercises the current src.
-  const require = createRequire(import.meta.url);
-  const tscJs = path.join(path.dirname(require.resolve('typescript')), 'tsc.js');
-  await new Promise<void>((resolve, reject) => {
-    execFile(process.execPath, [tscJs, '-p', path.join(pkgRoot, 'tsconfig.json')], { cwd: pkgRoot, windowsHide: true },
-      (err, stdout, stderr) => (err ? reject(new Error(`tsc failed:\n${stdout}\n${stderr}`)) : resolve()));
-  });
-}, 120_000);
+// dist/ is compiled by test/global-setup.ts, before any worker starts — see the
+// note there. This used to compile here too, which meant two suites could run
+// tsc over dist/ at the same time, on top of the suites executing it.
 
 describe('findable CLI --emit <dir>', () => {
   it('writes the generated indexing files into <dir> and prints the count + EN warning', async () => {

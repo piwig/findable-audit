@@ -1,3 +1,4 @@
+import { mapProbes } from './concurrency.js';
 import { parse } from 'node-html-parser';
 import type { Check, FetchedResource } from '../types.js';
 import { makeResult, t } from '../types.js';
@@ -33,11 +34,13 @@ export const brokenInternalLinks: Check = {
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
     const links = internalLinks(pages, ctx.baseUrl);
     if (links.length === 0) return makeResult(this, 'skip', 'no internal links on sampled pages');
-    const offenders: string[] = [];
-    for (const link of links) {
-      const res = await ctx.fetch(link);
-      if (res === null || res.status >= 400) offenders.push(new URL(link).pathname);
-    }
+    // Probed a few at a time rather than one by one: this is the check that
+    // dominated wall-clock on slow sites (up to 30 sequential requests).
+    // mapProbes keeps input order, so offenders are listed exactly as before.
+    const probed = await mapProbes(links, async (link) => ({ link, res: await ctx.fetch(link) }));
+    const offenders = probed
+      .filter(({ res }) => res === null || res.status >= 400)
+      .map(({ link }) => new URL(link).pathname);
     const agg = aggregate(links.length, offenders);
     if (agg.status === 'pass') return makeResult(this, 'pass', t`${links.length} internal link(s) resolve`);
     return makeResult(this, agg.status, t`broken internal links: ${agg.detail}`,
@@ -123,13 +126,16 @@ export const hreflang: Check = {
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
     const refs = hreflangRefs(pages, ctx.baseUrl);
     if (refs.length === 0) return makeResult(this, 'skip', 'no hreflang annotations (single-language site)');
-    const offenders: string[] = [];
-    for (const ref of refs) {
+    const checked = await mapProbes(refs, async (ref) => {
       const res = await ctx.fetch(ref.href);
       const alternateFinalUrl = res?.finalUrl || ref.href;
-      if (res?.status !== 200 || !declaresBackReference(res.body, alternateFinalUrl, ref.from)) {
-        try { offenders.push(new URL(ref.href).pathname); } catch { offenders.push(ref.href); }
-      }
+      const broken = res?.status !== 200 || !declaresBackReference(res.body, alternateFinalUrl, ref.from);
+      return { ref, broken };
+    });
+    const offenders: string[] = [];
+    for (const { ref, broken } of checked) {
+      if (!broken) continue;
+      try { offenders.push(new URL(ref.href).pathname); } catch { offenders.push(ref.href); }
     }
     if (offenders.length === 0) {
       return makeResult(this, 'pass', t`${refs.length} hreflang alternate(s) reachable and reciprocal`);

@@ -1,3 +1,4 @@
+import { mapProbes } from './concurrency.js';
 import { XMLValidator } from 'fast-xml-parser';
 import type { Check, CrawlContext, FetchedResource } from '../types.js';
 import { makeResult, isPlainText, isXml, t } from '../types.js';
@@ -146,22 +147,25 @@ export const sitemapUrlsValid: Check = {
     if (entries.length === 0) return makeResult(this, 'skip', 'sitemap has no <url> entries (index or empty)');
     const local = isLocalOrPrivateHost(ctx.baseUrl.hostname);
     const urls = entries.slice(0, MAX_SITEMAP_URLS).map((e) => e.loc);
-    const offenders: string[] = [];
-    for (const loc of urls) {
+    // One verdict per sampled URL, probed a few at a time. mapProbes preserves
+    // input order, so the offender list reads exactly as the sequential version.
+    const verdicts = await mapProbes(urls, async (loc): Promise<string | null> => {
       let u: URL;
-      try { u = new URL(loc, ctx.baseUrl); } catch { offenders.push(loc); continue; }
+      try { u = new URL(loc, ctx.baseUrl); } catch { return loc; }
       const label = u.pathname;
-      if (u.origin !== ctx.baseUrl.origin) { offenders.push(`${label} (cross-origin)`); continue; }
-      if (!local && u.protocol !== 'https:') { offenders.push(`${label} (not https)`); continue; }
+      if (u.origin !== ctx.baseUrl.origin) return `${label} (cross-origin)`;
+      if (!local && u.protocol !== 'https:') return `${label} (not https)`;
       const res = await ctx.fetch(u.toString());
-      if (res === null || res.status !== 200) { offenders.push(`${label} (${res?.status ?? 'unreachable'})`); continue; }
-      if (canonicalIdentity(res.finalUrl) !== canonicalIdentity(u.toString())) { offenders.push(`${label} (redirects)`); continue; }
-      if (hasNoindex(res)) { offenders.push(`${label} (noindex)`); continue; }
+      if (res === null || res.status !== 200) return `${label} (${res?.status ?? 'unreachable'})`;
+      if (canonicalIdentity(res.finalUrl) !== canonicalIdentity(u.toString())) return `${label} (redirects)`;
+      if (hasNoindex(res)) return `${label} (noindex)`;
       const canonicals = extractCanonicals(res);
       if (canonicals.length > 0 && !canonicals.some((c) => isSelfReferential(c, res.finalUrl))) {
-        offenders.push(`${label} (non-canonical)`);
+        return `${label} (non-canonical)`;
       }
-    }
+      return null;
+    });
+    const offenders = verdicts.filter((v): v is string => v !== null);
     if (offenders.length === 0) return makeResult(this, 'pass', t`${urls.length} sampled sitemap URL(s) are clean and indexable`);
     const conform = (urls.length - offenders.length) / urls.length;
     const detail = offenders.slice(0, 3).join(', ') + (offenders.length > 3 ? ` (+${offenders.length - 3} more)` : '');
