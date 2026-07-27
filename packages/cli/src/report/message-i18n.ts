@@ -490,10 +490,10 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'VideoObject missing recommended {0}': 'VideoObject sans le champ recommandé {0}',
   'viewport allows pinch-zoom': 'le viewport autorise le zoom par pincement',
   'weak entity grounding (sameAs)': 'ancrage d’entité faible (sameAs)',
-  'WebSite present but no SearchAction (no sitelinks searchbox)':
-    'WebSite présent mais sans SearchAction (pas de champ de recherche dans les sitelinks)',
-  'WebSite SearchAction (sitelinks searchbox) valid':
-    'SearchAction de WebSite (champ de recherche des sitelinks) valide',
+  'WebSite present but no SearchAction declaring your internal search':
+    'WebSite présent mais sans SearchAction déclarant votre recherche interne',
+  'WebSite SearchAction valid':
+    'SearchAction de WebSite valide',
   'www and apex redirect to each other (loop)': 'www et le domaine racine se redirigent mutuellement (boucle)',
   'www/apex not consolidated (no clean 200 + 301 pair)':
     'www et domaine racine non consolidés (pas de paire propre 200 + 301)',

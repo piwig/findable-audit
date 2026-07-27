@@ -513,8 +513,11 @@ export const csrContentParity: Check = {
 // about-contact (MP: reachable About + Contact + a contact method)
 // ---------------------------------------------------------------------------
 
-const ABOUT_RE = /^\/about(-us)?(\/|\.[a-z]+)?$/i;
-const CONTACT_RE = /^\/contact(-us)?(\/|\.[a-z]+)?$/i;
+// Bilingual on purpose. An English-only pattern reported every French site as having no
+// About page — and did so as `measured`, i.e. as a fact rather than a guess. That is the
+// fourth time a single-language regex silently mis-read half the web on this project.
+const ABOUT_RE = /^\/(about(-us)?|a-propos|à-propos|qui-sommes-nous|notre-histoire)(\/|\.[a-z]+)?$/i;
+const CONTACT_RE = /^\/(contact(-us)?|nous-contacter|contactez-nous)(\/|\.[a-z]+)?$/i;
 
 function linkPaths(res: FetchedResource): string[] {
   const out: string[] = [];
@@ -550,7 +553,7 @@ export const aboutContact: Check = {
     const paths = pages.flatMap((p) => [pathOf(p), ...linkPaths(p)]);
     let hasAbout = paths.some((p) => ABOUT_RE.test(p));
     let hasContactPage = paths.some((p) => CONTACT_RE.test(p));
-    if (!hasAbout) hasAbout = await anyReachable(ctx, ['/about', '/about-us', '/about.html']);
+    if (!hasAbout) hasAbout = await anyReachable(ctx, ['/about', '/about-us', '/about.html', '/a-propos', '/a-propos/']);
     if (!hasContactPage) hasContactPage = await anyReachable(ctx, ['/contact', '/contact-us', '/contact.html']);
     const contactMethod = pages.some(hasContactMethod);
 

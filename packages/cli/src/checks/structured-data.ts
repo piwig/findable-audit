@@ -299,7 +299,7 @@ export const sdWebsiteSearchAction: Check = {
     if (!website) return makeResult(this, 'skip', 'no WebSite entity on the homepage');
     const action = findSearchAction(website);
     if (!action) {
-      return makeResult(this, 'warn', 'WebSite present but no SearchAction (no sitelinks searchbox)',
+      return makeResult(this, 'warn', 'WebSite present but no SearchAction declaring your internal search',
         'Add potentialAction SearchAction with a urlTemplate and query-input.');
     }
     const target = action.target;
@@ -312,7 +312,7 @@ export const sdWebsiteSearchAction: Check = {
       return makeResult(this, 'warn', 'SearchAction present but incomplete (target/query-input)',
         'Set target urlTemplate to include {search_term_string} and query-input to "required name=search_term_string".');
     }
-    return makeResult(this, 'pass', 'WebSite SearchAction (sitelinks searchbox) valid');
+    return makeResult(this, 'pass', 'WebSite SearchAction valid');
   },
 };
 

@@ -448,4 +448,15 @@ describe('about-contact', () => {
     const body = doc('<h1>Home</h1><footer><a href="tel:+15550100">Call us</a></footer>');
     expect((await aboutContact.run(mpCtx([pageRes('/', body)]))).status).toBe('warn');
   });
+  // Found by auditing a real French site: /a-propos/ was sampled by the crawl and the
+  // check still reported "missing: About page" — as `measured`, i.e. as a fact. The
+  // English-only pattern is the fourth single-language regex to mis-read half the web here.
+  it('recognises the French About page, not only the English one', async () => {
+    const body = doc('<h1>Accueil</h1><nav><a href="/a-propos/">À propos</a> <a href="/contact/">Contact</a></nav><footer><a href="tel:+33123456789">Appelez-nous</a></footer>');
+    expect((await aboutContact.run(mpCtx([pageRes('/', body)]))).status).toBe('pass');
+  });
+  it('recognises the other common French About and Contact slugs', async () => {
+    const body = doc('<h1>Accueil</h1><nav><a href="/qui-sommes-nous">Qui sommes-nous</a> <a href="/nous-contacter">Nous contacter</a></nav><footer><a href="mailto:bonjour@example.fr">Écrivez-nous</a></footer>');
+    expect((await aboutContact.run(mpCtx([pageRes('/', body)]))).status).toBe('pass');
+  });
 });
