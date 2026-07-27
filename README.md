@@ -1,41 +1,39 @@
 # findable-audit
 
+**Your site can rank first on Google and still be invisible inside ChatGPT.** One command tells you which, and why.
+
 [![CI](https://github.com/piwig/findable-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/piwig/findable-audit/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/findable-audit)](https://www.npmjs.com/package/findable-audit)
 [![Try it live](https://img.shields.io/badge/Try%20it%20live-findable-1a7f37)](https://findable.bordebat.fr)
 [![findable score: A 99/100](docs/badge.svg)](https://findable.bordebat.fr/en/example-report/)
 
-Audit any URL right in your browser — no install: **[findable.bordebat.fr](https://findable.bordebat.fr)**.
+A robots.txt line, a page that only exists after JavaScript runs, a missing JSON-LD entity — any of these keeps you out of AI answers while your search ranking looks fine. `findable-audit` runs **137 checks** in one deterministic crawl and returns a weighted **A–F grade** across SEO, GEO, Core Web Vitals, accessibility and security, with the fixes ordered by what they are worth.
 
-**SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
+No account. No telemetry. Nothing sent to a third party.
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **137 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
-
-## Quick start
+## Run it
 
 ```bash
 npx findable-audit https://your-site.com
 ```
 
-Below is a representative run against a large production site (`stripe.com --max-pages 6`, Core Web Vitals not enabled). The footer shows the overall score, the letter grade, and a subscore per family; individual checks print `OK` / `!!` / `XX` / `--` with a one-line fix on anything that isn't passing.
+That is the whole setup — Node ≥ 20.3, no configuration, no key. Prefer a browser? **[findable.bordebat.fr](https://findable.bordebat.fr)** runs the same engine.
+
+## What you get back
 
 ```text
 findable-audit report for https://stripe.com/
 
 AI crawler access
   OK ai-crawlers-allowed     12/12  no AI or search crawlers blocked
-  OK homepage-ok              6/6   homepage responds 200
   OK robots-wellformed        4/4   robots.txt parses cleanly
 
 Answer-engine content
   OK content-without-js       6/6   static text present on all sampled pages
   !! content-lead-answer      2/5   no direct-answer lead on: /pricing (+2 more)
        fix: Open each page with a 1-2 sentence direct answer or a TL;DR block.
-  !! content-freshness        2/5   missing/stale content date on: /about (+1 more)
-       fix: Emit ISO-8601 datePublished+dateModified and a visible date.
 
 On-page & content
-  OK headings-outline         5/5   one H1 + no skipped levels
   XX meta-per-page            0/5   title/description out of range on: /pricing (+3 more)
        fix: Give every page a unique in-range title + meta description.
 
@@ -43,10 +41,6 @@ Performance & Core Web Vitals
   XX render-blocking-js       0/4   4 render-blocking head scripts on: /
        fix: Add defer/async or move scripts to the end of <body>.
   -- cwv-lcp                  0/6   run with --cwv --psi-key <key> to measure Core Web Vitals
-
-Security & trust
-  OK https                    5/5   served over HTTPS
-  OK hsts                     4/4   HSTS max-age >= 180d
 
 Score: 73/100  Grade: C
   AI crawler access               96/100  (weight 16%)
@@ -59,205 +53,147 @@ Score: 73/100  Grade: C
   Security & trust                93/100  (weight  7%)
 ```
 
-*(Illustrative excerpt — check lines are trimmed for length; a real run prints every applicable check in each family.)* The `--` rows are checks that don't apply to this run (here, Core Web Vitals were not requested) — skipped checks never count against the score.
+*Excerpt from a real run (`stripe.com --max-pages 6`); a full run prints every applicable check.* `--` rows are checks that did not apply — **skipped checks never count against the score**.
 
-A full report against a real site — this project's own, audited by its own engine — is published at [findable.bordebat.fr/en/example-report/](https://findable.bordebat.fr/en/example-report/). We do not publish audits of sites we do not own.
+Every audit also writes a self-contained **HTML report** and a Markdown one. See a real one, this project auditing itself: **[example report](https://findable.bordebat.fr/en/example-report/)**. We never publish audits of sites we do not own.
 
-## Install
+## Why this one
 
-Nothing to install for a one-off run — `npx findable-audit <url>` always fetches the latest published version. For a permanent CLI:
+**Blocking a citation fetcher is a failure. Opting out of model training is a warning.**
+28 named AI agents, tiered by *intention* — because who you block decides what you lose. A flat "N bots blocked" count treats a deliberate policy choice exactly like an outage.
 
-```bash
-npm install -g findable-audit
-findable-audit https://your-site.com
-```
+**Every verdict says what it rests on.**
+102 checks grade against an RFC, WCAG, schema.org or a threshold Google publishes. 35 are heuristics — a ratio, a lexicon, a bar we chose. The reports badge them, so you never mistake our taste for a specification.
 
-From source (Node ≥ 20):
+**Five disciplines, one crawl, one grade.**
+SEO, GEO, Core Web Vitals, accessibility and security in a single weighted A–F — not five tools and five dashboards you have to reconcile yourself.
 
-```bash
-git clone https://github.com/piwig/findable-audit && cd findable-audit
-npm ci && npm run build
-node packages/cli/dist/index.js https://your-site.com   # CLI
-node apps/web/server.mjs                                 # self-hosted web app on 127.0.0.1:3021
-```
+**It stays on your side of the wire.**
+Three small pure-JS dependencies, no headless browser, no LLM SDK, no key for the core audit. Two opt-in flags are the only things that ever fetch anything off your origin, and the CLI names them.
 
 ## What it checks
 
-**137 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**137 checks in 8 families.** Each family scores `0–100` over its own non-skipped checks; the eight are then blended with the weights below.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
 | **AI crawler access** | 0.16 | 9 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
 | **Answer-engine content** | 0.18 | 21 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json`, plus **GEO-advanced** heuristics — freshness-signal coherence, lead hedging, liftable answer units, retrieval chunk-boundary hygiene, a **RAG-twin chunk simulation** (do ~512-token retrieval windows still stand alone?) and **ingestion hygiene** (hidden model instructions, unattributed UGC links) |
-| **Structured data & metadata** | 0.15 | 23 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, `sameAs` grounding, Open Graph, Twitter Card |
-| **Technical SEO** | 0.15 | 29 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution, IndexNow |
-| **On-page & content** | 0.12 | 14 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
-| **Performance & Core Web Vitals** | 0.10 | 21 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching) + opt-in field/lab Core Web Vitals |
+| **Structured data & metadata** | 0.15 | 23 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, Google rich-result eligibility, page-level `about`/`mentions`, `sameAs` grounding, Open Graph, Twitter Card |
+| **Technical SEO** | 0.15 | 29 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution and leaks, outbound link health, IndexNow |
+| **On-page & content** | 0.12 | 14 | title & meta description quality and uniqueness, topical focus, keyword cannibalization, heading outline, anchor-to-target profile, charset, favicon, readability, figure captions |
+| **Performance & Core Web Vitals** | 0.10 | 21 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching), negotiated HTTP protocol and CDN edge-cache fingerprint, plus opt-in field/lab Core Web Vitals |
 | **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
-| **Security & trust** | 0.07 | 11 | HTTPS end-to-end, HTTP→HTTPS 301, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy, `/.well-known/security.txt` (RFC 9116) |
+| **Security & trust** | 0.07 | 11 | HTTPS end-to-end, HTTP→HTTPS 301, negotiated TLS version, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy, `/.well-known/security.txt` (RFC 9116) |
+
+Every check is documented individually — what it verifies, why it matters, how to fix it — in the **[check guide](docs/guide.md)** ([version française](docs/guide.fr.md)).
 
 ### Measured, or a bar we chose
 
-Every check declares what its verdict rests on, and the reports say which. **97 checks are
-*measured*** — they grade against an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a
-threshold Google publishes, so two people reading the same response agree. **29 are
-*heuristic*** — a word count, a lexicon, a ratio, a notion of "reads like a direct
-answer". Reasonable people can disagree with those, and the verified research says their
-effectiveness varies by site, so the HTML and Markdown reports badge them and the JSON
-carries `evidence` on every result.
+Every check declares what its verdict rests on, and the reports say which. **102 are *measured*** — they grade against something outside this project, so two people reading the same response agree. **35 are *heuristic*** — a word count, a lexicon, a ratio, a notion of "reads like a direct answer". Reasonable people can disagree with those, and the verified research says their effectiveness varies by site, so the HTML and Markdown reports badge them and the JSON carries `evidence` on every result.
 
-The two axes are independent: `security-txt` only ever warns and is measured;
-`content-lead-answer` is a judgement call whatever it reports. An auditor that blurs the
-distinction is asking you to trust its taste as if it were a specification.
-
-Every check is documented individually — what it verifies, why it matters, and how to fix a failure — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
+The two axes are independent: `security-txt` only ever warns and is measured; `content-lead-answer` is a judgement call whatever it reports. An auditor that blurs the distinction is asking you to trust its taste as if it were a specification.
 
 ### The exact bot roster
 
-The AI-access checks test robots.txt (and serving parity) against a **named roster of 28 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The roster is tiered by *intention*, and the tier drives the severity of a finding — because *who* you block decides *what* you lose:
+The AI-access checks test robots.txt (and serving parity) against a **named roster of 28 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The tier drives the severity of a finding:
 
 | Tier | Agents | Blocking one means | Severity |
 |---|---|---|---|
 | **Citation-time fetchers** (13) | OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, Claude-SearchBot, PerplexityBot, DuckAssistBot, MistralAI-User, Meta-ExternalFetcher, YouBot, iAskBot, LinerBot, Google-CloudVertexBot | the assistant cannot fetch your page while composing an answer — you disappear from live AI answers | **fail** |
 | **Training-time crawlers** (15) | GPTBot, Google-Extended, ClaudeBot, anthropic-ai, CCBot, Applebot-Extended, Amazonbot, Bytespider, PanguBot, cohere-ai, cohere-training-data-crawler, meta-externalagent, Diffbot, Timpibot, omgilibot | future models learn less about your site — a legitimate policy choice, not a findability break | **warn** |
-| **Search crawlers** (2 + wildcard) | Googlebot, Bingbot, `*` | you are removed from classic search, which most AI answers still lean on | **fail** (its own check, `search-crawlers-allowed`) |
+| **Search crawlers** (2 + wildcard) | Googlebot, Bingbot, `*` | you are removed from classic search, which most AI answers still lean on | **fail** (its own check) |
 
 One nuance worth knowing (per Perplexity's docs): PerplexityBot is the *index-time* crawler — it respects robots.txt and doesn't feed training — while Perplexity-User is the *query-time* fetcher fired by a user's question, which generally ignores robots.txt. Blocking `-User` agents in robots.txt is mostly declarative; blocking the index crawlers is what reliably changes answer-engine visibility.
 
-The roster is still deliberately curated (geo-optimizer lists 27 bots over 3 tiers), and the point is the **severity by intention**: a flat "N bots blocked" count treats opting out of model training (a policy decision) the same as hiding from live AI answers (a real findability break).
-
 ## Scoring
 
-findable-audit uses a **weighted per-family model**:
+1. **Per check** — `pass` earns full points, `warn` half, `fail` zero, `skip` is excluded entirely.
+2. **Per family** — subscore is `earned / max` over that family's **non-skipped** checks, out of 100.
+3. **Overall** — the subscores are blended with the weights above (`round(100 × Σ weightᵢ·subᵢ / Σ weightᵢ)`). A family with no applicable checks is dropped and its weight redistributed.
 
-1. **Per check** — `pass` earns full points, `warn` earns half, `fail` earns 0, `skip` is excluded entirely.
-2. **Per family** — the subscore is `earned / max` over that family's **non-skipped** checks, expressed out of 100.
-3. **Overall** — the family subscores are combined using the weights above (`round(100 × Σ weightᵢ·subᵢ / Σ weightᵢ)`). If a whole family has no applicable checks, it is dropped and its weight is redistributed proportionally over the rest.
+**Inapplicable checks are never penalized.** No Product pages? Not marked down for Product markup. Single-language site? Not marked down for hreflang. No `--cwv`? Not marked down for field vitals never measured.
 
-**Skipped / inapplicable checks are never penalized.** A site with no Product pages isn't marked down for lacking Product markup; a single-language site isn't marked down for hreflang; a run without `--cwv` isn't marked down for the field Core Web Vitals it never measured. Only checks that actually apply shape the score.
+**Grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
-**Letter grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
+## Reports
 
-## Flags
+Every successful audit writes `<host>-<date>.md` and `<host>-<date>.html` to the current directory. The HTML report is self-contained, responsive, printable (**Print to PDF**), available in **English and French**, and contains **no JavaScript at all** — every disclosure is a native `<details>`, so it stays servable under `script-src 'none'`.
 
-| Flag | Description |
-|---|---|
-| `--compare <url2,url3,...>` | Audit your URL against one or more competitors (comma-separated) and write a side-by-side scorecard — overall and per-family scores, with the families where you trail the leader. |
-| `--baseline <file.json>` | Diff this run against a prior `--report *.json`: overall/per-family score deltas, plus which checks regressed, improved, appeared or disappeared. Shown in the terminal and added as a "Change vs baseline" section to the md/html reports. |
-| `--fail-on-regression` | Exit `1` when the score drops below the baseline by more than `--regression-tolerance` points. Requires `--baseline`. The CI gate for "did this change hurt our findability?". |
-| `--regression-tolerance <n>` | Points the score may drop below the baseline before `--fail-on-regression` trips (default `0`). |
-| `--summary <file>` | Write the **one-screen summary** for whoever decides: score, verdict, the three axes, the three highest-gain actions with their cost, and what they are worth together. `.html` (printable, self-contained) or Markdown by extension. No check table. |
-| `--entity-graph <file>` | Write the JSON-LD entity graph across the sampled pages. Format by extension: `.json`, `.dot` (Graphviz), or `.mmd` (Mermaid). The HTML report already **draws** it (grouped by entity type); this exports it entity by entity, uncapped. |
-| `--answers <file>` | Write the **answer matrix**: the questions this site's own declarations imply — its services, its areas, its markup — and whether the crawled pages hold a passage that answers each one **and stands on its own** when a retriever hands it to a model in isolation. Three states: covered, weak (the answer is there but cannot be quoted alone), missing. `.json` or Markdown by extension. The file states its own provenance: these questions come from what the site *declares*, never from measured search demand. |
-| `--verify-profiles` | Fetch the profiles your JSON-LD declares in `sameAs` and check each links back to your site — the return link is what turns a claim into a verified identity. At most 8 URLs, http(s) only, under the same SSRF guard. Never hunts for a presence you did not declare; a platform that refuses robots is reported as *unverifiable*, never held against you. |
-| `--check-outbound` | Probe the outbound links in your main content. Bounded to 10 URLs, one per host, HEAD with a ranged-GET fallback, under the same SSRF guard. Only `404` and `410` count as broken — `401`, `403`, `429`, `5xx`, timeouts and DNS failures are reported as *unverifiable*, never as dead. |
-| `--submit` | Notify IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs. Opt-in, and requires `--indexnow-key`: nothing is sent unless `/<key>.txt` is verified on the audited site, which is what proves you own it. A refused submission never changes the exit code. |
-| `--lang <en\|fr>` | Report language (default `en`): chrome, check titles, the "why", the fixes and the checks' own dynamic messages. Terminal, JSON, SARIF, JUnit and the SVG badge stay English. |
-| `--emit <dir>` | Write ready-to-deploy indexing files (`robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, `jsonld-stubs.json`, `GENERATED-README.md`) into `<dir>`. Content is generic — review before deploying, especially `robots.txt`. Works alongside `--report`/`--no-report` (independent flags); bilingual via `--lang`. |
-| `--json` | Output the full report as JSON (for scripts and CI). |
-| `--report <file>`, `-r` | Write the report to the given file instead of the default files. Repeatable. Format is picked by extension: `.html`/`.htm` produces a self-contained, printable HTML report (open it and **Print to PDF**); any other extension produces Markdown. |
-| `--no-report` | Write no report files at all — only print to stdout. Useful with `--json` or in CI when you just want the exit code / stdout output. |
-| `--min-score <n>` | Score threshold for exit code 0 (default: `60`). Below it, exit code is 1. |
-| `--timeout <ms>` | Per-request timeout in milliseconds (default: `10000`). |
-| `--max-pages <n>` | Pages to sample: the homepage plus up to `n-1` same-origin pages discovered from the sitemap (falling back to homepage links). Default: `10`; `1` audits the homepage only. |
-| `--user-agent <ua>` | Override the crawler User-Agent, e.g. `--user-agent "GPTBot/1.0"`, to see what an AI crawler that a site filters by UA would get. |
-| `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
-| `--cwv` | Opt into Core Web Vitals via one (slow, ~15–30s) PageSpeed Insights call. Without it, the field/lab CWV checks skip; static performance heuristics still run. |
-| `--psi-key <key>` | Google PageSpeed Insights / CrUX API key (a [free Google API key](https://developers.google.com/speed/docs/insights/v5/get-started)). Recommended: the keyless endpoint is rate-limited and often returns HTTP 429. |
-| `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default: `mobile`). |
+It is built in **three layers, one screen each**, on the principle that a report is an argument and not a database dump:
 
-### Report files
-
-By default, every successful audit writes two files to the current directory: `<host>-<date>.md` and `<host>-<date>.html`. For example:
-
-```bash
-npx findable-audit https://your-site.com
-# writes ./your-site.com-2026-07-20.md
-# and    ./your-site.com-2026-07-20.html
-```
-
-`<host>` is the host actually audited, so if the URL redirects (e.g. `www.example.com` → `example.com`), the filenames use the final host. The HTML report is self-contained (no external assets — the findable-audit logomark is an inline SVG), **responsive** (mobile-first, adapts to any screen), and printable — open it in a browser and use **Print to PDF** to get a PDF.
-
-The HTML report is built in **three layers, one screen each**, on the principle that a report is an argument and not a database dump:
-
-1. **The verdict** — one score visual, the letter grade, and a plain-language sentence saying what an assistant can and cannot do with the site (rule-based, deterministic, never generated prose). The eight scoring families are regrouped into three axes a reader understands without a glossary: **Reachable** (can crawlers get there), **Understood** (do they understand what they read), **Usable** (does the page hold up, for a human and for an agent).
-2. **The plan** — the recommended fixes, grouped into **effort lanes** (quick wins / moderate / bigger projects), because a reader arbitrates on effort rather than on family. Each lane carries a **real score projection** ("the 6 quick wins: 76 → 88 (B)"), recomputed with the same weighted formula as the score itself. Each item names the **pages concerned**, and opens a "how to do it" disclosure with the reason and, where the fix is literally a piece of configuration or markup, a **ready-to-paste snippet**. Nothing is capped away: the tail of a long lane folds, and says how many are in it.
-3. **The detail** — every check, family by family. The human title leads and the technical id is a small tag beside it; passing checks fold behind a "show the N passing checks" disclosure, and the eight-family breakdown (subscore table + "where to regain points" bars) sits one disclosure down.
-
-A sticky bar links the four sections, a dark theme follows the OS preference, and printing puts layers 1 and 2 on their own sheet as a standalone synthesis. There is **no JavaScript anywhere** in the report — every disclosure is a native `<details>` — so it stays servable under a `script-src 'none'` policy.
-
-Run with `--cwv --psi-key <key>` to add a **Core Web Vitals dashboard** in its own card: radial gauges (HTML) or a table (Markdown) for LCP/INP/CLS/TTFB, colored by threshold and split between field (CrUX) and lab (Lighthouse) data, plus a **plain-language explainer** of what each metric means and **targeted advice** for the ones outside the "good" range (a discreet "not measured" note otherwise). The Markdown report carries the same verdict, the same action plan and the same per-check titles. Reports are available in **English and French**.
-
-Pass `--report <file>` to override the default and write exactly the file(s) named instead (repeatable, format by extension), or `--no-report` to write nothing.
-
-Exit codes: `0` = score >= min-score, `1` = below, `2` = site unreachable / error (including a report file that cannot be written). This makes `findable-audit` usable as a CI gate:
-
-```bash
-npx findable-audit https://your-site.com --min-score 80 --no-report
-```
-
-Write both a Markdown and an HTML report to specific paths in one run:
+1. **The verdict** — one score visual, the grade, and a plain-language sentence on what an assistant can and cannot do with the site (rule-based and deterministic, never generated prose). The eight families regroup into three axes a reader understands without a glossary: **Reachable**, **Understood**, **Usable**.
+2. **The plan** — fixes grouped into **effort lanes** (quick wins / moderate / bigger projects), because a reader arbitrates on effort, not on family. Each lane carries a **real score projection** ("the 6 quick wins: 76 → 88 (B)"), recomputed with the same weighted formula as the score itself, names the **pages concerned**, and opens a "how to do it" disclosure with a ready-to-paste snippet where the fix is literally configuration or markup.
+3. **The detail** — every check, family by family. The human title leads, the technical id is a small tag beside it, and passing checks fold away.
 
 ```bash
 npx findable-audit https://your-site.com --report audit.md --report audit.html
 ```
 
-The `broken-internal-links` check ignores Cloudflare `/cdn-cgi/` endpoints (e.g. email protection) — they are infrastructure, not content pages.
+Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit), `.svg` (score badge), anything else Markdown. `--no-report` writes nothing.
 
-### Generated indexing files (`--emit`)
+**Exit codes:** `0` = score ≥ `--min-score`, `1` = below, `2` = unreachable or error.
 
-Beyond the audit report, `findable-audit` can turn the same audit into a starter set of files you can drop straight onto your site:
+## Flags
 
-```bash
-npx findable-audit https://your-site.com --emit ./out
-# writes ./out/robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
-# sitemap.xml, jsonld-stubs.json, and GENERATED-README.md
-```
+| Flag | What it does |
+|---|---|
+| `--max-pages <n>` | Pages to sample (default `10`, `1` = homepage only). Depth is an intention: 1 fast check · 5–10 template audit · 25–50 site audit. |
+| `--min-score <n>` | Exit `1` below this score (default `60`) — the CI floor. |
+| `--baseline <f.json>` + `--fail-on-regression` | Fail when the score drops versus a committed baseline, even while above the floor. |
+| `--compare <url2,url3>` | Side-by-side scorecard against competitors, overall and per family. |
+| `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page answers each one *and stands on its own* when a model is handed it in isolation. |
+| `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth together. |
+| `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs. |
+| `--cwv` `--psi-key <key>` | Opt into Core Web Vitals via one PageSpeed Insights call. |
+| `--lang <en\|fr>` | Report language. Terminal, JSON, SARIF, JUnit and the badge stay English. |
 
-`--emit` works independently of `--report`/`--no-report` — combine it with either (or neither). Use `--lang fr` to get the French wording (bot names and URLs are unaffected).
+<details>
+<summary><strong>All the other flags</strong></summary>
 
-⚠️ **These files are generic starting points, not a finished product — review every one before deploying, especially `robots.txt`.** The generated `robots.txt` allows every AI crawler by default with a commented-out `Disallow: /` under each one, so opting a bot out of training or citation is a deliberate, visible edit rather than an accident; `jsonld-stubs.json` only stubs the schema.org types (`Organization` / `WebSite` / `BreadcrumbList` / `FAQPage`) missing from the site's existing entity graph, and is meant to be merged into your real JSON-LD, not deployed as-is. `GENERATED-README.md` in the output directory explains where each file belongs.
+| Flag | What it does |
+|---|---|
+| `--regression-tolerance <n>` | Points the score may drop before `--fail-on-regression` trips (default `0`). |
+| `--entity-graph <file>` | Export the JSON-LD entity graph: `.json`, `.dot` (Graphviz) or `.mmd` (Mermaid). The HTML report already draws it grouped by type; this exports it entity by entity, uncapped. |
+| `--verify-profiles` | Fetch the profiles your JSON-LD declares in `sameAs` and check each links back — the return link is what turns a claim into a verified identity. At most 8 URLs, same SSRF guard. Never hunts for a presence you did not declare; a platform that refuses robots is *unverifiable*, never held against you. |
+| `--check-outbound` | Probe the outbound links in your main content. 10 URLs max, one per host, same SSRF guard. Only `404`/`410` count as broken — `401`, `403`, `429`, `5xx`, timeouts and DNS failures are *unverifiable*, never dead. |
+| `--submit` | Notify IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate). Requires `--indexnow-key`, and sends nothing until `/<key>.txt` on your site proves you own it. |
+| `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
+| `--json` | Full report as JSON, for scripts and CI. |
+| `--report <file>`, `-r` | Write exactly the named file(s). Repeatable, format by extension. |
+| `--no-report` | Write no report files — stdout only. |
+| `--timeout <ms>` | Per-request timeout (default `10000`). |
+| `--user-agent <ua>` | Override the crawler UA, e.g. `"GPTBot/1.0"`, to see what a UA-filtered crawler gets. |
+| `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default `mobile`). |
 
-The same six files are also available as one-off downloads from the web app's result page (see [Web app](#web-app) below) — regenerated on demand from the in-memory report, nothing is written to disk server-side.
+</details>
 
-## Core Web Vitals
+### Core Web Vitals
 
-The `performance` family always runs its static heuristics (HTML weight, render-blocking JS/CSS, image dimensions, text compression, caching headers, DOM size…) with no key and no network cost beyond the pages already fetched.
-
-The field and lab Core Web Vitals — `cwv-lcp`, `cwv-cls`, `cwv-inp`, `cwv-ttfb`, `cwv-assessment`, `lighthouse-perf`, `lab-tbt`, `lab-fcp` — are **opt-in**:
+The `performance` family always runs its static heuristics with no key and no extra network cost. The field and lab vitals are **opt-in**:
 
 ```bash
 npx findable-audit https://your-site.com --cwv --psi-key <your-google-api-key>
 ```
 
-This makes a single PageSpeed Insights call (shared across all CWV checks) that returns **field data** (real-user p75 LCP / CLS / INP / TTFB from the Chrome UX Report) and **lab data** (a Lighthouse run). Without `--cwv`, or when no field data exists for a low-traffic URL, those checks `skip` rather than fail. A free Google API key is strongly recommended — the keyless endpoint is aggressively rate-limited.
+One PageSpeed Insights call, shared by all CWV checks, returning **field data** (real-user p75 from the Chrome UX Report) and **lab data** (Lighthouse). Without `--cwv`, or when a low-traffic URL has no field data, those checks `skip` rather than fail. A [free Google API key](https://developers.google.com/speed/docs/insights/v5/get-started) is strongly recommended — the keyless endpoint is aggressively rate-limited. The report renders a dedicated dashboard: gauges for LCP/INP/CLS/TTFB, colored by threshold, split field vs lab, with a plain-language explainer and targeted advice for anything outside "good".
 
-## Web app
+### Generated indexing files (`--emit`)
 
-`apps/web` is a self-hostable, **SSRF-hardened** web UI: a tiny dependency-free Node HTTP server where a visitor enters a URL and gets the same audit back. A live "test in progress" screen streams progress, then the report loads with a **download bar at the top** (Markdown / HTML / JSON export + "audit another site"), a **"generate indexing files" section** (the same `robots.txt` / `llms.txt` / `llms-full.txt` / `.well-known/ai.json` / `sitemap.xml` / `jsonld-stubs.json` that `--emit` writes, regenerated on demand and streamed as a download — nothing is written to disk server-side), and a responsive, **bilingual (EN/FR)** layout with language-prefixed URLs (`/en`, `/fr`) and `hreflang`. The site dogfoods its own audit: About + Contact pages with connected JSON-LD (Organization / WebSite / WebPage / BreadcrumbList), a sitemap with real `lastmod` dates, `llms.txt` plus a ≥2000-word `llms-full.txt` built from the live check catalogue, an Open Graph card image (`/og.png`, generated dependency-free — no image library), an apple-touch icon, and single-hop 301s for `www` → apex, trailing slashes and the language root (with `Vary: Accept-Language`). It imports the CLI's built modules directly (no separate build, zero runtime npm dependencies), rejects oversized request URLs (>2048 chars) before any routing as a cheap defense-in-depth measure, and is designed to sit on `127.0.0.1` behind nginx on a shared VPS. Try it live at **[findable.bordebat.fr](https://findable.bordebat.fr)**. See [`apps/web/README.md`](apps/web/README.md) for setup and the SSRF/abuse protections.
-
-### Cloudflare Turnstile (optional CAPTCHA)
-
-The web app can put its audit and comparison forms behind [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) to slow down automated abuse. It is **off by default** and fully **env-gated**: set both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (e.g. in the systemd service's `EnvironmentFile`) to turn it on — leave either unset and the form, CSP, and audit flow stay byte-identical to today (no captcha; local/dev/tests unaffected).
-
-```
-# systemd EnvironmentFile (or a drop-in) for findable-web.service
-Environment=TURNSTILE_SITE_KEY=<public site key>
-Environment=TURNSTILE_SECRET_KEY=<secret key>
+```bash
+npx findable-audit https://your-site.com --emit ./out
 ```
 
-When enabled, a widget renders on **both** the audit form and the comparison form (Turnstile injects its token only into the form containing the widget, and both endpoints verify it) (the CSP is relaxed to allow-list `challenges.cloudflare.com` for script/frame/connect on that page only — the widget script is loaded by `src`, so no inline script and no nonce are needed) and the server verifies the token against Cloudflare's `siteverify` endpoint **before creating an audit job**, for both the single-URL and comparison forms. A missing or failed verification is rejected with a generic error; the secret key is only ever sent to Cloudflare, never logged or echoed back to the client.
+⚠️ **These are generic starting points, not a finished product — review every one before deploying, especially `robots.txt`.** The generated `robots.txt` allows every AI crawler by default with a commented-out `Disallow: /` under each, so opting a bot out is a deliberate, visible edit rather than an accident. `jsonld-stubs.json` only stubs the schema.org types missing from your existing entity graph, and is meant to be merged into your real JSON-LD. `GENERATED-README.md` explains where each file belongs. The same six files are downloadable from the web app's result page, regenerated on demand — nothing is written to disk server-side.
 
-## GitHub Action & CI
+## CI
 
-Run findable-audit in CI, upload the findings to GitHub code-scanning as **SARIF**, and gate merges on a minimum score.
+Gate merges on a score, upload findings to GitHub code-scanning as SARIF:
 
 ```yaml
 # .github/workflows/findable-audit.yml
-name: findable-audit
-on: [workflow_dispatch]
 permissions:
-  security-events: write   # required to upload SARIF
+  security-events: write
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -266,96 +202,67 @@ jobs:
         uses: piwig/findable-audit@main
         with:
           url: https://your-site.com
-          min-score: '80'        # fail the job below 80
+          min-score: '80'
           max-pages: '5'
       - if: always()
         uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: findable-audit.sarif
+        with: { sarif_file: findable-audit.sarif }
       - run: echo "Score ${{ steps.findable.outputs.score }} — grade ${{ steps.findable.outputs.grade }}"
 ```
 
-The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`,
-`regression-tolerance`, extra `report` files (extension picks the format —
-`.md` / `.html` / `.json` / `.sarif` / `.xml` JUnit / `.svg` badge) and `lang`. By default
-(`version: 'local'`) it builds the CLI from the action's own checkout — once
-the package is published on npm, pin `version: '0.2.0'` to run
-`npx findable-audit@0.2.0` instead. A complete gate example (baseline
-regression gate + SARIF upload + JUnit artifact) lives in
-[`.github/workflows/findable-gate.yml`](.github/workflows/findable-gate.yml).
+The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`, `regression-tolerance`, extra `report` files (extension picks the format) and `lang`. It exposes `score` and `grade` as step outputs. By default (`version: 'local'`) it builds from its own checkout; pin a published version instead with `version: '0.9.0'`. A complete example lives in [`.github/workflows/findable-gate.yml`](.github/workflows/findable-gate.yml).
 
-### Regression gate (`--baseline`)
+### Regression gate
 
-Beyond a fixed `--min-score` floor, you can fail CI when a change **lowers** your
-score versus a committed baseline — catching a regression even while you are
-still well above the floor:
+Fail CI when a change **lowers** your score, even while you are still above the floor:
 
 ```bash
-# One-time: capture the baseline and commit it.
+# Once: capture the baseline and commit it.
 npx findable-audit https://your-site.com --report baseline.json --no-report
 
-# In CI: re-audit and fail if the score drops by more than 2 points.
+# In CI: fail if the score drops by more than 2 points.
 npx findable-audit https://your-site.com \
   --baseline baseline.json --fail-on-regression --regression-tolerance 2 --no-report
-# exit 1 on regression; the terminal + md/html reports show the per-check diff.
-```
-
-In the action, the same gate is three inputs: `baseline: baseline.json`,
-`fail-on-regression: 'true'`, `regression-tolerance: '2'`.
-
-Every HTML report now draws that graph inline — one box per entity **type** with a ×N count, one arrow per reference, zero client JS. Export it when you want it entity by entity, or in a diagramming tool:
-
-```bash
-npx findable-audit https://your-site.com --entity-graph graph.mmd  # or .dot / .json
 ```
 
 ### Score badge
 
-`--report <file>.svg` writes a **status badge** — the same two-segment pill you see at
-the top of this README, which is itself the output of a real audit of
-findable.bordebat.fr:
+`--report <file>.svg` writes the same two-segment pill you see at the top of this README — itself the output of a real audit of findable.bordebat.fr.
 
 ```bash
 npx findable-audit https://your-site.com --report docs/badge.svg --no-report
 ```
 
-The SVG is self-contained (no script, no external reference, no third-party badge
-service), so it works in a private repo and behind a firewall, and it cannot silently
-change under you. Its `<title>` carries the audited host and the audit date, so a badge
-committed months ago says how old it is instead of implying freshness. Commit it, point
-your README at it, and regenerate it in the same CI job that runs the gate — the action's
-`report` input takes the same extension:
+Self-contained: no script, no external reference, no third-party badge service, so it works in a private repo and behind a firewall and cannot silently change under you. Its `<title>` carries the audited host and date, so a badge committed months ago says how old it is instead of implying freshness.
 
-```yaml
-      - uses: piwig/findable-audit@main
-        with:
-          url: https://your-site.com
-          report: 'docs/badge.svg'
-```
+## Self-hosted web app
 
-The action also exposes `score` and `grade` as step outputs if you would rather drive a
-shields.io endpoint from them.
+`apps/web` is the same engine behind a **dependency-free**, SSRF-hardened Node HTTP server — a visitor enters a URL and gets the audit back. Live at **[findable.bordebat.fr](https://findable.bordebat.fr)**.
 
-You can also emit SARIF straight from the CLI: `findable-audit https://your-site.com --report audit.sarif`.
+- **Streams progress** on a live "test in progress" screen, then loads the report with a download bar (Markdown / HTML / JSON) at the top.
+- **Generates the indexing files** on demand from the in-memory report — nothing written to disk server-side.
+- **Bilingual** (EN/FR) with language-prefixed URLs and `hreflang`, responsive, dark-theme aware.
+- **Dogfoods its own audit**: connected JSON-LD graph, sitemap with real `lastmod`, `llms.txt` plus a ≥2000-word `llms-full.txt` built from the live check catalogue, OG image generated without an image library, single-hop 301s.
+- **Optional Cloudflare Turnstile**, off by default and fully env-gated: set `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to turn it on; leave either unset and the form, CSP and audit flow stay byte-identical. Verified server-side before an audit job is created; the secret only ever goes to Cloudflare.
+
+Setup and the full SSRF/abuse protections: [`apps/web/README.md`](apps/web/README.md).
 
 ## Claude Code plugin
 
-findable-audit ships as a Claude Code plugin with three skills. This repository is
-its own plugin marketplace, so installing it takes two commands:
+This repository is its own plugin marketplace, so installing takes two commands:
 
 ```bash
-# in Claude Code
 /plugin marketplace add piwig/findable-audit
 /plugin install findable-audit@findable-audit
 ```
 
-- **`geo-audit`** — runs `findable-audit` on a URL, interprets the JSON report and turns it into a prioritized fix plan, ordered by the points you are losing.
-- **`geo-implement`** — implements the GEO / AI-visibility artifacts on a static site (Astro, Next, Hugo): generates `robots.txt`, `llms.txt`, `llms-full.txt`, JSON-LD, sitemap wiring and IndexNow, then verifies the result with `findable-audit`.
-- **`fix-technical-seo`** — fixes the technical-SEO and on-page findings: canonical, meta robots (`noindex`), redirect hygiene, broken internal links, duplicate titles, heading outline, Open Graph, viewport and hreflang.
+- **`geo-audit`** — runs the audit and turns the JSON into a prioritized fix plan, ordered by the points you are losing.
+- **`geo-implement`** — implements the GEO artifacts on a static site (Astro, Next, Hugo), then verifies the result.
+- **`fix-technical-seo`** — fixes the technical-SEO and on-page findings: canonical, `noindex`, redirect hygiene, broken links, duplicate titles, heading outline, Open Graph, viewport, hreflang.
 
 ## How it compares (honestly)
 
-Almost every individual check here exists somewhere else. What no free/OSS/self-hostable tool offered as of mid-2026 is the *combination*: one deterministic crawl producing one weighted A–F grade across SEO + GEO + Core Web Vitals + accessibility + security — no account, no data sent to a third party (the optional PageSpeed Insights call is the only external API), and light by design. The CLI has **3 small pure-JS runtime dependencies** (`fast-xml-parser`, `node-html-parser`, `picocolors`): no headless browser, no LLM SDK, no API key required for the core audit. The web app (`apps/web`) itself is literally dependency-free.
+Almost every individual check here exists somewhere else. What no free, OSS, self-hostable tool offered as of mid-2026 is the *combination*: one deterministic crawl producing one weighted A–F across SEO + GEO + Core Web Vitals + accessibility + security, with no account and no data sent to a third party.
 
 | Tool | AI/GEO layer | CWV | a11y | Security | Unified grade | Keyless |
 |---|---|---|---|---|---|---|
@@ -367,33 +274,36 @@ Almost every individual check here exists somewhere else. What no free/OSS/self-
 | axe-core / pa11y | ❌ | ❌ | ✅ | ❌ | — | ✅ |
 | Monitoring SaaS (Profound, Peec, Otterly, Semrush AI Visibility…) | tracks how AI answers cite you — the *opposite*, output-side job | — | — | — | — | ❌ paid |
 
-**Where alternatives beat us today** — honestly:
+**Where alternatives beat us today:**
 
-- **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope; pair findable-audit (input side) with a monitor (output side) if you need it.
-- **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we don't confirm a visit happened.
-- **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API; the keyless endpoint is aggressively rate-limited.
+- **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope. Pair findable-audit (input side) with a monitor (output side) if you need it.
+- **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we do not confirm a visit happened.
+- **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API, whose keyless endpoint is aggressively rate-limited.
 - **Raw rule count** — SEOmator advertises 251 rules to our 137 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 
 ## Why GEO
 
-A growing share of product and local-business discovery now happens inside AI assistants instead of a search results page. Those assistants rely on their own crawlers (GPTBot, ClaudeBot, PerplexityBot), on machine-readable content (server-rendered text and, for the engines that read it, `llms.txt`) and on structured data (JSON-LD) to decide what to cite. A site can rank fine on Google and still be invisible to AI answers — because a robots.txt rule blocks AI crawlers, or the content only exists after JavaScript runs. GEO is the practice of making a site legible and citable for answer engines; `findable-audit` measures it the way Lighthouse measures performance.
+A growing share of product and local-business discovery now happens inside AI assistants instead of on a results page. Those assistants rely on their own crawlers (GPTBot, ClaudeBot, PerplexityBot), on machine-readable content (server-rendered text and, for the engines that read it, `llms.txt`) and on structured data to decide what to cite. A site can rank fine on Google and still be invisible to AI answers — because a robots.txt rule blocks AI crawlers, or the content only exists after JavaScript runs. GEO is the practice of making a site legible and citable for answer engines; `findable-audit` measures it the way Lighthouse measures performance.
 
-## Changelog
+## Install from source
 
-Notable changes are in [CHANGELOG.md](CHANGELOG.md). Released versions are published to
-npm from CI over OIDC trusted publishing, with provenance attached.
+```bash
+git clone https://github.com/piwig/findable-audit && cd findable-audit
+npm ci && npm run build
+node packages/cli/dist/index.js https://your-site.com   # CLI
+node apps/web/server.mjs                                 # web app on 127.0.0.1:3021
+```
 
-## Contributing
+For a permanent CLI without cloning: `npm install -g findable-audit`.
 
-Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to
-run the suites, the non-negotiables (no new runtime dependency, cross-platform, never
-`process.exit`), and the procedure for proposing a new check, including which verdicts a
-check is allowed to hand out. Security reports: [SECURITY.md](SECURITY.md).
+## Project
+
+Changes are in [CHANGELOG.md](CHANGELOG.md); releases are published to npm from CI over OIDC trusted publishing, with provenance attached.
+
+Issues and pull requests are welcome — [CONTRIBUTING.md](CONTRIBUTING.md) covers how to run the suites, the non-negotiables (no new runtime dependency, cross-platform, never `process.exit`) and the procedure for proposing a check, including which verdicts a check is allowed to hand out. Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-[MIT](LICENSE)
-</content>
-</invoke>
+MIT.
