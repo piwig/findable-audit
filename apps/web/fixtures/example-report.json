@@ -56,8 +56,8 @@
       "family": "security",
       "score": 100,
       "weight": 0.07,
-      "earned": 30,
-      "max": 30
+      "earned": 32,
+      "max": 32
     }
   ],
   "sampledPages": [
@@ -72,6 +72,7 @@
     {
       "id": "robots-exists",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -83,6 +84,7 @@
     {
       "id": "robots-wellformed",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -94,6 +96,7 @@
     {
       "id": "search-crawlers-allowed",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -105,6 +108,7 @@
     {
       "id": "ai-crawlers-allowed",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 12,
       "maxPoints": 12,
@@ -116,6 +120,7 @@
     {
       "id": "homepage-ok",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -127,6 +132,7 @@
     {
       "id": "robots-directives",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -138,6 +144,7 @@
     {
       "id": "ai-serving-parity",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 8,
       "maxPoints": 8,
@@ -151,6 +158,7 @@
     {
       "id": "snippet-preview-directives",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -164,6 +172,7 @@
     {
       "id": "llms-txt",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 10,
       "maxPoints": 10,
@@ -177,20 +186,22 @@
     {
       "id": "llms-full-txt",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "llms-full.txt has 2243 words under 30 headings",
+      "message": "llms-full.txt has 2250 words under 30 headings",
       "docUrl": "https://llmstxt.org/",
       "messageTemplate": "llms-full.txt has {0} words under {1} headings",
       "messageParams": [
-        2243,
+        2250,
         30
       ]
     },
     {
       "id": "content-without-js",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -204,6 +215,7 @@
     {
       "id": "csr-content-parity",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -217,6 +229,7 @@
     {
       "id": "content-depth",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -230,6 +243,7 @@
     {
       "id": "content-lead-answer",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -243,6 +257,7 @@
     {
       "id": "answer-headings",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -256,6 +271,7 @@
     {
       "id": "extractable-structure",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -269,6 +285,7 @@
     {
       "id": "content-freshness",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 5,
@@ -280,6 +297,7 @@
     {
       "id": "content-author-eeat",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 5,
@@ -291,6 +309,7 @@
     {
       "id": "outbound-citations",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -304,6 +323,7 @@
     {
       "id": "content-uniqueness",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -317,6 +337,7 @@
     {
       "id": "about-contact",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -328,6 +349,7 @@
     {
       "id": "well-known-ai-json",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 1,
       "maxPoints": 1,
@@ -339,6 +361,7 @@
     {
       "id": "images-alt",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -350,6 +373,7 @@
     {
       "id": "freshness-coherence",
       "family": "llm-content",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -363,6 +387,7 @@
     {
       "id": "hedging-rate",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -376,20 +401,22 @@
     {
       "id": "answer-units",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "41 liftable answer unit(s) across 4 pillar page(s)",
+      "message": "47 liftable answer unit(s) across 4 pillar page(s)",
       "docUrl": "https://llmstxt.org/",
       "messageTemplate": "{0} liftable answer unit(s) across {1} pillar page(s)",
       "messageParams": [
-        41,
+        47,
         4
       ]
     },
     {
       "id": "chunk-boundary",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -403,6 +430,7 @@
     {
       "id": "chunk-retrieval-sim",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -419,6 +447,7 @@
     {
       "id": "injection-hygiene",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -432,6 +461,7 @@
     {
       "id": "agent-usability",
       "family": "llm-content",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -447,6 +477,7 @@
     {
       "id": "json-ld",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 10,
       "maxPoints": 10,
@@ -460,6 +491,7 @@
     {
       "id": "json-ld-entity",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -473,6 +505,7 @@
     {
       "id": "schema-coverage",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -484,6 +517,7 @@
     {
       "id": "sitemap",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 10,
       "maxPoints": 10,
@@ -495,6 +529,7 @@
     {
       "id": "indexnow",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -506,6 +541,7 @@
     {
       "id": "title-description",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 8,
       "maxPoints": 8,
@@ -517,6 +553,7 @@
     {
       "id": "canonical",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -530,6 +567,7 @@
     {
       "id": "open-graph",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -541,6 +579,7 @@
     {
       "id": "twitter-card",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -554,6 +593,7 @@
     {
       "id": "https",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -565,6 +605,7 @@
     {
       "id": "viewport",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -576,6 +617,7 @@
     {
       "id": "meta-robots-noindex",
       "family": "ai-access",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -589,6 +631,7 @@
     {
       "id": "unique-titles",
       "family": "on-page",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -602,6 +645,7 @@
     {
       "id": "broken-internal-links",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 8,
       "maxPoints": 8,
@@ -615,6 +659,7 @@
     {
       "id": "redirect-hygiene",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -626,6 +671,7 @@
     {
       "id": "hreflang",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -639,6 +685,7 @@
     {
       "id": "meta-per-page",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -652,6 +699,7 @@
     {
       "id": "title-pattern",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -663,6 +711,7 @@
     {
       "id": "title-h1-alignment",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -676,6 +725,7 @@
     {
       "id": "headings-outline",
       "family": "on-page",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -689,6 +739,7 @@
     {
       "id": "anchor-text",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -704,6 +755,7 @@
     {
       "id": "charset",
       "family": "on-page",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -715,6 +767,7 @@
     {
       "id": "favicon",
       "family": "on-page",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -726,19 +779,21 @@
     {
       "id": "content-readability",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "main content reads at approximately grade 11.0",
+      "message": "main content reads at approximately grade 10.1",
       "docUrl": "https://developers.google.com/search/docs/appearance",
       "messageTemplate": "main content reads at approximately grade {0}",
       "messageParams": [
-        "11.0"
+        "10.1"
       ]
     },
     {
       "id": "figure-caption",
       "family": "on-page",
+      "evidence": "heuristic",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -750,6 +805,7 @@
     {
       "id": "json-ld-valid",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -763,6 +819,7 @@
     {
       "id": "sd-organization",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -776,6 +833,7 @@
     {
       "id": "sd-entity-grounding",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "warn",
       "points": 2,
       "maxPoints": 4,
@@ -788,6 +846,7 @@
     {
       "id": "sd-localbusiness",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 3,
@@ -799,6 +858,7 @@
     {
       "id": "sd-article",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -810,6 +870,7 @@
     {
       "id": "sd-product",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -821,6 +882,7 @@
     {
       "id": "sd-faq",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -832,6 +894,7 @@
     {
       "id": "sd-breadcrumb",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -843,6 +906,7 @@
     {
       "id": "sd-website-searchaction",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "warn",
       "points": 1,
       "maxPoints": 2,
@@ -855,6 +919,7 @@
     {
       "id": "sd-video",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -866,6 +931,7 @@
     {
       "id": "sd-special-types",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 3,
@@ -877,6 +943,7 @@
     {
       "id": "sd-graph-integrity",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -890,6 +957,7 @@
     {
       "id": "sd-consistency",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -903,6 +971,7 @@
     {
       "id": "nap-consistency",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 3,
@@ -914,6 +983,7 @@
     {
       "id": "entity-graph-connectivity",
       "family": "structured-data",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -929,6 +999,7 @@
     {
       "id": "canonical-resolves",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -942,6 +1013,7 @@
     {
       "id": "www-consolidation",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -956,6 +1028,7 @@
     {
       "id": "trailing-slash",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -969,6 +1042,7 @@
     {
       "id": "redirect-chains",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -982,6 +1056,7 @@
     {
       "id": "soft-404",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
@@ -995,6 +1070,7 @@
     {
       "id": "custom-404",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1006,6 +1082,7 @@
     {
       "id": "url-structure",
       "family": "technical-seo",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1019,6 +1096,7 @@
     {
       "id": "pagination-canonical",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -1030,6 +1108,7 @@
     {
       "id": "meta-refresh",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1043,6 +1122,7 @@
     {
       "id": "hreflang-x-default",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1056,6 +1136,7 @@
     {
       "id": "internal-linking",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1069,6 +1150,7 @@
     {
       "id": "link-equity-map",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1083,19 +1165,21 @@
     {
       "id": "crawlable-nav",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
-      "message": "52 crawlable link(s); navigation works without JavaScript",
+      "message": "66 crawlable link(s); navigation works without JavaScript",
       "docUrl": "https://developers.google.com/search/docs",
       "messageTemplate": "{0} crawlable link(s); navigation works without JavaScript",
       "messageParams": [
-        52
+        66
       ]
     },
     {
       "id": "sitemap-lastmod",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1110,6 +1194,7 @@
     {
       "id": "sitemap-urls-valid",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1123,6 +1208,7 @@
     {
       "id": "sitemap-index-limits",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -1134,6 +1220,7 @@
     {
       "id": "sitemap-orphans",
       "family": "technical-seo",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1147,6 +1234,7 @@
     {
       "id": "html-lang",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1160,6 +1248,7 @@
     {
       "id": "alt-descriptive",
       "family": "accessibility",
+      "evidence": "heuristic",
       "status": "skip",
       "points": 0,
       "maxPoints": 3,
@@ -1171,6 +1260,7 @@
     {
       "id": "landmarks",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1184,32 +1274,35 @@
     {
       "id": "form-labels",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "all 6 form control(s) have an accessible name",
+      "message": "all 8 form control(s) have an accessible name",
       "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
       "messageTemplate": "all {0} form control(s) have an accessible name",
       "messageParams": [
-        6
+        8
       ]
     },
     {
       "id": "link-text",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "all 52 link(s) have an accessible name",
+      "message": "all 66 link(s) have an accessible name",
       "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
       "messageTemplate": "all {0} link(s) have an accessible name",
       "messageParams": [
-        52
+        66
       ]
     },
     {
       "id": "viewport-zoom",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1221,6 +1314,7 @@
     {
       "id": "iframe-title",
       "family": "accessibility",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -1232,6 +1326,7 @@
     {
       "id": "mixed-content",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1245,6 +1340,7 @@
     {
       "id": "hsts",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1259,6 +1355,7 @@
     {
       "id": "x-content-type-options",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1270,6 +1367,7 @@
     {
       "id": "csp",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1281,6 +1379,7 @@
     {
       "id": "clickjacking",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1292,6 +1391,7 @@
     {
       "id": "referrer-policy",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1305,6 +1405,7 @@
     {
       "id": "permissions-policy",
       "family": "security",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1314,19 +1415,35 @@
       "messageParams": []
     },
     {
+      "id": "security-txt",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "security.txt published, contact and expiry valid (2027-07-27)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "security.txt published, contact and expiry valid ({0})",
+      "messageParams": [
+        "2027-07-27"
+      ]
+    },
+    {
       "id": "html-weight",
       "family": "performance",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "HTML document is 23KB",
+      "message": "HTML document is 25KB",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "HTML document is 23KB",
+      "messageTemplate": "HTML document is 25KB",
       "messageParams": []
     },
     {
       "id": "render-blocking-js",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1340,6 +1457,7 @@
     {
       "id": "render-blocking-css",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1351,6 +1469,7 @@
     {
       "id": "img-dimensions",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 4,
       "maxPoints": 4,
@@ -1362,6 +1481,7 @@
     {
       "id": "img-lazy-loading",
       "family": "performance",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1373,6 +1493,7 @@
     {
       "id": "img-next-gen",
       "family": "performance",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1384,6 +1505,7 @@
     {
       "id": "resource-hints",
       "family": "performance",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1397,17 +1519,19 @@
     {
       "id": "dom-size",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
-      "message": "DOM has 165 element(s), max nesting depth 9",
+      "message": "DOM has 184 element(s), max nesting depth 9",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "DOM has 165 element(s), max nesting depth 9",
+      "messageTemplate": "DOM has 184 element(s), max nesting depth 9",
       "messageParams": []
     },
     {
       "id": "text-compression",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1421,6 +1545,7 @@
     {
       "id": "asset-caching",
       "family": "performance",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 2,
@@ -1432,6 +1557,7 @@
     {
       "id": "inline-head-volume",
       "family": "performance",
+      "evidence": "heuristic",
       "status": "pass",
       "points": 2,
       "maxPoints": 2,
@@ -1443,6 +1569,7 @@
     {
       "id": "lighthouse-perf",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 5,
       "maxPoints": 5,
@@ -1454,17 +1581,19 @@
     {
       "id": "cwv-lcp",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 6,
       "maxPoints": 6,
-      "message": "lab LCP 1681ms (no CrUX field data)",
+      "message": "lab LCP 1688ms (no CrUX field data)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "lab LCP 1681ms (no CrUX field data)",
+      "messageTemplate": "lab LCP 1688ms (no CrUX field data)",
       "messageParams": []
     },
     {
       "id": "cwv-cls",
       "family": "performance",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -1476,6 +1605,7 @@
     {
       "id": "cwv-inp",
       "family": "performance",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -1487,6 +1617,7 @@
     {
       "id": "cwv-assessment",
       "family": "performance",
+      "evidence": "measured",
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
@@ -1498,17 +1629,19 @@
     {
       "id": "cwv-ttfb",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "lab TTFB 1ms (server-response-time, no field data)",
+      "message": "lab TTFB 2ms (server-response-time, no field data)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "lab TTFB 1ms (server-response-time, no field data)",
+      "messageTemplate": "lab TTFB 2ms (server-response-time, no field data)",
       "messageParams": []
     },
     {
       "id": "lab-tbt",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
@@ -1520,12 +1653,13 @@
     {
       "id": "lab-fcp",
       "family": "performance",
+      "evidence": "measured",
       "status": "pass",
       "points": 3,
       "maxPoints": 3,
-      "message": "lab FCP 934ms, lab LCP 1681ms (mobile)",
+      "message": "lab FCP 961ms, lab LCP 1688ms (mobile)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "lab FCP 934ms, lab LCP 1681ms (mobile)",
+      "messageTemplate": "lab FCP 961ms, lab LCP 1688ms (mobile)",
       "messageParams": []
     }
   ],
@@ -1536,14 +1670,14 @@
     },
     "lab": {
       "perfScore": 1,
-      "lcp": 1680.57904,
-      "fcp": 933.57904,
+      "lcp": 1687.8768799999998,
+      "fcp": 961.3768799999998,
       "tbt": 0,
-      "serverResponseTime": 1,
-      "speedIndex": 933.57904
+      "serverResponseTime": 2,
+      "speedIndex": 989.6908763162155
     }
   },
-  "generatedAt": "2026-07-27T08:22:51.982Z",
+  "generatedAt": "2026-07-27T12:33:19.378Z",
   "entityGraph": {
     "nodes": [
       {
@@ -2280,5 +2414,5 @@
       "components": 1
     }
   },
-  "toolVersion": "0.2.0"
+  "toolVersion": "0.4.0"
 }
