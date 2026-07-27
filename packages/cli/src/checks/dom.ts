@@ -151,6 +151,12 @@ export function classifyHeadResources(root: HTMLElement): HeadResources {
   let blockingScripts = 0;
   for (const s of head.querySelectorAll('script[src]')) {
     const type = (s.getAttribute('type') ?? '').trim().toLowerCase();
+    // `nomodule` is the legacy-browser twin of a `type=module` bundle: every engine that
+    // understands modules — which is every engine a crawler or a 2026 visitor runs — skips
+    // it without even fetching it. Counting it as render-blocking flagged a warning nobody
+    // could act on (it is emitted by the framework, not the app) for a cost that does not
+    // exist. Found by auditing a real Next.js site.
+    if (s.hasAttribute('nomodule')) continue;
     if (!s.hasAttribute('async') && !s.hasAttribute('defer') && type !== 'module') blockingScripts += 1;
   }
 

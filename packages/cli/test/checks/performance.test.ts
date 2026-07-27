@@ -63,6 +63,13 @@ describe('render-blocking-js', () => {
     const ctx = ctxFromPages([page('/', '<html><head><script src="a.js" defer></script></head></html>')]);
     expect((await renderBlockingJs.run(ctx)).status).toBe('pass');
   });
+  // Found by auditing a real Next.js site: the framework emits a `nomodule` legacy bundle
+  // in the head with neither async nor defer. Every engine that understands modules skips
+  // it without fetching it, so it costs nothing to render — and the app cannot remove it.
+  it('does not count a nomodule legacy bundle as blocking', async () => {
+    const ctx = ctxFromPages([page('/', '<html><head><script src="legacy.js" nomodule></script></head></html>')]);
+    expect((await renderBlockingJs.run(ctx)).status).toBe('pass');
+  });
   it('passes when head scripts use async/defer/type=module', async () => {
     const html = '<html><head>'
       + '<script src="a.js" async></script>'
