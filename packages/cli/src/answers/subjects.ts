@@ -30,6 +30,20 @@ export interface Zone {
 
 /** Hard caps from the spec: 12 x 6 x 6 intents is 432 cells, which is already a lot to read. */
 export const MAX_SUBJECTS = 12;
+/**
+ * Six, and deliberately not fewer.
+ *
+ * Sites declare `areaServed` as a HIERARCHY — commune, city, metropolitan area,
+ * département, region — so six zones do inflate the matrix: one real site turned seven
+ * subjects into 98 cells, largely the same question at five zoom levels. Cutting to three
+ * was tried and reverted: on that same site the answers lived in the BROADEST zone
+ * ("partenaire des PME de Bretagne"), and truncating by declaration order deleted it,
+ * turning two verified answers into false `missing` — the one error §12.3 calls blocking.
+ *
+ * There is no safe way to pick three of five nested areas without understanding the
+ * hierarchy. Volume is a presentation problem the report can solve by grouping; a false
+ * `missing` is a correctness problem that destroys trust. We keep the cells.
+ */
 export const MAX_ZONES = 6;
 
 /**

@@ -182,13 +182,23 @@ Famille `llm-content`, `evidence: 'heuristic'`, `maxPoints: 4`.
 | Condition | Verdict |
 |---|---|
 | Aucun sujet dérivable | `skip` |
-| `covered / total` ≥ **0,70** *(provisoire, voir §12)* | `pass` |
+| `covered / total` ≥ **0,40** *(mesuré, voir ci-dessous)* | `pass` |
 | sinon | `warn`, message nommant les 3 pires cellules |
 | jamais | `fail` |
 
 Le `fail` est exclu par le § *Honesty guard-rails* de `CLAUDE.md` : les heuristiques de mise
 en forme du contenu sont **warn max**. Seuls les défauts non ambigus et vérifiables peuvent
 faire échouer un audit, et « ton site ne répond pas à cette question » n'en est pas un.
+
+**Seuil calibré, pas arrondi.** Mesuré sur les trois sites du jeu doré (échantillons de deux
+pages, donc plancher plutôt que moyenne) : **findable 50 %, masse-motoculture 43 %, pb-ot 6 %**.
+Un seuil à 0,70 aurait fait avertir la totalité des sites réels testés — exactement le défaut
+que `topical-focus` a corrigé en passant de 0,40 à 0,35 après mesure. À **0,40**, le check
+sépare un site qui tient à peu près la moitié de ses promesses d'un site qui n'en tient presque
+aucune.
+
+⚠️ **À revalider sur des crawls complets avant de figer définitivement** : ces chiffres viennent
+de deux pages par site, ce qui sous-estime la couverture d'un audit réel à dix pages.
 
 **+1 check.** Le compteur de départ est celui asserté dans `test/runner.test.ts`, pas un chiffre
 recopié d'un message de commit — c'est ainsi qu'une erreur de comptage s'est déjà glissée dans
@@ -277,7 +287,32 @@ dans ce contexte et l'état `weak` est décoratif.
 > 3. **La porte comparait des cellules réglées par le balisage**, identiques entre jumeaux par
 >    construction. Elle ne mesure plus que les cellules **en prose**, d'où le champ `evidence`.
 
-### 12.3 Vérité terrain, asymétrique — le prédicat dit-il vrai ?
+### 12.3 Vérité terrain, asymétrique — le prédicat dit-il vrai ? — ✅ LIVRÉE
+
+> **Ce que le jeu doré a corrigé, le 2026-07-27.** Trois sites réels capturés hors ligne,
+> 16 cellules étiquetées à la main **en lisant les pages**, pas en acceptant la sortie de la
+> matrice. Trois défauts trouvés avant même le premier verdict :
+>
+> 1. **Les sujets ramassaient du bruit** — un sélecteur de langue (« English »), des libellés
+>    de nav décorés (« Services▾ », « Tous les services → ») et des accroches d'H1 prises pour
+>    des services (« Votre SEO et votre findabilité IA, notés A–F. »). Chacune générait une
+>    ligne entière de questions absurdes. Filtrage : glyphes retirés, liens `hreflang` ignorés,
+>    ponctuation de phrase et plus de cinq mots rejetés.
+> 2. **`bucketOf` était trop étroit** : un site déclarant `ProfessionalService` avec adresse et
+>    `areaServed` tombait en `unknown`, ce qui supprimait silencieusement toute la grille
+>    commerce local. Il réutilise désormais `NAP_REQUIRED_TYPES`, le vocabulaire que les checks
+>    de données structurées partagent déjà.
+> 3. **Un faux `covered` avéré** : « couvrez-vous Val d'Izé pour Services ? » était couvert
+>    parce que les deux tokens cohabitaient dans une fenêtre de 512 tokens, à trois cents
+>    tokens d'écart, sans rien affirmer. La preuve doit désormais tenir **dans une seule
+>    unité** — phrase, ou bloc quand l'évidence s'étale légitimement. À défaut, la cellule est
+>    `missing`, pas `weak` : la question n'est pas mal répondue, elle n'est pas répondue.
+>
+> **Un cap sur les zones a été tenté puis annulé.** Réduire `MAX_ZONES` de 6 à 3 pour dégonfler
+> la matrice a supprimé « Bretagne » sur un site dont les réponses vivaient précisément dans la
+> zone la plus large — deux réponses vérifiées devenues de faux `missing`. Il n'existe pas de
+> façon sûre de choisir trois aires parmi cinq emboîtées sans comprendre la hiérarchie. Le
+> volume est un problème de présentation ; un faux `missing` est un problème de justesse.
 
 Jeu doré de 30 à 40 cellules étiquetées à la main, sur **au moins trois sites réels couvrant au
 moins deux buckets**, dont **un vrai site de services local francophone** — le cas qui motive
