@@ -24,6 +24,8 @@ import {
 import { titleDescription, canonical, openGraph, httpsCheck, viewport } from './fundamentals.js';
 import { metaRobotsNoindex, snippetPreviewDirectives, uniqueTitles, imagesAlt, schemaCoverage } from './multi-page.js';
 import { brokenInternalLinks, redirectHygiene, hreflang } from './links.js';
+import { anchorTargetProfile, internalLinkContext, internalEquityLeaks } from './internal-links.js';
+import { outboundLinkHealth } from './outbound-links.js';
 import {
   canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
   urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, crawlableNav,
@@ -63,13 +65,14 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,
     metaRobotsNoindex, uniqueTitles, brokenInternalLinks, redirectHygiene, hreflang,
-    metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
+    metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText, anchorTargetProfile,
     charset, favicon, contentReadability, figureCaption,
     jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness, sdArticle, sdProduct,
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,
     sdConsistency, napConsistency, entityGraphConnectivity,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
+    internalLinkContext, internalEquityLeaks, outboundLinkHealth,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
     brokenSubresources, jsOnlyDestinations, softErrorPages, indexingConflicts, sameAsVerified,

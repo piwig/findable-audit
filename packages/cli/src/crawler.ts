@@ -104,6 +104,13 @@ export interface CrawlerOptions {
    * off-origin by accident and its "skip when absent" contract is real.
    */
   verifyProfiles?: boolean;
+  /**
+   * Wire up outbound link probing (#26/#51). Off by default and deliberately
+   * separate from `verifyProfiles`: one option verifies identities the site
+   * *declared*, the other follows links the site *published*, and neither
+   * should silently grant the other's reach.
+   */
+  checkOutbound?: boolean;
   /** External abort signal, combined with the per-request timeout on every fetch. */
   signal?: AbortSignal;
   // --- Test seams (default to the real implementations). Injectable so the
@@ -131,6 +138,28 @@ const MAX_INFLIGHT_REQUESTS = 6;
  * proxy, and both deserve the same answer.
  */
 const MAX_EXTERNAL_FETCHES = 8;
+
+/**
+ * Off-origin `<a href>` targets one audit may probe for liveness, total. A
+ * dead-citation sample is exactly that — a sample; the check dedupes by host
+ * before spending any of this, so ten probes mean ten different third parties.
+ */
+const MAX_OUTBOUND_PROBES = 10;
+
+/**
+ * Per-probe ceiling for a third-party server, capped below the audit's own
+ * timeout. Someone else's slow host must not stretch an audit, and "slow" is
+ * reported as unverifiable rather than as a broken link either way.
+ */
+const OUTBOUND_TIMEOUT_MS = 8_000;
+
+/**
+ * Statuses that say the HEAD *method* was refused, not that the target is
+ * missing. Anything here earns one ranged-GET retry before we believe it.
+ * (405/501 are the RFC 9110 answers; 400 and 403 are what several CDNs and WAFs
+ * return to a HEAD they do not expect.)
+ */
+const HEAD_UNRELIABLE = new Set([400, 403, 405, 501]);
 
 /** Counting semaphore: admits at most `limit` runners, queues the rest in order. */
 class RequestGate {
@@ -174,9 +203,14 @@ export class Crawler implements CrawlContext {
   private externalCache = new Map<string, FetchedResource | null>();
   /** Distinct off-origin URLs actually fetched this run, against the budget. */
   private externalSpent = 0;
+  /** Outbound link probes. Its own cache and its own budget, never shared with the above. */
+  private outboundCache = new Map<string, FetchedResource | null>();
+  private outboundSpent = 0;
   private originResolved = false;
   /** Present only when the caller opted into off-origin verification. */
   fetchExternal?: (url: string) => Promise<FetchedResource | null>;
+  /** Present only when the caller opted into outbound link probing. */
+  fetchOutbound?: (url: string) => Promise<FetchedResource | null>;
 
   constructor(
     url: string,
@@ -188,11 +222,17 @@ export class Crawler implements CrawlContext {
     // An OWN property, assigned only when asked for: deleting a prototype method
     // would be a no-op, and a check must be able to test for absence.
     if (opts.verifyProfiles) this.fetchExternal = (target: string) => this.externalFetch(target);
+    if (opts.checkOutbound) this.fetchOutbound = (target: string) => this.outboundProbe(target);
   }
 
-  /** Per-request signal: the timeout combined with any caller-supplied signal. */
-  private buildSignal(): AbortSignal {
-    const signals = [AbortSignal.timeout(this.timeoutMs), this.opts.signal].filter(Boolean) as AbortSignal[];
+  /**
+   * Per-request signal: the timeout combined with any caller-supplied signal.
+   * `capMs` lowers (never raises) the per-request ceiling — a third-party probe
+   * gets less patience than the site we were actually asked to audit.
+   */
+  private buildSignal(capMs?: number): AbortSignal {
+    const ms = capMs === undefined ? this.timeoutMs : Math.min(this.timeoutMs, capMs);
+    const signals = [AbortSignal.timeout(ms), this.opts.signal].filter(Boolean) as AbortSignal[];
     return AbortSignal.any(signals);
   }
 
@@ -267,6 +307,46 @@ export class Crawler implements CrawlContext {
   }
 
   /**
+   * Liveness probe for an off-origin `<a href>` target (see
+   * `CrawlContext.fetchOutbound` for the contract and why it is this narrow).
+   *
+   * HEAD first, because asking "does this exist?" should not download someone
+   * else's page; a ranged GET (`Range: bytes=0-0`) is the fallback for the
+   * servers that answer HEAD with a refusal. The pair costs one unit of the
+   * budget, which is spent per distinct URL and checked BEFORE the request.
+   *
+   * The SSRF guard is forced on regardless of `blockPrivateHosts`: these URLs
+   * were written by whoever wrote the audited page, so they get the treatment
+   * untrusted input gets. A refusal surfaces as `null` — "unverifiable" — never
+   * as evidence that a link is broken.
+   */
+  private async outboundProbe(url: string): Promise<FetchedResource | null> {
+    let target: URL;
+    try {
+      target = new URL(url);
+    } catch {
+      return null;
+    }
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return null;
+    target.hash = '';
+    const key = target.toString();
+    if (this.outboundCache.has(key)) return this.outboundCache.get(key)!;
+    if (this.outboundSpent >= MAX_OUTBOUND_PROBES) return null;
+    this.outboundSpent++;
+
+    let out = await this.gate.run(() => this.performFetch(key, this.buildSignal(OUTBOUND_TIMEOUT_MS), this.userAgent, {
+      method: 'HEAD', forceGuard: true,
+    }));
+    if (out === null || HEAD_UNRELIABLE.has(out.status)) {
+      out = await this.gate.run(() => this.performFetch(key, this.buildSignal(OUTBOUND_TIMEOUT_MS), this.userAgent, {
+        method: 'GET', extraHeaders: { range: 'bytes=0-0' }, forceGuard: true,
+      }));
+    }
+    this.outboundCache.set(key, out);
+    return out;
+  }
+
+  /**
    * Same-origin fetch under an explicit User-Agent (see `CrawlContext.fetchWithUA`
    * for the contract). Reuses the exact plain/guarded code path `fetch()` uses
    * (via `performFetch`), just parameterised on `userAgent` instead of the
@@ -300,23 +380,31 @@ export class Crawler implements CrawlContext {
 
   /**
    * One fetch attempt (plain or guarded, per `blockPrivateHosts`) under
-   * `userAgent`. No caching, no origin re-pin — shared core for both `fetch()`
-   * and `fetchWithUA()`, which layer their own cache + (for `fetch()` only)
-   * origin-pinning on top.
+   * `userAgent`. No caching, no origin re-pin — shared core for `fetch()`,
+   * `fetchWithUA()` and `fetchOutbound()`, which layer their own cache + (for
+   * `fetch()` only) origin-pinning on top.
+   *
+   * `opts.forceGuard` takes the guarded path even when `blockPrivateHosts` is
+   * off. It is not an alternative validator: it routes through the same
+   * `resolveGuard`/`isBlockedAddress` code the web app uses, so there is still
+   * exactly one place that decides an address is off-limits.
    */
   private async performFetch(
     target: string,
     signal: AbortSignal,
     userAgent: string,
+    opts: { method?: 'GET' | 'HEAD'; extraHeaders?: Record<string, string>; forceGuard?: boolean } = {},
   ): Promise<FetchedResource | null> {
+    const method = opts.method ?? 'GET';
     try {
-      if (this.opts.blockPrivateHosts) {
-        return await this.guardedFetch(target, signal, userAgent);
+      if (this.opts.blockPrivateHosts || opts.forceGuard) {
+        return await this.guardedFetch(target, signal, userAgent, method, opts.extraHeaders);
       }
       const res = await fetch(target, {
+        method,
         redirect: 'follow',
         signal,
-        headers: { 'user-agent': userAgent },
+        headers: { 'user-agent': userAgent, ...(opts.extraHeaders ?? {}) },
       });
       return {
         status: res.status,
@@ -488,6 +576,8 @@ export class Crawler implements CrawlContext {
     target: string,
     signal: AbortSignal,
     userAgent: string,
+    method: 'GET' | 'HEAD' = 'GET',
+    extraHeaders?: Record<string, string>,
   ): Promise<FetchedResource | null> {
     let currentUrl = target;
     for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop++) {
@@ -504,7 +594,7 @@ export class Crawler implements CrawlContext {
 
       let res: http.IncomingMessage;
       try {
-        res = await this.nodeRequest(url, guard.address, guard.family, signal, userAgent);
+        res = await this.nodeRequest(url, guard.address, guard.family, signal, userAgent, method, extraHeaders);
       } catch {
         return null;
       }
@@ -551,6 +641,8 @@ export class Crawler implements CrawlContext {
     family: number,
     signal: AbortSignal,
     userAgent: string,
+    method: 'GET' | 'HEAD' = 'GET',
+    extraHeaders?: Record<string, string>,
   ): Promise<http.IncomingMessage> {
     const mod = url.protocol === 'https:' ? https : http;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -562,12 +654,13 @@ export class Crawler implements CrawlContext {
       const req = mod.request(
         url,
         {
-          method: 'GET',
+          method,
           signal,
           headers: {
             'user-agent': userAgent,
             'accept-encoding': 'gzip, deflate, br',
             accept: '*/*',
+            ...(extraHeaders ?? {}),
           },
           lookup: pinnedLookup,
         },
