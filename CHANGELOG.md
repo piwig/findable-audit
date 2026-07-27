@@ -7,7 +7,7 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
-## 0.8.0 — 2026-07-27
+## 0.9.0 — 2026-07-27
 
 ### Added
 
@@ -28,6 +28,10 @@ not where it started.
   never from measured search demand — names the pages it was built from, and warns when the
   crawl stopped at its page limit, because a gap found on a truncated crawl is not evidence
   of a gap on the site.
+
+## 0.8.0 — 2026-07-27
+
+### Added
 
 - **Eleven checks — 126 → 137.** Four clusters, closing the crawl-only gaps the backlog had
   been listing since July: transport (`http-protocol`, `tls-version`, `cdn-edge-cache`),
