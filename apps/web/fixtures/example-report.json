@@ -42,8 +42,8 @@
       "family": "performance",
       "score": 100,
       "weight": 0.1,
-      "earned": 27,
-      "max": 27
+      "earned": 47,
+      "max": 47
     },
     {
       "family": "accessibility",
@@ -1443,23 +1443,23 @@
     {
       "id": "lighthouse-perf",
       "family": "performance",
-      "status": "skip",
-      "points": 0,
+      "status": "pass",
+      "points": 5,
       "maxPoints": 5,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "Lighthouse performance 1.00 (100/100, mobile)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "Lighthouse performance 1.00 (100/100, mobile)",
       "messageParams": []
     },
     {
       "id": "cwv-lcp",
       "family": "performance",
-      "status": "skip",
-      "points": 0,
+      "status": "pass",
+      "points": 6,
       "maxPoints": 6,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "lab LCP 1681ms (no CrUX field data)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "lab LCP 1681ms (no CrUX field data)",
       "messageParams": []
     },
     {
@@ -1468,9 +1468,9 @@
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "no CLS field data in PSI response",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "no CLS field data in PSI response",
       "messageParams": []
     },
     {
@@ -1479,9 +1479,9 @@
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "no INP field data in PSI response (low-traffic URL)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "no INP field data in PSI response (low-traffic URL)",
       "messageParams": []
     },
     {
@@ -1490,45 +1490,795 @@
       "status": "skip",
       "points": 0,
       "maxPoints": 4,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "no CrUX overall assessment (no field data)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "no CrUX overall assessment (no field data)",
       "messageParams": []
     },
     {
       "id": "cwv-ttfb",
       "family": "performance",
-      "status": "skip",
-      "points": 0,
+      "status": "pass",
+      "points": 3,
       "maxPoints": 3,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "lab TTFB 1ms (server-response-time, no field data)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "lab TTFB 1ms (server-response-time, no field data)",
       "messageParams": []
     },
     {
       "id": "lab-tbt",
       "family": "performance",
-      "status": "skip",
-      "points": 0,
+      "status": "pass",
+      "points": 3,
       "maxPoints": 3,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "Total Blocking Time 0ms (lab, mobile)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "Total Blocking Time 0ms (lab, mobile)",
       "messageParams": []
     },
     {
       "id": "lab-fcp",
       "family": "performance",
-      "status": "skip",
-      "points": 0,
+      "status": "pass",
+      "points": 3,
       "maxPoints": 3,
-      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "message": "lab FCP 934ms, lab LCP 1681ms (mobile)",
       "docUrl": "https://web.dev/explore/learn-core-web-vitals",
-      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageTemplate": "lab FCP 934ms, lab LCP 1681ms (mobile)",
       "messageParams": []
     }
   ],
-  "generatedAt": "2026-07-26T19:20:13.567Z",
+  "psi": {
+    "strategy": "mobile",
+    "field": {
+      "origin": false
+    },
+    "lab": {
+      "perfScore": 1,
+      "lcp": 1680.57904,
+      "fcp": 933.57904,
+      "tbt": 0,
+      "serverResponseTime": 1,
+      "speedIndex": 933.57904
+    }
+  },
+  "generatedAt": "2026-07-27T08:22:51.982Z",
+  "entityGraph": {
+    "nodes": [
+      {
+        "id": "https://findable.bordebat.fr/#org",
+        "types": [
+          "Organization"
+        ],
+        "pages": [
+          "/en/",
+          "/fr/",
+          "/en/about/",
+          "/en/contact/",
+          "/fr/about/",
+          "/fr/contact/"
+        ],
+        "synthetic": false,
+        "name": "findable-audit"
+      },
+      {
+        "id": "https://findable.bordebat.fr/#website",
+        "types": [
+          "WebSite"
+        ],
+        "pages": [
+          "/en/",
+          "/fr/",
+          "/en/about/",
+          "/en/contact/",
+          "/fr/about/",
+          "/fr/contact/"
+        ],
+        "synthetic": false,
+        "name": "findable-audit"
+      },
+      {
+        "id": "https://findable.bordebat.fr/#app",
+        "types": [
+          "WebApplication"
+        ],
+        "pages": [
+          "/en/",
+          "/fr/"
+        ],
+        "synthetic": false,
+        "name": "findable-audit"
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/#webpage",
+        "types": [
+          "WebPage"
+        ],
+        "pages": [
+          "/en/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/en/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#0@/en/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/en/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/#webpage",
+        "types": [
+          "WebPage"
+        ],
+        "pages": [
+          "/fr/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/fr/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#1@/fr/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/fr/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/about/#webpage",
+        "types": [
+          "WebPage",
+          "FAQPage"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "Question#2@/en/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "Is findable-audit free?"
+      },
+      {
+        "id": "Answer#3@/en/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#4@/en/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "How is GEO different from SEO?"
+      },
+      {
+        "id": "Answer#5@/en/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#6@/en/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "What do you keep about the sites I audit?"
+      },
+      {
+        "id": "Answer#7@/en/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#8@/en/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "Can I run findable-audit in continuous integration?"
+      },
+      {
+        "id": "Answer#9@/en/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/about/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#10@/en/about/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "ListItem#11@/en/about/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/en/about/"
+        ],
+        "synthetic": true,
+        "name": "About"
+      },
+      {
+        "id": "ContactPoint#12@/en/contact/",
+        "types": [
+          "ContactPoint"
+        ],
+        "pages": [
+          "/en/contact/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/contact/#webpage",
+        "types": [
+          "WebPage"
+        ],
+        "pages": [
+          "/en/contact/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "https://findable.bordebat.fr/en/contact/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/en/contact/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#13@/en/contact/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/en/contact/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "ListItem#14@/en/contact/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/en/contact/"
+        ],
+        "synthetic": true,
+        "name": "Contact"
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/about/#webpage",
+        "types": [
+          "WebPage",
+          "FAQPage"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "Question#15@/fr/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit est-il gratuit ?"
+      },
+      {
+        "id": "Answer#16@/fr/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#17@/fr/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "Quelle différence entre le GEO et le SEO ?"
+      },
+      {
+        "id": "Answer#18@/fr/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#19@/fr/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "Que conservez-vous des sites que j’audite ?"
+      },
+      {
+        "id": "Answer#20@/fr/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "Question#21@/fr/about/",
+        "types": [
+          "Question"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "Puis-je utiliser findable-audit en intégration continue ?"
+      },
+      {
+        "id": "Answer#22@/fr/about/",
+        "types": [
+          "Answer"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/about/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#23@/fr/about/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "ListItem#24@/fr/about/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/fr/about/"
+        ],
+        "synthetic": true,
+        "name": "À propos"
+      },
+      {
+        "id": "ContactPoint#25@/fr/contact/",
+        "types": [
+          "ContactPoint"
+        ],
+        "pages": [
+          "/fr/contact/"
+        ],
+        "synthetic": true
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/contact/#webpage",
+        "types": [
+          "WebPage"
+        ],
+        "pages": [
+          "/fr/contact/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "https://findable.bordebat.fr/fr/contact/#breadcrumb",
+        "types": [
+          "BreadcrumbList"
+        ],
+        "pages": [
+          "/fr/contact/"
+        ],
+        "synthetic": false
+      },
+      {
+        "id": "ListItem#26@/fr/contact/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/fr/contact/"
+        ],
+        "synthetic": true,
+        "name": "findable-audit"
+      },
+      {
+        "id": "ListItem#27@/fr/contact/",
+        "types": [
+          "ListItem"
+        ],
+        "pages": [
+          "/fr/contact/"
+        ],
+        "synthetic": true,
+        "name": "Contact"
+      }
+    ],
+    "edges": [
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#app",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#app",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "provider"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/#webpage",
+        "to": "https://findable.bordebat.fr/#app",
+        "property": "about"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/#webpage",
+        "to": "https://findable.bordebat.fr/en/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/#breadcrumb",
+        "to": "ListItem#0@/en/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#app",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#app",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "provider"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/#webpage",
+        "to": "https://findable.bordebat.fr/#app",
+        "property": "about"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/#webpage",
+        "to": "https://findable.bordebat.fr/fr/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/#breadcrumb",
+        "to": "ListItem#1@/fr/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "https://findable.bordebat.fr/en/about/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "Question#2@/en/about/",
+        "to": "Answer#3@/en/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "Question#2@/en/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#4@/en/about/",
+        "to": "Answer#5@/en/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "Question#4@/en/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#6@/en/about/",
+        "to": "Answer#7@/en/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "Question#6@/en/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#8@/en/about/",
+        "to": "Answer#9@/en/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#webpage",
+        "to": "Question#8@/en/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#breadcrumb",
+        "to": "ListItem#10@/en/about/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/about/#breadcrumb",
+        "to": "ListItem#11@/en/about/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#org",
+        "to": "ContactPoint#12@/en/contact/",
+        "property": "contactPoint"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/contact/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/contact/#webpage",
+        "to": "https://findable.bordebat.fr/en/contact/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/contact/#breadcrumb",
+        "to": "ListItem#13@/en/contact/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/en/contact/#breadcrumb",
+        "to": "ListItem#14@/en/contact/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "https://findable.bordebat.fr/fr/about/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "Question#15@/fr/about/",
+        "to": "Answer#16@/fr/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "Question#15@/fr/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#17@/fr/about/",
+        "to": "Answer#18@/fr/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "Question#17@/fr/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#19@/fr/about/",
+        "to": "Answer#20@/fr/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "Question#19@/fr/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "Question#21@/fr/about/",
+        "to": "Answer#22@/fr/about/",
+        "property": "acceptedAnswer"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#webpage",
+        "to": "Question#21@/fr/about/",
+        "property": "mainEntity"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#breadcrumb",
+        "to": "ListItem#23@/fr/about/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/about/#breadcrumb",
+        "to": "ListItem#24@/fr/about/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#org",
+        "to": "ContactPoint#25@/fr/contact/",
+        "property": "contactPoint"
+      },
+      {
+        "from": "https://findable.bordebat.fr/#website",
+        "to": "https://findable.bordebat.fr/#org",
+        "property": "publisher"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/contact/#webpage",
+        "to": "https://findable.bordebat.fr/#website",
+        "property": "isPartOf"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/contact/#webpage",
+        "to": "https://findable.bordebat.fr/fr/contact/#breadcrumb",
+        "property": "breadcrumb"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/contact/#breadcrumb",
+        "to": "ListItem#26@/fr/contact/",
+        "property": "itemListElement"
+      },
+      {
+        "from": "https://findable.bordebat.fr/fr/contact/#breadcrumb",
+        "to": "ListItem#27@/fr/contact/",
+        "property": "itemListElement"
+      }
+    ],
+    "stats": {
+      "nodes": 43,
+      "edges": 52,
+      "danglingRefs": 0,
+      "components": 1
+    }
+  },
   "toolVersion": "0.2.0"
 }

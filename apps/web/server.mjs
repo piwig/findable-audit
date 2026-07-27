@@ -676,7 +676,7 @@ function landingPage(lang = 'en') {
  */
 const EXAMPLE_REPORT = JSON.parse(
   readFileSync(new URL('./fixtures/example-report.json', import.meta.url), 'utf8'));
-const EXAMPLE_REPORT_DATE = new Date('2026-07-26T00:00:00Z');
+const EXAMPLE_REPORT_DATE = new Date('2026-07-27T00:00:00Z');
 
 function exampleReportPage(lang = 'en') {
   const back = lang === 'fr' ? '← Retour à findable-audit' : '← Back to findable-audit';
