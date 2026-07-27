@@ -18,6 +18,33 @@ function levelOf(status: CheckResult['status']): 'error' | 'warning' {
 }
 
 /**
+ * A relative, stable artifact path for a finding about a remote page.
+ *
+ * SARIF was designed for files in a checkout, and GitHub enforces it: when the
+ * source root is a `file://` checkout — always, inside an Action — an absolute
+ * `https` artifact URI makes it **reject the entire upload** ("SARIF URI scheme
+ * https did not match the checkout URI scheme file"). We audit sites, not
+ * files, so there is no repository path to point at; what we can do is emit a
+ * relative pseudo-path that is legible, contains no traversal, and is identical
+ * across runs so alert fingerprints stay stable. The real URL is not lost: it
+ * stays on the run and on every result under `properties.url`.
+ */
+function artifactPathFor(url: string): string {
+  let host = 'site';
+  let pathname = '/';
+  try {
+    const parsed = new URL(url);
+    host = parsed.host || 'site';
+    pathname = parsed.pathname || '/';
+  } catch { /* keep the defaults: a malformed URL still yields a valid path */ }
+  const segments = pathname.split('/')
+    .filter((s) => s !== '' && s !== '.' && s !== '..')
+    .map((s) => s.replace(/[^A-Za-z0-9._-]/g, '-'));
+  const safeHost = host.replace(/[^A-Za-z0-9.:-]/g, '-').replace(/:/g, '_');
+  return ['findable-audit', safeHost, ...(segments.length > 0 ? segments : ['index'])].join('/');
+}
+
+/**
  * Render the audit as SARIF 2.1.0 — the format GitHub code-scanning (and other
  * CI tools) ingest. Each failing/warning check becomes a result; passing and
  * skipped checks are omitted (SARIF is a findings format). The overall score
@@ -41,15 +68,16 @@ export function renderSarif(report: AuditReport): string {
     });
   }
 
+  const artifactUri = artifactPathFor(report.url);
   const results = findings.map((r) => ({
     ruleId: r.id,
     ruleIndex: ruleIndex.get(r.id),
     level: levelOf(r.status),
     message: { text: r.fix ? `${r.message} — Fix: ${r.fix}` : r.message },
     locations: [{
-      physicalLocation: { artifactLocation: { uri: report.url } },
+      physicalLocation: { artifactLocation: { uri: artifactUri } },
     }],
-    properties: { pointsLost: r.maxPoints - r.points, family: r.family },
+    properties: { pointsLost: r.maxPoints - r.points, family: r.family, url: report.url },
   }));
 
   const sarif = {

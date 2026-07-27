@@ -45,6 +45,48 @@ describe('renderSarif', () => {
   it('attaches score, grade and audited URL as run properties + result locations', () => {
     expect(sarif.runs[0].properties.score).toBe(72);
     expect(sarif.runs[0].properties.grade).toBe('C');
-    expect(sarif.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri).toBe('https://example.com/');
+    // The location is a RELATIVE pseudo-path, not the audited URL: GitHub rejects
+    // an upload whose absolute URI scheme differs from the checkout's (see the
+    // ingestion suite below). The URL itself lives in the properties.
+    expect(sarif.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri).toBe('findable-audit/example.com/index');
+    expect(sarif.runs[0].results[0].properties.url).toBe('https://example.com/');
+  });
+});
+
+// Regression: GitHub code scanning REJECTED the whole upload when the artifact
+// URI was the audited https:// URL — "SARIF URI scheme https did not match the
+// checkout URI scheme file". Found by our own self-audit workflow, not by a
+// user. The feature is advertised in the README, so it has to actually land.
+describe('renderSarif — GitHub code-scanning ingestion', () => {
+  const at = (url: string) => JSON.parse(renderSarif({ ...report, url }));
+
+  it('never emits an absolute URI as the artifact location', () => {
+    const uri = at('https://example.com/').runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri;
+    expect(uri).not.toMatch(/^[a-z][a-z0-9+.-]*:\/\//i);
+    expect(uri.startsWith('/')).toBe(false);
+  });
+
+  it('derives a stable, readable path from the audited origin', () => {
+    const uri = at('https://example.com/').runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri;
+    expect(uri).toBe('findable-audit/example.com/index');
+    expect(at('https://example.com/pricing').runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri)
+      .toBe('findable-audit/example.com/pricing');
+  });
+
+  it('is stable across runs, so alerts are not closed and reopened every time', () => {
+    const a = at('https://example.com/page/');
+    const b = at('https://example.com/page/');
+    expect(JSON.stringify(a.runs[0].results)).toBe(JSON.stringify(b.runs[0].results));
+  });
+
+  it('keeps the real URL where a human can still read it', () => {
+    const run = at('https://example.com/pricing').runs[0];
+    expect(run.properties.auditedUrl).toBe('https://example.com/pricing');
+    expect(run.results[0].properties.url).toBe('https://example.com/pricing');
+  });
+
+  it('sanitises a hostile path instead of emitting a traversal', () => {
+    const uri = at('https://example.com/../../etc/passwd').runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri;
+    expect(uri).not.toContain('..');
   });
 });

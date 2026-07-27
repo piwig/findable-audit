@@ -7,6 +7,17 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.3.1 — 2026-07-27
+
+### Fixed
+
+- **SARIF uploads were rejected by GitHub code scanning.** Results pointed at the audited
+  `https://` URL, and GitHub refuses an upload whose absolute URI scheme differs from the
+  checkout's `file://` root — so the integration advertised in the README never actually
+  landed an alert. Findings now carry a relative, stable pseudo-path
+  (`findable-audit/<host>/<path>`) and keep the real URL in `properties.url`. Caught by
+  this repo auditing its own site in CI, not by a user.
+
 ## 0.3.0 — 2026-07-27
 
 ### Added
