@@ -37,7 +37,7 @@ function gradeLower(value: number, good: number, poor: number): CheckStatus {
 // ---------------------------------------------------------------------------
 
 export const lighthousePerf: Check = {
-  id: 'lighthouse-perf', family: 'performance', maxPoints: 5,
+  id: 'lighthouse-perf', family: 'performance', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -57,7 +57,7 @@ export const lighthousePerf: Check = {
 // ---------------------------------------------------------------------------
 
 export const cwvLcp: Check = {
-  id: 'cwv-lcp', family: 'performance', maxPoints: 6,
+  id: 'cwv-lcp', family: 'performance', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -83,7 +83,7 @@ export const cwvLcp: Check = {
 // ---------------------------------------------------------------------------
 
 export const cwvCls: Check = {
-  id: 'cwv-cls', family: 'performance', maxPoints: 4,
+  id: 'cwv-cls', family: 'performance', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -103,7 +103,7 @@ export const cwvCls: Check = {
 // ---------------------------------------------------------------------------
 
 export const cwvInp: Check = {
-  id: 'cwv-inp', family: 'performance', maxPoints: 4,
+  id: 'cwv-inp', family: 'performance', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -122,7 +122,7 @@ export const cwvInp: Check = {
 // ---------------------------------------------------------------------------
 
 export const cwvAssessment: Check = {
-  id: 'cwv-assessment', family: 'performance', maxPoints: 4,
+  id: 'cwv-assessment', family: 'performance', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -143,7 +143,7 @@ export const cwvAssessment: Check = {
 // ---------------------------------------------------------------------------
 
 export const cwvTtfb: Check = {
-  id: 'cwv-ttfb', family: 'performance', maxPoints: 3,
+  id: 'cwv-ttfb', family: 'performance', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -169,7 +169,7 @@ export const cwvTtfb: Check = {
 // ---------------------------------------------------------------------------
 
 export const labTbt: Check = {
-  id: 'lab-tbt', family: 'performance', maxPoints: 3,
+  id: 'lab-tbt', family: 'performance', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);
@@ -188,7 +188,7 @@ export const labTbt: Check = {
 // ---------------------------------------------------------------------------
 
 export const labFcp: Check = {
-  id: 'lab-fcp', family: 'performance', maxPoints: 3,
+  id: 'lab-fcp', family: 'performance', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const r = psiOrSkip(ctx);
     if ('skip' in r) return makeResult(this, 'skip', r.skip);

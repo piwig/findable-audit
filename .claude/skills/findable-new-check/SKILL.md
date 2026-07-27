@@ -33,6 +33,18 @@ Decide the **verdict policy** here, and justify it against `docs/research/`:
   rewriting; a heuristic that fails a site overstates what we know.
 - Precondition absent → `skip`. Never `pass` a check that did not actually run.
 
+Then declare **what the verdict rests on** — the required `evidence` field, which the
+compiler will not let you omit:
+
+- `measured` — the good state is defined outside this project (RFC, W3C/WHATWG, WCAG,
+  schema.org, a threshold Google publishes). Two people reading the same response agree.
+- `heuristic` — YOU chose the bar (a word count, a lexicon, a ratio, "reads like a direct
+  answer"). Reports badge these, and readers weigh them accordingly.
+
+It is independent of severity: `security-txt` only warns and is measured. If you find
+yourself wanting `heuristic` **and** `fail`, re-read the verdict policy above — that
+combination is what the guard-rails exist to prevent.
+
 ## 2 · Write the check
 
 Module in `packages/cli/src/checks/`. Group related checks in one file (see
@@ -42,7 +54,7 @@ Module in `packages/cli/src/checks/`. Group related checks in one file (see
 
 ```ts
 export const myCheck: Check = {
-  id: 'my-check', family: 'llm-content', maxPoints: 4,
+  id: 'my-check', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');

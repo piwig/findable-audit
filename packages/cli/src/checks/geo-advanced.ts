@@ -98,7 +98,7 @@ async function sitemapLastmods(ctx: CrawlContext): Promise<Map<string, number>> 
 }
 
 export const freshnessCoherence: Check = {
-  id: 'freshness-coherence', family: 'llm-content', maxPoints: 4,
+  id: 'freshness-coherence', family: 'llm-content', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
@@ -145,7 +145,7 @@ const LEAD_PARAS = 2;
 const HEDGE_OFFENDER_MIN = 2; // one hedge in a lead is tolerated
 
 export const hedgingRate: Check = {
-  id: 'hedging-rate', family: 'llm-content', maxPoints: 3,
+  id: 'hedging-rate', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const scored = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= SUBSTANTIAL_WORDS);
@@ -185,7 +185,7 @@ export function isAnswerUnit(text: string): boolean {
 }
 
 export const answerUnits: Check = {
-  id: 'answer-units', family: 'llm-content', maxPoints: 4,
+  id: 'answer-units', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const pillars = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= PILLAR_WORDS);
@@ -282,7 +282,7 @@ function hasOrphanedList(root: HTMLElement): boolean {
 }
 
 export const chunkBoundary: Check = {
-  id: 'chunk-boundary', family: 'llm-content', maxPoints: 3,
+  id: 'chunk-boundary', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const scored = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= SUBSTANTIAL_WORDS);

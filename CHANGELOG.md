@@ -7,6 +7,19 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.4.0 — 2026-07-27
+
+### Added
+
+- **Every check now declares what its verdict rests on** (`evidence`): *measured* when the
+  good state is defined outside this project (RFC, W3C/WHATWG, WCAG, schema.org, a
+  threshold Google publishes) or *heuristic* when we chose the bar (a word count, a
+  lexicon, a ratio). **94 measured, 27 heuristic.** HTML and Markdown reports badge the
+  heuristic ones with a one-line legend; JSON carries `evidence` on every result. The two
+  axes are independent of severity — `security-txt` only warns and is measured.
+  The field is required on the `Check` type, so a new check cannot compile without its
+  author deciding.
+
 ## 0.3.1 — 2026-07-27
 
 ### Fixed

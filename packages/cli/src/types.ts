@@ -15,6 +15,8 @@ export type Family =
 export interface CheckResult {
   id: string;
   family: Family;
+  /** What the verdict rests on: an external standard, or a bar we chose. See Evidence. */
+  evidence: Evidence;
   status: CheckStatus;
   points: number;
   maxPoints: number;
@@ -173,9 +175,29 @@ export interface CrawlContext {
   psi?: PsiResult | null;
 }
 
+/**
+ * What a verdict rests on — the axis that decides how much a reader should
+ * trust it. Deliberately independent of severity: `security-txt` only warns but
+ * is measured, `content-lead-answer` is a judgement call whatever it reports.
+ *
+ * - `measured`: the good state is defined by something outside this project — an
+ *   RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes
+ *   (Core Web Vitals, Lighthouse). Two people reading the same response agree on
+ *   the verdict.
+ * - `heuristic`: WE chose the bar — a word count, a lexicon, a ratio, a notion
+ *   of "reads like a direct answer". Reasonable people can disagree, and the
+ *   verified research says effectiveness varies by domain. These may warn, never
+ *   fail (see CLAUDE.md § honesty guard-rails).
+ *
+ * Required, with no default: adding a check forces the author to make the call
+ * at the moment they know the answer, and the compiler refuses to let it slide.
+ */
+export type Evidence = 'measured' | 'heuristic';
+
 export interface Check {
   id: string;
   family: Family;
+  evidence: Evidence;
   maxPoints: number;
   /** Optional per-check documentation link; falls back to FAMILY_DOC_URL[family] in makeResult. */
   docUrl?: string;
@@ -183,7 +205,7 @@ export interface Check {
 }
 
 export function makeResult(
-  check: Pick<Check, 'id' | 'family' | 'maxPoints' | 'docUrl'>,
+  check: Pick<Check, 'id' | 'family' | 'evidence' | 'maxPoints' | 'docUrl'>,
   status: CheckStatus,
   message: string | Msg,
   fix?: string,
@@ -197,7 +219,7 @@ export function makeResult(
   const template = isMsg(message) ? message.template : message;
   const params = isMsg(message) ? message.params : [];
   return {
-    id: check.id, family: check.family, status, points, maxPoints: check.maxPoints,
+    id: check.id, family: check.family, evidence: check.evidence, status, points, maxPoints: check.maxPoints,
     message: text, fix, docUrl, messageTemplate: template, messageParams: params,
   };
 }

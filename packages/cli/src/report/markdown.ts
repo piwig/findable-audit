@@ -59,7 +59,9 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
       const msg = why ? `${cell(text)} — _${cell(why)}_` : cell(text);
       // The human title leads, the technical id follows in code — same order as
       // the HTML report, so a reader moving between the two formats is not lost.
-      lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${r.id}\` | ${r.points}/${r.maxPoints} | ${msg} |`);
+      // #63: a verdict resting on a bar we chose says so, next to the check.
+      const ev = r.evidence === 'heuristic' ? ` _(${m.evidenceHeuristic})_` : '';
+      lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${r.id}\`${ev} | ${r.points}/${r.maxPoints} | ${msg} |`);
     }
     lines.push('');
   }

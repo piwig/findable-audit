@@ -46,7 +46,7 @@ function hasSummaryLine(body: string): boolean {
 }
 
 export const llmsTxt: Check = {
-  id: 'llms-txt', family: 'llm-content', maxPoints: 10,
+  id: 'llms-txt', family: 'llm-content', evidence: 'measured', maxPoints: 10,
   async run(ctx) {
     const res = await ctx.fetch('/llms.txt');
     if (res?.status !== 200) {
@@ -82,7 +82,7 @@ export const llmsTxt: Check = {
 // ---------------------------------------------------------------------------
 
 export const llmsFullTxt: Check = {
-  id: 'llms-full-txt', family: 'llm-content', maxPoints: 4,
+  id: 'llms-full-txt', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/llms-full.txt');
     if (res?.status !== 200) {
@@ -108,7 +108,7 @@ export const llmsFullTxt: Check = {
 // ---------------------------------------------------------------------------
 
 export const contentWithoutJs: Check = {
-  id: 'content-without-js', family: 'llm-content', maxPoints: 6,
+  id: 'content-without-js', family: 'llm-content', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -133,7 +133,7 @@ export const contentWithoutJs: Check = {
 // ---------------------------------------------------------------------------
 
 export const contentDepth: Check = {
-  id: 'content-depth', family: 'llm-content', maxPoints: 5,
+  id: 'content-depth', family: 'llm-content', evidence: 'heuristic', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -180,7 +180,7 @@ function leadVerdict(res: FetchedResource): SeverityItem['status'] {
 }
 
 export const contentLeadAnswer: Check = {
-  id: 'content-lead-answer', family: 'llm-content', maxPoints: 5,
+  id: 'content-lead-answer', family: 'llm-content', evidence: 'heuristic', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -206,7 +206,7 @@ function isAnswerHeading(text: string): boolean {
 }
 
 export const answerHeadings: Check = {
-  id: 'answer-headings', family: 'llm-content', maxPoints: 4,
+  id: 'answer-headings', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
@@ -244,7 +244,7 @@ function hasContentStructure(root: HTMLElement): boolean {
 }
 
 export const extractableStructure: Check = {
-  id: 'extractable-structure', family: 'llm-content', maxPoints: 4,
+  id: 'extractable-structure', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -306,7 +306,7 @@ function extractDates(res: FetchedResource): PageDates {
 const MONTH_MS = (1000 * 60 * 60 * 24 * 365.25) / 12;
 
 export const contentFreshness: Check = {
-  id: 'content-freshness', family: 'llm-content', maxPoints: 5,
+  id: 'content-freshness', family: 'llm-content', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const articlePages = pages.filter(isArticlePage);
@@ -355,7 +355,7 @@ function hasVisibleByline(res: FetchedResource): boolean {
 }
 
 export const contentAuthorEeat: Check = {
-  id: 'content-author-eeat', family: 'llm-content', maxPoints: 5,
+  id: 'content-author-eeat', family: 'llm-content', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const articlePages = pages.filter(isArticlePage);
@@ -396,7 +396,7 @@ function citationDomains(root: HTMLElement, origin: string): Set<string> {
 }
 
 export const outboundCitations: Check = {
-  id: 'outbound-citations', family: 'llm-content', maxPoints: 3,
+  id: 'outbound-citations', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
@@ -425,7 +425,7 @@ export const outboundCitations: Check = {
 const DUPLICATE_JACCARD = 0.8;
 
 export const contentUniqueness: Check = {
-  id: 'content-uniqueness', family: 'llm-content', maxPoints: 3,
+  id: 'content-uniqueness', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < 2) return makeResult(this, 'skip', 'fewer than 2 sampled pages');
@@ -495,7 +495,7 @@ function isCsrOffender(res: FetchedResource): boolean {
 }
 
 export const csrContentParity: Check = {
-  id: 'csr-content-parity', family: 'llm-content', maxPoints: 4,
+  id: 'csr-content-parity', family: 'llm-content', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -543,7 +543,7 @@ async function anyReachable(ctx: CrawlContext, paths: string[]): Promise<boolean
 }
 
 export const aboutContact: Check = {
-  id: 'about-contact', family: 'llm-content', maxPoints: 3,
+  id: 'about-contact', family: 'llm-content', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -580,7 +580,7 @@ export const aboutContact: Check = {
  * that return the HTML app shell with a 200 are the common false positive.
  */
 export const wellKnownAiJson: Check = {
-  id: 'well-known-ai-json', family: 'llm-content', maxPoints: 1,
+  id: 'well-known-ai-json', family: 'llm-content', evidence: 'measured', maxPoints: 1,
   async run(ctx) {
     const res = await ctx.fetch('/.well-known/ai.json');
     if (!res || res.status !== 200) {

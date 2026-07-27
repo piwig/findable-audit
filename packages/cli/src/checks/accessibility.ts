@@ -15,7 +15,7 @@ function offenderList(paths: string[]): string {
 // ---------------------------------------------------------------------------
 
 export const htmlLang: Check = {
-  id: 'html-lang', family: 'accessibility', maxPoints: 4,
+  id: 'html-lang', family: 'accessibility', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -64,7 +64,7 @@ export function isDescriptiveAlt(alt: string): boolean {
 }
 
 export const altDescriptive: Check = {
-  id: 'alt-descriptive', family: 'accessibility', maxPoints: 3,
+  id: 'alt-descriptive', family: 'accessibility', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -102,7 +102,7 @@ function landmarkVerdict(root: ReturnType<typeof parsePage>): LandmarkVerdict {
 }
 
 export const landmarks: Check = {
-  id: 'landmarks', family: 'accessibility', maxPoints: 4,
+  id: 'landmarks', family: 'accessibility', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -134,7 +134,7 @@ export const landmarks: Check = {
 const UNLABELLED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image']);
 
 export const formLabels: Check = {
-  id: 'form-labels', family: 'accessibility', maxPoints: 3,
+  id: 'form-labels', family: 'accessibility', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -168,7 +168,7 @@ export const formLabels: Check = {
 // ---------------------------------------------------------------------------
 
 export const linkText: Check = {
-  id: 'link-text', family: 'accessibility', maxPoints: 3,
+  id: 'link-text', family: 'accessibility', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -196,7 +196,7 @@ export const linkText: Check = {
 // ---------------------------------------------------------------------------
 
 export const viewportZoom: Check = {
-  id: 'viewport-zoom', family: 'accessibility', maxPoints: 3,
+  id: 'viewport-zoom', family: 'accessibility', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -230,7 +230,7 @@ export const viewportZoom: Check = {
 // ---------------------------------------------------------------------------
 
 export const iframeTitle: Check = {
-  id: 'iframe-title', family: 'accessibility', maxPoints: 2,
+  id: 'iframe-title', family: 'accessibility', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');

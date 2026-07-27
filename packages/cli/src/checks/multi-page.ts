@@ -45,7 +45,7 @@ function classifyNoindex(set: RobotsDirectiveSet): NoindexVerdict {
 }
 
 export const metaRobotsNoindex: Check = {
-  id: 'meta-robots-noindex', family: 'ai-access', maxPoints: 6,
+  id: 'meta-robots-noindex', family: 'ai-access', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -91,7 +91,7 @@ function hasPreviewDirective(set: RobotsDirectiveSet): boolean {
 }
 
 export const snippetPreviewDirectives: Check = {
-  id: 'snippet-preview-directives', family: 'ai-access', maxPoints: 4,
+  id: 'snippet-preview-directives', family: 'ai-access', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
@@ -114,7 +114,7 @@ export const snippetPreviewDirectives: Check = {
 };
 
 export const uniqueTitles: Check = {
-  id: 'unique-titles', family: 'on-page', maxPoints: 5,
+  id: 'unique-titles', family: 'on-page', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < 2) return makeResult(this, 'skip', 'fewer than 2 sampled pages');
@@ -142,7 +142,7 @@ export const uniqueTitles: Check = {
 };
 
 export const imagesAlt: Check = {
-  id: 'images-alt', family: 'accessibility', maxPoints: 4,
+  id: 'images-alt', family: 'accessibility', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -164,7 +164,7 @@ export const imagesAlt: Check = {
 };
 
 export const schemaCoverage: Check = {
-  id: 'schema-coverage', family: 'structured-data', maxPoints: 5,
+  id: 'schema-coverage', family: 'structured-data', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < 2) {

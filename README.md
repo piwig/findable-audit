@@ -96,6 +96,20 @@ node apps/web/server.mjs                                 # self-hosted web app o
 | **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
 | **Security & trust** | 0.07 | 10 | HTTPS end-to-end, HTTP→HTTPS 301, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy, `/.well-known/security.txt` (RFC 9116) |
 
+### Measured, or a bar we chose
+
+Every check declares what its verdict rests on, and the reports say which. **94 checks are
+*measured*** — they grade against an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a
+threshold Google publishes, so two people reading the same response agree. **27 are
+*heuristic*** — a word count, a lexicon, a ratio, a notion of "reads like a direct
+answer". Reasonable people can disagree with those, and the verified research says their
+effectiveness varies by site, so the HTML and Markdown reports badge them and the JSON
+carries `evidence` on every result.
+
+The two axes are independent: `security-txt` only ever warns and is measured;
+`content-lead-answer` is a judgement call whatever it reports. An auditor that blurs the
+distinction is asking you to trust its taste as if it were a specification.
+
 Every check is documented individually — what it verifies, why it matters, and how to fix a failure — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
 
 ### The exact bot roster

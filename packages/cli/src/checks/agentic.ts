@@ -96,7 +96,7 @@ export function hasMachineContactPath(root: HTMLElement, html: string): boolean 
 }
 
 export const agentUsability: Check = {
-  id: 'agent-usability', family: 'llm-content', maxPoints: 4,
+  id: 'agent-usability', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');

@@ -82,7 +82,7 @@ export function classifyMixedContent(root: HTMLElement): MixedContentRefs {
 }
 
 export const mixedContent: Check = {
-  id: 'mixed-content', family: 'security', maxPoints: 4,
+  id: 'mixed-content', family: 'security', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const home = await ctx.fetch('/');
     let scheme = ctx.baseUrl.protocol;
@@ -115,7 +115,7 @@ export const mixedContent: Check = {
 const HSTS_MIN_AGE = 15552000; // 180 days
 
 export const hsts: Check = {
-  id: 'hsts', family: 'security', maxPoints: 4,
+  id: 'hsts', family: 'security', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (isLocalOrPrivateHost(hostOf(res?.finalUrl, ctx.baseUrl.hostname))) {
@@ -142,7 +142,7 @@ export const hsts: Check = {
 // ---------------------------------------------------------------------------
 
 export const xContentTypeOptions: Check = {
-  id: 'x-content-type-options', family: 'security', maxPoints: 3,
+  id: 'x-content-type-options', family: 'security', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
@@ -158,7 +158,7 @@ export const xContentTypeOptions: Check = {
 // ---------------------------------------------------------------------------
 
 export const csp: Check = {
-  id: 'csp', family: 'security', maxPoints: 3,
+  id: 'csp', family: 'security', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
@@ -182,7 +182,7 @@ export const csp: Check = {
 // ---------------------------------------------------------------------------
 
 export const clickjacking: Check = {
-  id: 'clickjacking', family: 'security', maxPoints: 3,
+  id: 'clickjacking', family: 'security', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
@@ -211,7 +211,7 @@ const REFERRER_POLICY_TOKENS = new Set([
 ]);
 
 export const referrerPolicy: Check = {
-  id: 'referrer-policy', family: 'security', maxPoints: 2,
+  id: 'referrer-policy', family: 'security', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
@@ -237,7 +237,7 @@ export const referrerPolicy: Check = {
 // ---------------------------------------------------------------------------
 
 export const permissionsPolicy: Check = {
-  id: 'permissions-policy', family: 'security', maxPoints: 2,
+  id: 'permissions-policy', family: 'security', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (!res) return makeResult(this, 'skip', 'homepage not reachable');
@@ -280,7 +280,7 @@ function parseSecurityTxt(body: string): Map<string, string> {
  * `now` is injectable so the expiry branch is testable without freezing time.
  */
 export const securityTxt: Check = {
-  id: 'security-txt', family: 'security', maxPoints: 2,
+  id: 'security-txt', family: 'security', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/.well-known/security.txt');
     const fix = 'Publish /.well-known/security.txt (RFC 9116) with at least `Contact:` and an `Expires:` date in the future.';

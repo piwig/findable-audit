@@ -43,7 +43,7 @@ export function chunkSurvives(chunk: Chunk): boolean {
 }
 
 export const chunkRetrievalSim: Check = {
-  id: 'chunk-retrieval-sim', family: 'llm-content', maxPoints: 4,
+  id: 'chunk-retrieval-sim', family: 'llm-content', evidence: 'heuristic', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const pillars = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= PILLAR_WORDS);
@@ -166,7 +166,7 @@ export function unattributedUgcLinks(root: HTMLElement, origin: string): number 
 }
 
 export const injectionHygiene: Check = {
-  id: 'injection-hygiene', family: 'llm-content', maxPoints: 3,
+  id: 'injection-hygiene', family: 'llm-content', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');

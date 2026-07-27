@@ -9,7 +9,7 @@ import { parsePage, headingOutline, hasHeadingSkip, tokenize, isGenericAnchorTex
 // ---------------------------------------------------------------------------
 
 export const metaPerPage: Check = {
-  id: 'meta-per-page', family: 'on-page', maxPoints: 5,
+  id: 'meta-per-page', family: 'on-page', evidence: 'heuristic', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -41,7 +41,7 @@ function splitTitleSegments(title: string): string[] {
 }
 
 export const titlePattern: Check = {
-  id: 'title-pattern', family: 'on-page', maxPoints: 3,
+  id: 'title-pattern', family: 'on-page', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -68,7 +68,7 @@ export const titlePattern: Check = {
 // ---------------------------------------------------------------------------
 
 export const titleH1Alignment: Check = {
-  id: 'title-h1-alignment', family: 'on-page', maxPoints: 2,
+  id: 'title-h1-alignment', family: 'on-page', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -100,7 +100,7 @@ export const titleH1Alignment: Check = {
 // ---------------------------------------------------------------------------
 
 export const headingsOutline: Check = {
-  id: 'headings-outline', family: 'on-page', maxPoints: 5,
+  id: 'headings-outline', family: 'on-page', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -128,7 +128,7 @@ function isInternalHref(href: string, pageUrl: string, baseOrigin: string): bool
 }
 
 export const anchorText: Check = {
-  id: 'anchor-text', family: 'on-page', maxPoints: 3,
+  id: 'anchor-text', family: 'on-page', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -166,7 +166,7 @@ export const anchorText: Check = {
 // ---------------------------------------------------------------------------
 
 export const charset: Check = {
-  id: 'charset', family: 'on-page', maxPoints: 3,
+  id: 'charset', family: 'on-page', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -186,7 +186,7 @@ export const charset: Check = {
 // ---------------------------------------------------------------------------
 
 export const favicon: Check = {
-  id: 'favicon', family: 'on-page', maxPoints: 2,
+  id: 'favicon', family: 'on-page', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -226,7 +226,7 @@ function mainText(root: HTMLElement): string {
 }
 
 export const contentReadability: Check = {
-  id: 'content-readability', family: 'on-page', maxPoints: 2,
+  id: 'content-readability', family: 'on-page', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -252,7 +252,7 @@ function isDecorativeImg(img: HTMLElement): boolean {
 }
 
 export const figureCaption: Check = {
-  id: 'figure-caption', family: 'on-page', maxPoints: 2,
+  id: 'figure-caption', family: 'on-page', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');

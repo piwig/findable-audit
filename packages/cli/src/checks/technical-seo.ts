@@ -28,7 +28,7 @@ const isRedirect = (s: number): boolean => s >= 300 && s < 400;
 // ---------------------------------------------------------------------------
 
 export const canonicalResolves: Check = {
-  id: 'canonical-resolves', family: 'technical-seo', maxPoints: 4,
+  id: 'canonical-resolves', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no pages sampled');
@@ -104,7 +104,7 @@ function classifyHost(
 }
 
 export const wwwConsolidation: Check = {
-  id: 'www-consolidation', family: 'technical-seo', maxPoints: 5,
+  id: 'www-consolidation', family: 'technical-seo', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     if (isLocalOrPrivateHost(ctx.baseUrl.hostname)) return makeResult(this, 'skip', 'local/IP host has no www variant');
     if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
@@ -166,7 +166,7 @@ function toggleSlash(pathname: string): string | null {
 }
 
 export const trailingSlash: Check = {
-  id: 'trailing-slash', family: 'technical-seo', maxPoints: 4,
+  id: 'trailing-slash', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     if (isLocalOrPrivateHost(ctx.baseUrl.hostname)) return makeResult(this, 'skip', 'local/IP host — trailing-slash check skipped');
     if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
@@ -210,7 +210,7 @@ function classifyChain(chain: FetchChainResult): 'ok' | 'temp' | 'chain' {
 }
 
 export const redirectChains: Check = {
-  id: 'redirect-chains', family: 'technical-seo', maxPoints: 4,
+  id: 'redirect-chains', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     if (isLocalOrPrivateHost(ctx.baseUrl.hostname)) return makeResult(this, 'skip', 'local/IP host — redirect-chains check skipped');
     if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
@@ -248,7 +248,7 @@ function probePath(): string {
 }
 
 export const soft404: Check = {
-  id: 'soft-404', family: 'technical-seo', maxPoints: 6,
+  id: 'soft-404', family: 'technical-seo', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     if (!ctx.fetchChain) return makeResult(this, 'skip', 'no-follow fetch unavailable');
     const probe = probePath();
@@ -281,7 +281,7 @@ export const soft404: Check = {
 // ---------------------------------------------------------------------------
 
 export const custom404: Check = {
-  id: 'custom-404', family: 'technical-seo', maxPoints: 2,
+  id: 'custom-404', family: 'technical-seo', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch(new URL(probePath(), ctx.baseUrl).toString());
     if (res === null) return makeResult(this, 'skip', 'missing-route probe was unreachable');
@@ -318,7 +318,7 @@ function urlIssues(u: URL): string[] {
 }
 
 export const urlStructure: Check = {
-  id: 'url-structure', family: 'technical-seo', maxPoints: 3,
+  id: 'url-structure', family: 'technical-seo', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no pages sampled');
@@ -355,7 +355,7 @@ function pageNumber(u: URL): number | null {
 }
 
 export const paginationCanonical: Check = {
-  id: 'pagination-canonical', family: 'technical-seo', maxPoints: 2,
+  id: 'pagination-canonical', family: 'technical-seo', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const paginated = pages.filter((p) => {
@@ -386,7 +386,7 @@ export const paginationCanonical: Check = {
 // ---------------------------------------------------------------------------
 
 export const metaRefresh: Check = {
-  id: 'meta-refresh', family: 'technical-seo', maxPoints: 2,
+  id: 'meta-refresh', family: 'technical-seo', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no pages sampled');
@@ -421,7 +421,7 @@ function hreflangEntries(root: ReturnType<typeof parsePage>): HreflangEntry[] {
 }
 
 export const hreflangXDefault: Check = {
-  id: 'hreflang-x-default', family: 'technical-seo', maxPoints: 3,
+  id: 'hreflang-x-default', family: 'technical-seo', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const withHreflang = pages.filter((p) => hreflangEntries(parsePage(p)).length > 0);
@@ -472,7 +472,7 @@ export const hreflangXDefault: Check = {
 const MAX_CLICK_DEPTH = 3;
 
 export const internalLinking: Check = {
-  id: 'internal-linking', family: 'technical-seo', maxPoints: 4,
+  id: 'internal-linking', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < 2) return makeResult(this, 'skip', 'fewer than 2 sampled pages');
@@ -509,7 +509,7 @@ export const internalLinking: Check = {
  * only pages whose navigation is largely JS-dependent are flagged.
  */
 export const crawlableNav: Check = {
-  id: 'crawlable-nav', family: 'technical-seo', maxPoints: 4,
+  id: 'crawlable-nav', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'skip', 'no pages sampled');
@@ -565,7 +565,7 @@ function sharePct(rank: number): string {
  * (depth/underlinked booleans): this shows the *distribution* of equity.
  */
 export const linkEquityMap: Check = {
-  id: 'link-equity-map', family: 'technical-seo', maxPoints: 3,
+  id: 'link-equity-map', family: 'technical-seo', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length < MIN_EQUITY_SAMPLE) {

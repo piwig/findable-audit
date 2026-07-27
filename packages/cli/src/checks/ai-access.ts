@@ -10,7 +10,7 @@ import { mainContent } from './content.js';
 import { rollupBySeverity, type SeverityItem } from './jsonld.js';
 
 export const robotsExists: Check = {
-  id: 'robots-exists', family: 'ai-access', maxPoints: 4,
+  id: 'robots-exists', family: 'ai-access', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/robots.txt');
     if (res?.status === 200) {
@@ -27,7 +27,7 @@ export const robotsExists: Check = {
 };
 
 export const robotsWellformedCheck: Check = {
-  id: 'robots-wellformed', family: 'ai-access', maxPoints: 4,
+  id: 'robots-wellformed', family: 'ai-access', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/robots.txt');
     if (!res || res.status !== 200) {
@@ -45,7 +45,7 @@ export const robotsWellformedCheck: Check = {
 };
 
 export const searchCrawlersAllowed: Check = {
-  id: 'search-crawlers-allowed', family: 'ai-access', maxPoints: 6,
+  id: 'search-crawlers-allowed', family: 'ai-access', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const res = await ctx.fetch('/robots.txt');
     if (res?.status !== 200 || !isPlainText(res)) {
@@ -60,7 +60,7 @@ export const searchCrawlersAllowed: Check = {
 };
 
 export const aiCrawlersAllowed: Check = {
-  id: 'ai-crawlers-allowed', family: 'ai-access', maxPoints: 12,
+  id: 'ai-crawlers-allowed', family: 'ai-access', evidence: 'measured', maxPoints: 12,
   async run(ctx) {
     const res = await ctx.fetch('/robots.txt');
     if (res?.status !== 200 || !isPlainText(res)) {
@@ -80,7 +80,7 @@ export const aiCrawlersAllowed: Check = {
 };
 
 export const homepageOk: Check = {
-  id: 'homepage-ok', family: 'ai-access', maxPoints: 6,
+  id: 'homepage-ok', family: 'ai-access', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status === 200) return makeResult(this, 'pass', 'homepage responds 200');
@@ -90,7 +90,7 @@ export const homepageOk: Check = {
 };
 
 export const robotsDirectives: Check = {
-  id: 'robots-directives', family: 'ai-access', maxPoints: 4,
+  id: 'robots-directives', family: 'ai-access', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
@@ -210,7 +210,7 @@ function diffParityProbe(probe: ParityProbe, probed: FetchedResource | null): Se
 }
 
 export const aiServingParity: Check = {
-  id: 'ai-serving-parity', family: 'ai-access', maxPoints: 8,
+  id: 'ai-serving-parity', family: 'ai-access', evidence: 'measured', maxPoints: 8,
   async run(ctx) {
     if (!ctx.fetchWithUA) return makeResult(this, 'skip', 'no per-UA fetch capability (fetchWithUA)');
     const home = await ctx.fetch('/');

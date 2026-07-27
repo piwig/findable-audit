@@ -60,7 +60,7 @@ function classifyArticle(
 }
 
 export const sdArticle: Check = {
-  id: 'sd-article', family: 'structured-data', maxPoints: 4,
+  id: 'sd-article', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const items: SeverityItem[] = [];
@@ -136,7 +136,7 @@ function classifyProduct(
 }
 
 export const sdProduct: Check = {
-  id: 'sd-product', family: 'structured-data', maxPoints: 4,
+  id: 'sd-product', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const items: SeverityItem[] = [];
@@ -207,7 +207,7 @@ function countHeadingFaq(root: ReturnType<typeof parse>): number {
 }
 
 export const sdFaq: Check = {
-  id: 'sd-faq', family: 'structured-data', maxPoints: 4,
+  id: 'sd-faq', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const offenders: string[] = [];
@@ -263,7 +263,7 @@ function hasBreadcrumbNav(root: ReturnType<typeof parse>): boolean {
 }
 
 export const sdBreadcrumb: Check = {
-  id: 'sd-breadcrumb', family: 'structured-data', maxPoints: 3,
+  id: 'sd-breadcrumb', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const interior = pages.filter((p) => pathOf(p) !== '/');
@@ -375,7 +375,7 @@ function evaluateDimension(jsonLdValue: string, perPage: PerPageValues[]): Dimen
 }
 
 export const napConsistency: Check = {
-  id: 'nap-consistency', family: 'structured-data', maxPoints: 3,
+  id: 'nap-consistency', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     const home = pages.find((p) => pathOf(p) === '/') ?? pages[0];

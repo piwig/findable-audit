@@ -205,6 +205,11 @@ const STYLE = `
   footer { margin-top: 2rem; color: var(--faint); font-size: .8rem; border-top: 1px solid var(--line); padding-top: .75rem; }
 
   /* --- JSON-LD entity graph (#58): drawn from data every audit already builds --- */
+  /* #63: a verdict that rests on a bar WE chose says so, in place. */
+  .ev-legend { color: var(--muted); font-size: .82rem; margin: .35rem 0 1rem; }
+  .ck-ev { display: inline-block; margin-left: .45rem; padding: .05rem .38rem; border-radius: 999px;
+    font-size: .68rem; letter-spacing: .02em; text-transform: uppercase; font-weight: 600;
+    color: var(--soft); border: 1px solid var(--panel-line); background: var(--panel); vertical-align: middle; }
   .eg { margin: 1.25rem 0 1.75rem; border: 1px solid var(--panel-line); background: var(--panel); border-radius: 12px; padding: .9rem 1.15rem 1.1rem; }
   .eg > h3 { margin: .1rem 0 .35rem; font-size: 1rem; }
   .eg-caption { color: var(--muted); font-size: .85rem; margin: 0 0 .6rem; }
@@ -324,7 +329,7 @@ export function renderHtml(
     return `<tr class="row">
         <td class="st ${r.status}">${STATUS_LABEL[r.status]}</td>
         <td>
-          <div class="row-head"><span class="ck-title">${escapeHtml(checkTitle(r.id, lang))}</span><code class="ck-id">${escapeHtml(r.id)}</code></div>
+          <div class="row-head"><span class="ck-title">${escapeHtml(checkTitle(r.id, lang))}</span><code class="ck-id">${escapeHtml(r.id)}</code>${r.evidence === 'heuristic' ? `<span class="ck-ev" title="${escapeHtml(m.evidenceTip)}">${escapeHtml(m.evidenceHeuristic)}</span>` : ''}</div>
           <div class="msg">${escapeHtml(localizeMessage(r, lang))}</div>${whyHtml}${fix}
         </td>
         <td class="pts">${r.points}/${r.maxPoints}</td>
@@ -531,6 +536,9 @@ ${actionPlan}
 ${diff ? renderDiffHtmlSection(diff, lang) : ''}
 <section id="detail">
 <h2>${escapeHtml(m.detailTitle)}</h2>
+${report.results.some((r) => r.evidence === 'heuristic')
+    ? `<p class="ev-legend"><span class="ck-ev">${escapeHtml(m.evidenceHeuristic)}</span> ${escapeHtml(m.evidenceTip)}</p>`
+    : ''}
 ${entityGraphSection}
 ${breakdown}
 ${sections.join('\n')}

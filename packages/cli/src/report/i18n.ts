@@ -75,6 +75,9 @@ export interface ReportMessages {
   vizTitle: string;          // priority-bars panel heading + aria-label
   compareChartLabel: string; // compare grouped-bars aria-label/<title>
   // JSON-LD entity graph drawn inline in the report (#58)
+  // #63 — evidence axis: what a verdict rests on
+  evidenceHeuristic: string;   // badge shown next to a heuristic check
+  evidenceTip: string;         // its tooltip, and the legend under the detail heading
   egTitle: string;                          // section heading
   egCaption: string;                        // one line: what the reader is looking at
   egLabel: (types: number, refs: number) => string;  // svg aria-label/<title>, counting what is DRAWN
@@ -174,6 +177,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Overall score: ${score} out of 100 — grade ${grade}`,
     vizTitle: 'Where to regain points',
     compareChartLabel: 'Family scores by site',
+    evidenceHeuristic: 'heuristic',
+    evidenceTip: 'A bar we chose, not a standard: reasonable people can disagree, and effectiveness varies by site. Advice, not a defect.',
     egTitle: 'Entity graph',
     egCaption: 'The entity types your JSON-LD declares across the sampled pages, and the references between them — what an engine can assemble about you. Entities of the same type are grouped (×N); hover a box or an arrow for the detail. The uncapped per-entity graph is the --entity-graph export.',
     egLabel: (types, refs) => `JSON-LD entity graph: ${types} entity types, ${refs} references`,
@@ -269,6 +274,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Score global : ${score} sur 100 — note ${grade}`,
     vizTitle: 'Où regagner des points',
     compareChartLabel: 'Scores par famille et par site',
+    evidenceHeuristic: 'heuristique',
+    evidenceTip: 'Une barre que nous avons choisie, pas une norme : on peut raisonnablement en discuter, et l\'effet varie selon les sites. Un conseil, pas un défaut.',
     egTitle: 'Graphe d\'entités',
     egCaption: 'Les types d\'entités déclarés par votre JSON-LD sur les pages échantillonnées et les références entre eux — ce qu\'un moteur peut assembler à votre sujet. Les entités de même type sont regroupées (×N) ; survolez une boîte ou une flèche pour le détail. Le graphe entité par entité, sans plafond, est l\'export --entity-graph.',
     egLabel: (types, refs) => `Graphe d'entités JSON-LD : ${types} types d'entités, ${refs} références`,

@@ -17,7 +17,7 @@ const RELEVANT_TYPES = new Set([
 ]);
 
 export const jsonLd: Check = {
-  id: 'json-ld', family: 'structured-data', maxPoints: 10,
+  id: 'json-ld', family: 'structured-data', evidence: 'measured', maxPoints: 10,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -29,7 +29,7 @@ export const jsonLd: Check = {
 };
 
 export const twitterCard: Check = {
-  id: 'twitter-card', family: 'structured-data', maxPoints: 2,
+  id: 'twitter-card', family: 'structured-data', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -63,7 +63,7 @@ export const twitterCard: Check = {
 };
 
 export const jsonLdEntity: Check = {
-  id: 'json-ld-entity', family: 'structured-data', maxPoints: 6,
+  id: 'json-ld-entity', family: 'structured-data', evidence: 'measured', maxPoints: 6,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -117,7 +117,7 @@ function invalidReason(parsed: unknown): string | null {
 }
 
 export const jsonLdValid: Check = {
-  id: 'json-ld-valid', family: 'structured-data', maxPoints: 4,
+  id: 'json-ld-valid', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -160,7 +160,7 @@ function sameAsList(value: unknown): string[] {
 }
 
 export const sdOrganization: Check = {
-  id: 'sd-organization', family: 'structured-data', maxPoints: 4,
+  id: 'sd-organization', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -196,7 +196,7 @@ const WIKI_KG_RE = /^https?:\/\/([a-z]{2,3}\.)?wikipedia\.org\//i;
 const WIKIDATA_KG_RE = /^https?:\/\/(www\.)?wikidata\.org\/(wiki|entity)\/Q\d+/i;
 
 export const sdEntityGrounding: Check = {
-  id: 'sd-entity-grounding', family: 'structured-data', maxPoints: 4,
+  id: 'sd-entity-grounding', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -239,7 +239,7 @@ function isLocalBusinessType(t: string): boolean {
 }
 
 export const sdLocalBusiness: Check = {
-  id: 'sd-localbusiness', family: 'structured-data', maxPoints: 3,
+  id: 'sd-localbusiness', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -289,7 +289,7 @@ function findSearchAction(entity: Record<string, unknown>): Record<string, unkno
 }
 
 export const sdWebsiteSearchAction: Check = {
-  id: 'sd-website-searchaction', family: 'structured-data', maxPoints: 2,
+  id: 'sd-website-searchaction', family: 'structured-data', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -335,7 +335,7 @@ function isIso8601Duration(v: unknown): boolean {
 }
 
 export const sdVideo: Check = {
-  id: 'sd-video', family: 'structured-data', maxPoints: 2,
+  id: 'sd-video', family: 'structured-data', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -407,7 +407,7 @@ function validateSpecialType(node: Record<string, unknown>, type: string): strin
 const SPECIAL_TYPES = ['HowTo', 'Event', 'Recipe'];
 
 export const sdSpecialTypes: Check = {
-  id: 'sd-special-types', family: 'structured-data', maxPoints: 3,
+  id: 'sd-special-types', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -439,7 +439,7 @@ function collectRefs(value: unknown, out: string[]): void {
 }
 
 export const sdGraphIntegrity: Check = {
-  id: 'sd-graph-integrity', family: 'structured-data', maxPoints: 3,
+  id: 'sd-graph-integrity', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -493,7 +493,7 @@ function collectConsistencyValues(nodes: Record<string, unknown>[]): string[] {
 }
 
 export const sdConsistency: Check = {
-  id: 'sd-consistency', family: 'structured-data', maxPoints: 3,
+  id: 'sd-consistency', family: 'structured-data', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');

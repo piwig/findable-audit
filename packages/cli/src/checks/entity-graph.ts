@@ -16,7 +16,7 @@ function graphFor(ctx: CrawlContext): EntityGraph | null {
 }
 
 export const entityGraphConnectivity: Check = {
-  id: 'entity-graph-connectivity', family: 'structured-data', maxPoints: 4,
+  id: 'entity-graph-connectivity', family: 'structured-data', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const g = graphFor(ctx);
     if (!g) return makeResult(this, 'skip', 'no sampled pages to build an entity graph from');

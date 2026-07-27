@@ -1,6 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **121 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **121 checks in 8 families**.
+
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 121 checks, **94 are measured and 27 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 

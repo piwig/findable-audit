@@ -11,7 +11,7 @@ import { rollupBySeverity, type SeverityItem } from './jsonld.js';
 // ---------------------------------------------------------------------------
 
 export const htmlWeight: Check = {
-  id: 'html-weight', family: 'performance', maxPoints: 3,
+  id: 'html-weight', family: 'performance', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -29,7 +29,7 @@ export const htmlWeight: Check = {
 // ---------------------------------------------------------------------------
 
 export const renderBlockingJs: Check = {
-  id: 'render-blocking-js', family: 'performance', maxPoints: 4,
+  id: 'render-blocking-js', family: 'performance', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -50,7 +50,7 @@ export const renderBlockingJs: Check = {
 // ---------------------------------------------------------------------------
 
 export const renderBlockingCss: Check = {
-  id: 'render-blocking-css', family: 'performance', maxPoints: 3,
+  id: 'render-blocking-css', family: 'performance', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -76,7 +76,7 @@ function hasExplicitDimensions(img: HTMLElement): boolean {
 }
 
 export const imgDimensions: Check = {
-  id: 'img-dimensions', family: 'performance', maxPoints: 4,
+  id: 'img-dimensions', family: 'performance', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -104,7 +104,7 @@ export const imgDimensions: Check = {
 // ---------------------------------------------------------------------------
 
 export const imgLazyLoading: Check = {
-  id: 'img-lazy-loading', family: 'performance', maxPoints: 2,
+  id: 'img-lazy-loading', family: 'performance', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
@@ -147,7 +147,7 @@ function isNextGen(img: HTMLElement): boolean {
 }
 
 export const imgNextGen: Check = {
-  id: 'img-next-gen', family: 'performance', maxPoints: 2,
+  id: 'img-next-gen', family: 'performance', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
@@ -171,7 +171,7 @@ function relTokens(el: HTMLElement): string[] {
 }
 
 export const resourceHints: Check = {
-  id: 'resource-hints', family: 'performance', maxPoints: 2,
+  id: 'resource-hints', family: 'performance', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
@@ -213,7 +213,7 @@ function maxDepth(node: HTMLElement, depth = 0): number {
 }
 
 export const domSize: Check = {
-  id: 'dom-size', family: 'performance', maxPoints: 2,
+  id: 'dom-size', family: 'performance', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -233,7 +233,7 @@ export const domSize: Check = {
 // ---------------------------------------------------------------------------
 
 export const textCompression: Check = {
-  id: 'text-compression', family: 'performance', maxPoints: 3,
+  id: 'text-compression', family: 'performance', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
@@ -251,7 +251,7 @@ export const textCompression: Check = {
 // ---------------------------------------------------------------------------
 
 export const assetCaching: Check = {
-  id: 'asset-caching', family: 'performance', maxPoints: 2,
+  id: 'asset-caching', family: 'performance', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
@@ -282,7 +282,7 @@ export const assetCaching: Check = {
 // ---------------------------------------------------------------------------
 
 export const inlineHeadVolume: Check = {
-  id: 'inline-head-volume', family: 'performance', maxPoints: 2,
+  id: 'inline-head-volume', family: 'performance', evidence: 'heuristic', maxPoints: 2,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');

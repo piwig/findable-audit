@@ -61,7 +61,7 @@ export async function discoverSitemap(ctx: CrawlContext): Promise<{ res: Fetched
 }
 
 export const sitemapCheck: Check = {
-  id: 'sitemap', family: 'technical-seo', maxPoints: 10,
+  id: 'sitemap', family: 'technical-seo', evidence: 'measured', maxPoints: 10,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found) {
@@ -84,7 +84,7 @@ export const sitemapCheck: Check = {
 
 export function indexnowCheck(key?: string): Check {
   return {
-    id: 'indexnow', family: 'technical-seo', maxPoints: 4,
+    id: 'indexnow', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
     async run(ctx) {
       if (!key) return makeResult(this, 'skip', 'no IndexNow key provided (use --indexnow-key to enable)');
       const res = await ctx.fetch(`/${key}.txt`);
@@ -102,7 +102,7 @@ export function indexnowCheck(key?: string): Check {
 // ---------------------------------------------------------------------------
 
 export const sitemapLastmod: Check = {
-  id: 'sitemap-lastmod', family: 'technical-seo', maxPoints: 4,
+  id: 'sitemap-lastmod', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found) return makeResult(this, 'skip', 'no sitemap discovered');
@@ -138,7 +138,7 @@ export const sitemapLastmod: Check = {
 const MAX_SITEMAP_URLS = 10;
 
 export const sitemapUrlsValid: Check = {
-  id: 'sitemap-urls-valid', family: 'technical-seo', maxPoints: 4,
+  id: 'sitemap-urls-valid', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found) return makeResult(this, 'skip', 'no sitemap discovered');
@@ -178,7 +178,7 @@ const MAX_CHILD_SITEMAPS = 5;
 const SITEMAP_URL_LIMIT = 50_000;
 
 export const sitemapIndexLimits: Check = {
-  id: 'sitemap-index-limits', family: 'technical-seo', maxPoints: 2,
+  id: 'sitemap-index-limits', family: 'technical-seo', evidence: 'measured', maxPoints: 2,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found || !/<sitemapindex[\s>]/i.test(found.res.body)) {
@@ -210,7 +210,7 @@ export const sitemapIndexLimits: Check = {
 // ---------------------------------------------------------------------------
 
 export const sitemapOrphans: Check = {
-  id: 'sitemap-orphans', family: 'technical-seo', maxPoints: 3,
+  id: 'sitemap-orphans', family: 'technical-seo', evidence: 'measured', maxPoints: 3,
   async run(ctx) {
     const found = await discoverSitemap(ctx);
     if (!found) return makeResult(this, 'skip', 'no sitemap discovered');

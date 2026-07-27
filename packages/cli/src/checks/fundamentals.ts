@@ -10,7 +10,7 @@ async function home(ctx: CrawlContext): Promise<HTMLElement | null> {
 }
 
 export const titleDescription: Check = {
-  id: 'title-description', family: 'on-page', maxPoints: 8,
+  id: 'title-description', family: 'on-page', evidence: 'heuristic', maxPoints: 8,
   async run(ctx) {
     const root = await home(ctx);
     if (!root) return makeResult(this, 'fail', 'homepage not reachable');
@@ -29,7 +29,7 @@ export const titleDescription: Check = {
 };
 
 export const canonical: Check = {
-  id: 'canonical', family: 'technical-seo', maxPoints: 5,
+  id: 'canonical', family: 'technical-seo', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const pages = await pagesOf(ctx);
     if (pages.length === 0) return makeResult(this, 'fail', 'no page reachable');
@@ -63,7 +63,7 @@ export const canonical: Check = {
 };
 
 export const openGraph: Check = {
-  id: 'open-graph', family: 'structured-data', maxPoints: 5,
+  id: 'open-graph', family: 'structured-data', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const root = await home(ctx);
     if (!root) return makeResult(this, 'fail', 'homepage not reachable');
@@ -110,7 +110,7 @@ export function isLocalOrPrivateHost(hostname: string): boolean {
 }
 
 export const httpsCheck: Check = {
-  id: 'https', family: 'security', maxPoints: 5,
+  id: 'https', family: 'security', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const res = await ctx.fetch('/');
     const final = new URL(res?.finalUrl || ctx.baseUrl.toString());
@@ -121,7 +121,7 @@ export const httpsCheck: Check = {
 };
 
 export const viewport: Check = {
-  id: 'viewport', family: 'accessibility', maxPoints: 5,
+  id: 'viewport', family: 'accessibility', evidence: 'measured', maxPoints: 5,
   async run(ctx) {
     const root = await home(ctx);
     if (!root) return makeResult(this, 'fail', 'homepage not reachable');
