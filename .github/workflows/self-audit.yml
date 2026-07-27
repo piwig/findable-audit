@@ -1,0 +1,41 @@
+# We audit other people's sites for a living, so ours gets audited too — by the
+# action in this repository, against the live deployment, on a schedule.
+#
+# Two things this buys beyond vanity:
+#   - it exercises the composite action end to end every week, so a change that
+#     breaks `uses: piwig/findable-audit@main` is caught here, not by a user;
+#   - the score floor turns a silent regression on the site into a red run.
+#
+# The floor is deliberately below the current score: it should catch a real drop,
+# not fail on the one-point noise of a warning appearing.
+name: self-audit
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays, early — off the hour, nobody else's peak
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # upload-sarif
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: findable
+        uses: ./
+        with:
+          url: https://findable.bordebat.fr
+          min-score: '90'
+          max-pages: '10'
+          lang: 'en'
+
+      - if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: findable-audit.sarif
+
+      - if: always()
+        run: echo "findable.bordebat.fr scored ${{ steps.findable.outputs.score }} (grade ${{ steps.findable.outputs.grade }})" >> "$GITHUB_STEP_SUMMARY"
