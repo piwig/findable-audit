@@ -44,15 +44,31 @@ const NAV_CHROME = new Set([
   'privacy', 'privacy policy', 'cookies', 'plan du site', 'sitemap', 'blog', 'actualites',
   'actualités', 'news', 'faq', 'connexion', 'login', 'panier', 'cart', 'recherche', 'search',
   'menu', 'retour', 'back', 'devis', 'quote',
+  'tous les services', 'nos services', 'voir tous', 'voir plus', 'en savoir plus',
+  'all services', 'our services', 'see all', 'learn more', 'read more',
 ]);
 
-const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
+/** Decorative affordances that ride along in nav labels: caret, chevron, arrow, ellipsis. */
+const GLYPHS = /[▾▼▸►→↗»›«‹⌄⌃…]/g;
+
+const norm = (s: string) => s.replace(GLYPHS, ' ').replace(/\s+/g, ' ').trim();
 const key = (s: string) => norm(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+/**
+ * Is this label the name of a service, or just something that happened to sit in a nav or
+ * an H1? Found on real sites: "Services▾", "Tous les services →", a language switcher, and
+ * marketing lines like "Votre SEO et votre findabilité IA, notés A–F." were all becoming
+ * subjects, and each one generates a whole row of questions nobody would ever ask.
+ */
 function isServiceLabel(label: string): boolean {
   const k = key(label);
   if (k.length < 3 || k.length > 60) return false;
-  return !NAV_CHROME.has(k);
+  if (NAV_CHROME.has(k)) return false;
+  // A sentence is a claim, not a service name. Punctuation is the giveaway.
+  if (/[.!?;:]/.test(k)) return false;
+  // So is length: real service names are short. "Renovation de salle de bain" is five
+  // words; "Une maison de motoculture depuis 1964" is a tagline.
+  return k.split(' ').length <= 5;
 }
 
 /** Service names the markup declares, in the order schema.org nests them. */
@@ -83,7 +99,11 @@ function markupServices(nodes: Record<string, unknown>[]): string[] {
 function navLabels(root: HTMLElement): string[] {
   const nav = root.querySelector('nav');
   if (!nav) return [];
-  return nav.querySelectorAll('a').map((a) => norm(a.textContent));
+  return nav.querySelectorAll('a')
+    // A language switcher is not a service. "English" became a subject on a real site,
+    // and produced "English : qui êtes-vous ?".
+    .filter((a) => !a.hasAttribute('hreflang'))
+    .map((a) => norm(a.textContent));
 }
 
 function headings(root: HTMLElement): string[] {

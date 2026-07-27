@@ -6,7 +6,7 @@ import { hasFactAnchor, opensWithoutBackreference } from '../checks/content.js';
 import { INTENT_GRID, type Bucket, type IntentDef, type IntentId } from './grid.js';
 import { PREDICATES, type PredicateInput } from './predicates.js';
 import { extractSubjects, type Subject, type Zone } from './subjects.js';
-import { extractJsonLd, flatten, typesOf } from '../checks/jsonld.js';
+import { extractJsonLd, flatten, typesOf, NAP_REQUIRED_TYPES, isOrganizationType } from '../checks/jsonld.js';
 import type { Lang } from '../report/i18n.js';
 
 // ---------------------------------------------------------------------------
@@ -53,10 +53,26 @@ const RANK: Record<CellState, number> = { missing: 0, weak: 1, covered: 2 };
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-/** The schema.org family the site falls into, which decides the intents that apply. */
+/**
+ * The schema.org family the site falls into, which decides the intents that apply.
+ *
+ * Reuses `NAP_REQUIRED_TYPES` — the LocalBusiness subtree the structured-data checks already
+ * agree on — rather than a second, narrower list. A real audited site declaring
+ * `ProfessionalService` plus an address and an `areaServed` was falling through to
+ * `unknown`, which silently dropped the entire local-business grid: price, hours, location
+ * and process were never even asked.
+ */
 export function bucketOf(pages: FetchedResource[]): Bucket {
-  const types = new Set(pages.flatMap((p) => flatten(extractJsonLd(p.body)).flatMap(typesOf)));
-  if ([...types].some((t) => t === 'LocalBusiness' || t === 'Store' || t.endsWith('Business'))) return 'local-business';
+  const nodes = pages.flatMap((p) => flatten(extractJsonLd(p.body)));
+  const types = new Set(nodes.flatMap(typesOf));
+
+  if ([...types].some((t) => NAP_REQUIRED_TYPES.has(t) || t === 'Store' || t.endsWith('Business'))) return 'local-business';
+  // An organisation that publishes a postal address or an area served is a local business
+  // in everything but its @type.
+  const local = nodes.some((n) => (isOrganizationType(typesOf(n)[0] ?? '') || typesOf(n).includes('Organization'))
+    && (n.address !== undefined || n.areaServed !== undefined));
+  if (local) return 'local-business';
+
   if (types.has('Product') || types.has('Offer')) return 'product';
   if (types.has('Article') || types.has('BlogPosting') || types.has('NewsArticle')) return 'article';
   return 'unknown';
@@ -116,12 +132,24 @@ function gradeExtractability(intent: IntentDef, chunk: Chunk, args: PredicateInp
   // markup. It is machine-readable by construction, so extractability does not apply.
   if (holds('')) return { state: 'covered', evidence: 'markup' };
 
+  /**
+   * An answer has to hold together in ONE unit: the evidence, the subject and — when the
+   * question carries one — the area. Co-occurrence anywhere inside a 512-token window is
+   * not an answer, and treating it as one produced a real false positive on a live site:
+   * "do you cover Val d'Izé for Services?" came back covered because a hero block happened
+   * to contain both words, three hundred tokens apart, asserting nothing.
+   */
+  const qualifies = (text: string) => holds(text)
+    && fold(text).includes(fold(args.subject))
+    && (!intent.zoned || !args.zone || fold(text).includes(fold(args.zone)));
+
   const blocks = chunk.blocks.filter((b) => !chunk.headings.includes(b));
   // Sentence first — that is the unit a model quotes. Block as a fallback, because some
   // evidence legitimately spans sentences (an enumeration of steps is one answer, not
   // three), and splitting it would report a well-written passage as unquotable.
-  const evidence = blocks.flatMap(sentencesOf).find(holds) ?? blocks.find(holds);
-  if (!evidence) return { state: 'weak', evidence: 'prose' };
+  const evidence = blocks.flatMap(sentencesOf).find(qualifies) ?? blocks.find(qualifies);
+  // Nothing holds it together: the question is unanswered, not answered-but-unquotable.
+  if (!evidence) return { state: 'missing', evidence: 'none' };
 
   const anchored = hasFactAnchor([...chunk.headings, evidence].join(' '));
   const quotable = anchored && opensWithoutBackreference(evidence);

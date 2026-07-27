@@ -52,9 +52,13 @@ describe('extractSubjects — zones', () => {
       areaServed: [{ '@type': 'City', name: 'Rennes' }, 'Ille-et-Vilaine'],
       address: { '@type': 'PostalAddress', addressLocality: 'Orgères', postalCode: '35230' },
     });
+    // Compared in NFC: an accented literal can be composed or decomposed depending on how
+    // the file was edited, and a byte-equality assertion on "Orgères" fails for a reason
+    // that has nothing to do with the code under test.
+    const nfc = (s: string) => s.normalize('NFC');
     const { zones } = extractSubjects([page(body)]);
-    expect(zones.map((z) => z.label)).toEqual(expect.arrayContaining(['Rennes', 'Ille-et-Vilaine', 'Orgères']));
-    expect(zones.find((z) => z.label === 'Orgères')?.kind).toBe('locality');
+    expect(zones.map((z) => nfc(z.label))).toEqual(expect.arrayContaining(['Rennes', 'Ille-et-Vilaine', 'Orgères'].map(nfc)));
+    expect(zones.find((z) => nfc(z.label) === nfc('Orgères'))?.kind).toBe('locality');
   });
 
   // A postal code is another name for a town, not a place of its own. Making it a zone
