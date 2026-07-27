@@ -56,24 +56,21 @@ jobs:
       # out. `files` only ships `dist`, which means a publish that skipped the
       # build would upload a package with no code in it and nobody would notice
       # until an install failed.
+      # Built for real and listed with tar rather than parsed out of
+      # `npm pack --json`, whose shape is an npm implementation detail — the
+      # first version of this guard blocked a release because the guard itself
+      # was wrong, which is a worse failure than the one it exists to catch.
       - name: The tarball actually contains the CLI
         run: |
-          npm pack --dry-run --json --workspace packages/cli > /tmp/pack.json
-          node -e '
-            const pack = require("/tmp/pack.json")[0];
-            const names = pack.files.map((f) => f.path);
-            const required = ["dist/index.js", "dist/checks/index.js", "README.md", "LICENSE"];
-            const missing = required.filter((f) => !names.includes(f));
-            if (missing.length) {
-              console.error("tarball is missing: " + missing.join(", "));
-              process.exit(1);
-            }
-            if (names.length < 50) {
-              console.error(`tarball has only ${names.length} files — a partial build?`);
-              process.exit(1);
-            }
-            console.log(`tarball ok: ${names.length} files, ${(pack.size / 1024).toFixed(0)} kB`);
-          '
+          npm pack --workspace packages/cli --pack-destination "$RUNNER_TEMP" >/dev/null
+          TARBALL=$(ls "$RUNNER_TEMP"/findable-audit-*.tgz | head -1)
+          tar -tzf "$TARBALL" > "$RUNNER_TEMP/files.txt"
+          for required in package/dist/index.js package/dist/checks/index.js package/README.md package/LICENSE; do
+            grep -qx "$required" "$RUNNER_TEMP/files.txt" || { echo "tarball is missing $required" >&2; exit 1; }
+          done
+          COUNT=$(grep -c . "$RUNNER_TEMP/files.txt")
+          [ "$COUNT" -ge 50 ] || { echo "tarball has only $COUNT entries — a partial build?" >&2; exit 1; }
+          echo "tarball ok: $COUNT entries, $(du -h "$TARBALL" | cut -f1)"
 
       # No NODE_AUTH_TOKEN: the package's trusted publisher (npmjs.com > package
       # settings) authorizes this exact repo + workflow over OIDC. Provenance is
