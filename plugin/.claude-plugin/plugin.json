@@ -1,9 +1,18 @@
 {
   "name": "findable-audit",
   "description": "Audit and implement GEO (AI-search visibility) and technical SEO for static sites.",
-  "version": "0.2.0",
-  "author": { "name": "piwig" },
+  "version": "0.2.1",
+  "author": {
+    "name": "piwig"
+  },
   "homepage": "https://github.com/piwig/findable-audit",
   "license": "MIT",
-  "keywords": ["seo", "geo", "ai-search", "llms-txt", "structured-data", "audit"]
+  "keywords": [
+    "seo",
+    "geo",
+    "ai-search",
+    "llms-txt",
+    "structured-data",
+    "audit"
+  ]
 }

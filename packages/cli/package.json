@@ -1,17 +1,46 @@
 {
   "name": "findable-audit",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=20.3" },
-  "bin": { "findable": "dist/index.js" },
-  "files": ["dist", "README.md", "LICENSE"],
-  "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "git+https://github.com/piwig/findable-audit.git", "directory": "packages/cli" },
+  "engines": {
+    "node": ">=20.3"
+  },
+  "bin": {
+    "findable": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piwig/findable-audit.git",
+    "directory": "packages/cli"
+  },
   "homepage": "https://github.com/piwig/findable-audit#readme",
-  "bugs": { "url": "https://github.com/piwig/findable-audit/issues" },
-  "keywords": ["seo", "geo", "llms.txt", "ai-search", "audit", "lint", "junit", "sarif", "ci", "github-actions", "structured-data", "json-ld"],
+  "bugs": {
+    "url": "https://github.com/piwig/findable-audit/issues"
+  },
+  "keywords": [
+    "seo",
+    "geo",
+    "llms.txt",
+    "ai-search",
+    "audit",
+    "lint",
+    "junit",
+    "sarif",
+    "ci",
+    "github-actions",
+    "structured-data",
+    "json-ld"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
