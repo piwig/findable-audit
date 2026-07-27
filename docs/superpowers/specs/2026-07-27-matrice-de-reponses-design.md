@@ -109,6 +109,29 @@ est simplement invisible, ce que les autres checks disent déjà mieux.
 Au-delà, on tronque par ordre de source (`markup` avant `nav` avant `h1`) et **le rapport le
 dit**.
 
+### 5.bis Provenance — trois couches étiquetées, jamais mélangées
+
+Décision du 2026-07-27, en vue du mode comparé (§15). Une question peut venir de trois
+endroits, et ils n'ont pas la même valeur de preuve. La provenance est donc un champ porté
+par chaque question, rendu dans le rapport, et **elle décide de ce qui compte dans la note** :
+
+| Provenance | D'où vient la question | Compte dans la note ? |
+|---|---|---|
+| `declared-self` | le site audité déclare ce service / cette zone | **oui** |
+| `declared-peer` | un concurrent comparé le déclare, le site audité non | `warn` seulement — c'est un angle mort, pas une faute |
+| `sector` | la grille sectorielle figée, personne ne l'a déclaré | **jamais** — informatif, affiché à part |
+
+C'est ce qui rend le mélange des trois honnête plutôt que confus. Un lecteur doit pouvoir
+lire « tu ne réponds pas à ça, **et tu prétends le faire** » sans le confondre avec « tu ne
+réponds pas à ça, **et deux concurrents oui** », ni avec « ton secteur traite ça en général ».
+Fondre les trois en un seul pourcentage détruirait précisément l'information qui fait agir.
+
+⚠️ La couche `sector` est une **exception documentée** au principe du §3 (« ne générer que
+des questions issues de ce que les sites déclarent »). Elle ne prétend pas non plus mesurer
+une demande : elle dit « des sites comme le tien traitent ce sujet », ce qui reste une
+hypothèse. D'où le fait qu'elle ne pèse rien dans la note et qu'elle est bannie de tout
+chiffre de synthèse.
+
 ## 6. La grille — une intention est un prédicat de preuve, pas un mot-clé
 
 C'est le cœur du design, et ce qui le rend difficile à truquer : une intention n'est pas
@@ -286,3 +309,31 @@ push de tag reste soumis à son accord.
 | Les prédicats lexicaux (prix, horaires) ne marchent qu'en anglais | Piège déjà rencontré trois fois sur ce projet : tests FR **et** EN obligatoires sur chaque prédicat lexical |
 | La combinatoire explose sur un gros site | Bornes dures du §5, troncature annoncée |
 | Le lecteur prend la matrice pour une étude de demande | Mention §10.1, badge `heuristic`, et vocabulaire du rapport qui parle de *promesse tenue*, jamais de *recherche* |
+
+## 15. Mode comparé — la part de voix sans clé (palier 1 du §13 ⭐⭐)
+
+Le §13 classe l'outil de positionnement concurrentiel ⭐⭐, sa plus haute priorité, et le
+coupe en deux : le scorecard tête-à-tête N URL — **livré** (`--compare`) — et la part de voix
+dans les réponses IA — **non livrée**, et instruite au §12.F de la roadmap comme coûteuse et
+hors ADN.
+
+La matrice ouvre une troisième voie, qui n'était pas dans le §13 : **croiser `--compare` et la
+matrice donne une part de voix qui ne demande ni clé, ni budget, ni appel externe.** Sur un
+même jeu de questions, on montre qui est *équipé* pour être cité. Le moteur existe déjà des
+deux côtés ; le delta est une jointure au niveau du rapport.
+
+**Ce que ça dit, et ce que ça ne dit pas.** Ça ne dit pas « ChatGPT cite Untel » — nous n'en
+savons rien et le prétendre serait mentir. Ça dit : « sur *plombier urgence Rennes*, trois de
+tes quatre concurrents ont un passage autonome qui répond, toi non. » C'est un **proxy de
+capacité, pas une mesure d'audience**, et le rapport doit l'écrire ainsi.
+
+**Le jeu de questions est commun, et étiqueté** (§5.bis) : dérivé de l'union du site audité et
+des concurrents comparés, plus la couche sectorielle informative. Sans jeu commun, chaque site
+serait noté sur ses propres promesses et rien ne serait comparable — c'est le piège central de
+ce mode. La couche `declared-peer` est ce qui a le plus de valeur commerciale : ce sont les
+questions que le client n'a jamais pensé à traiter, révélées par le fait que ses concurrents,
+eux, les traitent.
+
+**Ordre de livraison** : ce mode vient **après** que le §12 ait figé les prédicats. Comparer
+avec un instrument non calibré multiplierait l'erreur par le nombre de sites au lieu de la
+révéler.
