@@ -14,17 +14,22 @@ import { renderJunit } from './report/junit.js';
 import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
+import { pickAnswersRenderer } from './report/answers.js';
 import { emitFiles } from './generate/index.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
 --fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
 --entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json, .dot (Graphviz), or .mmd (Mermaid).
+--answers <file> writes the answer matrix: the questions this site's own declarations imply, and
+  whether the crawled pages hold a passage that answers each one and stands on its own. Format by
+  extension: .json, or anything else Markdown. These questions come from what the site DECLARES —
+  its services, its areas, its markup — never from measured search demand, and the file says so.
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
   sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
@@ -92,6 +97,7 @@ const parseCliArgs = () =>
       'fail-on-regression': { type: 'boolean', default: false },
       'regression-tolerance': { type: 'string', default: '0' },
       'entity-graph': { type: 'string' },
+      answers: { type: 'string' },
       emit: { type: 'string' },
       submit: { type: 'boolean', default: false },
       'verify-profiles': { type: 'boolean', default: false },
@@ -185,6 +191,15 @@ if ((failOnRegression || values['regression-tolerance'] !== '0') && values.basel
   console.error(`findable-audit: --fail-on-regression / --regression-tolerance require --baseline <file>\n\n${USAGE}`);
   process.exit(2);
 }
+// --answers <file>: validate the target extension up front, like --entity-graph.
+const answersFile = values.answers;
+if (answersFile !== undefined) {
+  if (answersFile.trim() === '' || pickAnswersRenderer(answersFile) === null) {
+    console.error('findable-audit: --answers file must end in .json or .md');
+    process.exit(2);
+  }
+}
+
 // --entity-graph <file>: validate the target extension up front.
 const entityGraphFile = values['entity-graph'];
 if (entityGraphFile !== undefined) {
@@ -245,7 +260,7 @@ const htmlReportWanted = values.report === undefined
 
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 
@@ -345,6 +360,23 @@ try {
       console.error(`summary written to ${summaryFile}`);
     } catch (err) {
       console.error(`findable-audit: cannot write summary to "${summaryFile}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
+
+  // --answers <file>: write the answer matrix in the chosen format. The sample it rests
+  // on travels with it, and so does the warning when the crawl stopped at its page limit —
+  // a gap found on a truncated crawl is not evidence of a gap on the site.
+  if (answersFile !== undefined && report.answerMatrix) {
+    const renderer = pickAnswersRenderer(answersFile)!;
+    const capped = report.sampledPages.length >= maxPages;
+    try {
+      writeFileSync(answersFile, renderer(report.answerMatrix, {
+        sampledPages: report.sampledPages, capped, lang,
+      }), 'utf8');
+      console.error(`answer matrix written to ${answersFile}`);
+    } catch (err) {
+      console.error(`findable-audit: cannot write answer matrix to "${answersFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
     }
   }

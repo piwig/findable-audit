@@ -11,6 +11,24 @@ not where it started.
 
 ### Added
 
+- **`--answers <file>` — the answer matrix.** Derives, from what the site *declares* about
+  itself (services, areas, JSON-LD), the questions it implicitly promises to answer; then
+  checks whether the crawled pages hold a passage that answers each one **and stands on its
+  own** when a retriever hands it to a model in isolation. Three states: covered, weak (the
+  answer is there but cannot be quoted alone), missing. Written as `.json` or Markdown.
+
+  It ships as an artifact, **not as a scored check**, and that was a reversal: calibrating on
+  three real sites gave 21 %, 52 % and 17 % coverage, and the low numbers were *correct* —
+  those sites simply do not publish prices or opening hours. Not publishing a price is a
+  business decision, not a technical defect, so no threshold could discriminate without
+  penalising everyone equally. The claim was withdrawn rather than the bar lowered. Your
+  score is unchanged by this release's matrix work.
+
+  The file states its own provenance — these questions come from the site's declarations,
+  never from measured search demand — names the pages it was built from, and warns when the
+  crawl stopped at its page limit, because a gap found on a truncated crawl is not evidence
+  of a gap on the site.
+
 - **Eleven checks — 126 → 137.** Four clusters, closing the crawl-only gaps the backlog had
   been listing since July: transport (`http-protocol`, `tls-version`, `cdn-edge-cache`),
   structured data (`rich-result-eligibility`, `sd-page-entity`), links

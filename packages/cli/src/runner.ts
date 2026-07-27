@@ -5,6 +5,7 @@ import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
 import { fetchPsi, type PsiResult } from './perf/psi.js';
+import { buildAnswerMatrix, type AnswerMatrix } from './answers/matrix.js';
 import { buildEntityGraph, type EntityGraph } from './report/entity-graph.js';
 import { mapProbes } from './checks/concurrency.js';
 
@@ -46,6 +47,8 @@ export interface AuditReport {
   toolVersion?: string;
   /** JSON-LD entity graph across sampled pages. Included only when opts.includeEntityGraph is set. */
   entityGraph?: EntityGraph;
+  /** Answer matrix across sampled pages. Included only when opts.includeAnswerMatrix is set. */
+  answerMatrix?: AnswerMatrix;
 }
 
 export interface AuditOptions {
@@ -79,6 +82,9 @@ export interface AuditOptions {
   checkOutbound?: boolean;
   /** Include the built entity graph in the returned AuditReport (for --entity-graph export). */
   includeEntityGraph?: boolean;
+  /** Build the answer matrix and attach it to the report. Off by default: it is an
+   *  artifact the caller asks for, not something every audit needs to pay for. */
+  includeAnswerMatrix?: boolean;
   /**
    * Best-effort progress callback for a live UI (e.g. the web app's SSE stream).
    * Wrapped in try/catch by the runner: it never throws into the audit and never
@@ -175,5 +181,6 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results,
     psi: crawler.psi, generatedAt: new Date().toISOString(),
     ...(opts.includeEntityGraph ? { entityGraph: crawler.entityGraph } : {}),
+    ...(opts.includeAnswerMatrix ? { answerMatrix: buildAnswerMatrix(crawler.sample.pages) } : {}),
   };
 }

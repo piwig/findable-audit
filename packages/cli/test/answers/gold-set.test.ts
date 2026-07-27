@@ -74,10 +74,17 @@ const GOLD: Label[] = [
 
 const matrices = new Map(['masse', 'pb-ot', 'findable'].map((s) => [s, buildAnswerMatrix(corpus(s))]));
 
+/**
+ * Compared in NFC. An accented literal in this file can be composed or decomposed
+ * depending on how it was edited, while the label comes from the captured HTML — matching
+ * them byte-for-byte fails for a reason that has nothing to do with the code under test.
+ */
+const nfc = (s: string) => s.normalize('NFC');
+
 function find(l: Label): Cell | undefined {
   return matrices.get(l.site)!.cells.find((c) => c.intent === l.intent
-    && c.subject.label === l.subject
-    && (l.zone === undefined || c.zone?.label === l.zone));
+    && nfc(c.subject.label) === nfc(l.subject)
+    && (l.zone === undefined || (c.zone !== undefined && nfc(c.zone.label) === nfc(l.zone))));
 }
 
 describe('§12.3 — ground truth on three real sites', () => {
