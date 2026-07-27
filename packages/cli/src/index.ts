@@ -38,6 +38,9 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
+  Depth is an intention, not a number: 1 = fast check (homepage only) · 5-10 = template audit (the
+  page shapes a site reuses) · 25-50 = site audit · 100+ = deep investigation. A bigger sample costs
+  proportionally more requests to the audited site, so pick the smallest one that answers your question.
 By default, two report files are written to the current directory: <host>-<date>.md and <host>-<date>.html
   (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen

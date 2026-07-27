@@ -76,7 +76,8 @@ export const WEB_MESSAGES = {
       cta: 'Audit',
       // #60: crawl depth, bounded server-side (PAGE_CHOICES).
       depthLabel: 'Pages to audit',
-      depthOption: (n) => (n === 1 ? 'Homepage only' : `${n} pages`),
+      // #66: the depth is an intention, not a number.
+      depthOption: (n) => (n === 1 ? 'Homepage only — fast check' : n <= 3 ? `${n} pages — template audit` : `${n} pages — full sample`),
       hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
       // Two modes, one form (L2): the tabs are <a href="#…"> + :target, so the
       // landing keeps `script-src 'none'`.
@@ -295,7 +296,8 @@ export const WEB_MESSAGES = {
       cta: 'Auditer',
       // #60 : profondeur de crawl, bornée côté serveur (PAGE_CHOICES).
       depthLabel: 'Pages à auditer',
-      depthOption: (n) => (n === 1 ? 'Page d’accueil seule' : `${n} pages`),
+      // #66 : la profondeur est une intention, pas un nombre.
+      depthOption: (n) => (n === 1 ? 'Page d’accueil seule — vérification rapide' : n <= 3 ? `${n} pages — audit de gabarits` : `${n} pages — échantillon complet`),
       hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
       // Deux modes, un seul formulaire (L2) : les onglets sont des <a href="#…">
       // + :target, la landing garde donc sa CSP `script-src 'none'`.
