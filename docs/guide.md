@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **121 checks in 8 families**.
+findable-audit scores a site out of 100 across **125 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 121 checks, **94 are measured and 27 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 125 checks, **96 are measured and 29 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -11,7 +11,7 @@ findable-audit scores a site out of 100 across **121 checks in 8 families**.
 | AI crawler access | 0.16 | 9 |
 | Answer-engine content | 0.18 | 21 |
 | Structured data & metadata | 0.15 | 20 |
-| Technical SEO | 0.15 | 22 |
+| Technical SEO | 0.15 | 26 |
 | On-page & content | 0.12 | 11 |
 | Performance & Core Web Vitals | 0.10 | 19 |
 | Accessibility | 0.07 | 9 |
@@ -677,6 +677,26 @@ Trust posture: HTTPS end-to-end, security headers, no mixed content.
 **Verifies:** `/.well-known/security.txt` (RFC 9116) exists, is served as text (not an HTML app shell), carries the required `Contact:` field, and an `Expires:` date still in the future. Warns — never fails — in every other case.
 **Why:** It is the machine-readable address a security researcher (or an automated scanner) uses to reach you. An absent, contactless or expired file reads as an unattended site, and it is the last `/.well-known/` discovery file alongside `robots.txt`, `llms.txt` and `ai.json`.
 **Fix:** Publish `/.well-known/security.txt` with at least `Contact:` (a mailto: or https: address that reaches someone) and `Expires:` an ISO-8601 date in the future — then renew it before it lapses.
+
+### `broken-subresources` (4 pts)
+**Verifies:** A page's markup can be flawless while the files it loads are gone.
+**Why:** A page's markup can be flawless while the files it loads are gone. A 404 on a stylesheet strips the page of its layout, a 404 on a script removes whatever it was meant to hydrate, and a 404 on an image leaves an alt string where the illustration a citation refers to should be. None of this is visible in the HTML — only the response tells you, which is why it survives review and ships. This probes the subresources the sampled pages actually reference (<script src>, <link rel=stylesheet href>, <img src>/<img srcset>, <source srcset>), deduped, same-origin, code assets first, capped at 20 real GETs with bounded concurrency. Cross-origin assets are counted but never probed: a CDN answering 403 to an unfamiliar user-agent is indistinguishable from a dead file, and a site should not be failed for a third party's bot wall. The verdict rests only on the HTTP status (RFC 9110: 4xx/5xx is an error response) and is graded like the other multi-page checks — pass at 100 % reachable, warn at 80 % or better, fail below.
+**Fix:** Open each reported path directly and fix or remove the reference: restore the missing file, correct the path (a typo, a case mismatch on a case-sensitive server, a stale build hash after a deploy), or delete the <img>/<script>/<link> that points at it. Check the responsive variants too — a broken URL often hides in a srcset candidate while the src fallback still works.
+
+### `js-only-destinations` (3 pts)
+**Verifies:** Pulls the destination URL back out of the markup of elements that are not links — a div, span or button wired with onclick="location.href=…", location.assign/replace, window.open(), router.push()/navigate(), a javascript: href, or a data-href/data-url/data-link/data-route attribute on an interactive element — then checks whether that same internal URL is also exposed as a real <a href> somewhere in the sample (or is itself a sampled page).
+**Why:** Pulls the destination URL back out of the markup of elements that are not links — a div, span or button wired with onclick="location.href=…", location.assign/replace, window.open(), router.push()/navigate(), a javascript: href, or a data-href/data-url/data-link/data-route attribute on an interactive element — then checks whether that same internal URL is also exposed as a real <a href> somewhere in the sample (or is itself a sampled page). Crawlers that do not execute JavaScript (GPTBot, ClaudeBot, PerplexityBot, CCBot, and Google's first pass) only ever follow href attributes, so a URL that exists solely inside a click handler is a page they can never discover — and unlike a ratio of JS-dependent anchors, this names the pages actually at risk. Scripted asset downloads, cross-origin targets and CDN infrastructure paths are ignored, and the verdict never exceeds a warning because the sample is bounded and the set of attributes treated as link affordances is a convention, not a standard.
+**Fix:** Wrap the same destination in a real <a href="/path"> link. Keep the click handler if the interaction needs it, but a crawler that does not run JavaScript sees only href attributes, so a URL that lives inside an onclick handler or a data-href attribute is a page it can never reach — expose it as an anchor and the handler becomes an enhancement rather than the only way in.
+
+### `indexing-conflicts` (4 pts)
+**Verifies:** Cross-references three signals the crawl already holds — robots.txt Disallow rules, the sitemap's URL list, and the sampled pages' canonical and noindex directives — and reports where they contradict each other: a sitemap entry that robots.txt forbids, a canonical pointing at a forbidden URL, or a noindex page listed in the sitemap.
+**Why:** Cross-references three signals the crawl already holds — robots.txt Disallow rules, the sitemap's URL list, and the sampled pages' canonical and noindex directives — and reports where they contradict each other: a sitemap entry that robots.txt forbids, a canonical pointing at a forbidden URL, or a noindex page listed in the sitemap. A blocked URL is never fetched, so a crawler can neither read it nor read the noindex on it; the page can end up stuck in results as a bare URL the site has no way to remove, and canonical consolidation onto a blocked target is simply dropped.
+**Fix:** Never Disallow a URL you also list in a sitemap or point a canonical at: drop the Disallow, or drop the URL from the sitemap and stop canonicalizing to it. Keep noindex pages out of the sitemap.
+
+### `soft-error-pages` (4 pts)
+**Verifies:** Reads the pages the crawl actually sampled and flags any that answer HTTP 200 while their own <title> or <h1> is an error message ("Page not found", "404 Not Found", "Page introuvable", "Une erreur est survenue"), or that serve almost no main content on a URL that is not the homepage.
+**Why:** Reads the pages the crawl actually sampled and flags any that answer HTTP 200 while their own <title> or <h1> is an error message ("Page not found", "404 Not Found", "Page introuvable", "Une erreur est survenue"), or that serve almost no main content on a URL that is not the homepage. This is where `soft-404` cannot look: that check fires one synthetic probe at a random path that cannot exist, so it only learns what the server does with an obviously-missing route, never what it does with the real URLs a sitemap or an internal link advertised. Crawlers and AI answer engines trust the status line — RFC 9110 makes the status code carry the semantics of the response — so an error page served as 200 gets indexed, chunked and quoted as if it were content, while the genuinely missing page never drops out of the index. The lexicon is bilingual (FR + EN) and a marked page must also be short (under 400 words of main content), so an article that merely writes about 404 errors is never flagged.
+**Fix:** Return 404 (or 410 for permanently removed content) on the routes whose page says it failed, and give every URL that answers 200 a real document.
 
 ## Generating indexing files
 

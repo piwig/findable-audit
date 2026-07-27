@@ -19,22 +19,25 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(121);
+    expect(report.results).toHaveLength(125);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
     // The 8 CWV checks (cwv-*, lab-*, lighthouse-perf) skip without --cwv (no PSI call).
     // link-equity-map skips because llm-good only samples the homepage (< 3 pages);
     // csr-content-parity and ai-serving-parity both run and pass on this fixture.
+    // broken-subresources and indexing-conflicts skip on this fixture: the homepage
+    // references no same-origin subresource, and the fixture ships no sitemap to
+    // cross-reference against robots.txt.
     // The 4 GEO-advanced checks skip on this homepage-only fixture: freshness-coherence
     // (< 2 freshness sources), hedging-rate/chunk-boundary (no substantial page) and
     // answer-units (no pillar page ≥300 words). Of the LOT 5 pair, chunk-retrieval-sim
     // skips for the same reason as answer-units; injection-hygiene runs and passes.
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'canonical-resolves', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
+      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources', 'canonical-resolves', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
       'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
-      'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexnow', 'internal-linking',
+      'hreflang-x-default', 'hsts', 'https', 'iframe-title', 'indexing-conflicts', 'indexnow', 'internal-linking',
       'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content',
       'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',
       'robots-wellformed', 'schema-coverage', 'sd-article', 'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity',

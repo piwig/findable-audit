@@ -7,6 +7,29 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.6.0 — 2026-07-27
+
+### Added
+
+- **Four new checks — 121 → 125.** `broken-subresources` (a page whose markup is fine but
+  whose stylesheet, script or image 404s), `js-only-destinations` (internal destinations
+  only reachable by running JavaScript), `soft-error-pages` (a page served 200 whose
+  content says "not found"), `indexing-conflicts` (sitemap URLs disallowed in robots.txt,
+  canonicals pointing at blocked URLs — contradictions between signals we already fetch).
+- **Crawl depth named by intention** in the CLI help and on the web form: fast check,
+  template audit, site audit, deep investigation.
+- **A  input on the GitHub Action**, so the SVG score badge is one obvious knob
+  rather than an extension convention.
+
+### Changed
+
+- **Checks now run concurrently.** The audit used to be the sum of every check's network
+  wait; it is now bounded by the slowest, not the total. Measured against a real slow
+  site: 57s → 21s without Core Web Vitals, 103s → 58s with. Verdicts are byte-identical —
+  results keep their declared order, and the audited site is protected by a single global
+  ceiling of 6 simultaneous requests plus single-flight deduplication, so more parallelism
+  overlaps waiting, never load.
+
 ## 0.5.0 — 2026-07-27
 
 ### Added

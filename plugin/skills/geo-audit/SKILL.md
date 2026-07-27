@@ -5,7 +5,7 @@ description: Use when the user wants to audit a website's visibility for AI assi
 
 # geo-audit
 
-Audit a live website's readiness for AI search (GEO) and technical SEO using the `findable-audit` CLI (121 checks across 8 families), then turn the raw report into a prioritized, actionable fix plan.
+Audit a live website's readiness for AI search (GEO) and technical SEO using the `findable-audit` CLI (125 checks across 8 families), then turn the raw report into a prioritized, actionable fix plan.
 
 ## Step 1: Run the audit
 
@@ -88,8 +88,8 @@ The `--json` output is an `AuditReport`:
 - `sampledPages`: the paths actually audited (homepage first) — cite these when a
   check reports offenders so the user knows the scope.
 - `results[]`: one entry per check with `id`, `family`, `status` (`pass` | `warn` | `fail` | `skip`), `points`, `maxPoints`, `message`, and an optional `fix` suggestion.
-- The 8 families (121 checks): `ai-access` (9), `llm-content` (21),
-  `structured-data` (20), `technical-seo` (22), `on-page` (11),
+- The 8 families (125 checks): `ai-access` (9), `llm-content` (21),
+  `structured-data` (20), `technical-seo` (26), `on-page` (11),
   `performance` (19), `accessibility` (9), `security` (10).
 - Most checks evaluate the whole `sampledPages` sample and list the offending
   paths in `message`. Checks report `skip` when not applicable (e.g. CWV

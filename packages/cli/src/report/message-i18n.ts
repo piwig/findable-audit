@@ -16,6 +16,23 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // LOT 10 — checks issus du fan-out d agents (subresources, js-only, soft-error, conflits d indexation)
+  "no subresources on sampled pages": "aucune sous-ressource sur les pages échantillonnées",
+  "no same-origin subresources ({0} third-party only)": "aucune sous-ressource de même origine ({0} tierce(s) uniquement)",
+  "{0} same-origin subresource(s) resolve": "{0} sous-ressource(s) de même origine aboutissent",
+  "broken subresources: {0}": "sous-ressources cassées : {0}",
+  "{0} page(s) inspected; every internal destination is a real <a href>": "{0} page(s) inspectée(s) ; chaque destination interne est un vrai <a href>",
+  "{0} scripted destination(s), all also exposed as a real <a href>": "{0} destination(s) pilotée(s) par script, toutes également exposées en <a href> réel",
+  "{0} internal URL(s) reachable only by running JavaScript: {1}": "{0} URL interne(s) accessible(s) uniquement en exécutant JavaScript : {1}",
+  "no sampled page and no same-origin sitemap URL to correlate": "aucune page échantillonnée et aucune URL de sitemap de même origine à recouper",
+  "nothing left to correlate: no Disallow rule in robots.txt, and no sitemap-plus-page overlap to cross-check": "plus rien à recouper : aucune règle Disallow dans le robots.txt, et aucun recoupement entre le sitemap et les pages échantillonnées",
+  "robots.txt Disallow contradicts an indexing directive: {0}": "un Disallow du robots.txt contredit une directive d’indexation : {0}",
+  "noindex page(s) listed in the sitemap: {0}": "page(s) en noindex listée(s) dans le sitemap : {0}",
+  "indexing directives agree across {0} sitemap URL(s) and {1} sampled page(s)": "les directives d’indexation concordent sur {0} URL de sitemap et {1} page(s) échantillonnée(s)",
+  "no 200 HTML page in the sample": "aucune page HTML en 200 dans l’échantillon",
+  "error page served with HTTP 200: {0}": "page d’erreur servie en HTTP 200 : {0}",
+  "page served with HTTP 200 has almost no content: {0}": "page servie en HTTP 200 quasiment sans contenu : {0}",
+  "{0} sampled page(s) return 200 with real content": "{0} page(s) échantillonnée(s) renvoient 200 avec un vrai contenu",
   // LOT 9 — security-txt (RFC 9116)
   "no /.well-known/security.txt (RFC 9116 vulnerability-reporting address)": "pas de /.well-known/security.txt (adresse de signalement de failles, RFC 9116)",
   "/.well-known/security.txt answers 200 but is not a text file (HTML app shell?)": "/.well-known/security.txt répond 200 mais n'est pas un fichier texte (shell HTML d'une SPA ?)",
