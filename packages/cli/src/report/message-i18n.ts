@@ -16,6 +16,19 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // Grappe semantique — #30 focalisation thematique, #31 cannibalisation
+  'no page declares a topic and carries enough prose to judge it':
+    'aucune page ne déclare un sujet et ne porte assez de prose pour le juger',
+  'main content stays on the declared topic across {0} page(s) (lowest {1}%)':
+    'le contenu principal reste sur le sujet déclaré sur {0} page(s) (au plus bas {1} %)',
+  'main content barely mentions the declared topic on: {0}':
+    'le contenu principal évoque à peine le sujet déclaré sur : {0}',
+  'fewer than 2 pages declare enough title/H1 words to compare':
+    'moins de 2 pages déclarent assez de mots de titre/H1 pour être comparées',
+  'the {0} compared page(s) each target a distinct intent':
+    'les {0} page(s) comparées visent chacune une intention distincte',
+  'page(s) competing for the same intent: {0}':
+    'page(s) en concurrence sur la même intention : {0}',
   // #65 — verification des profils sameAs
   "profile verification is opt-in (run with --verify-profiles)": "la vérification des profils est optionnelle (lancez avec --verify-profiles)",
   "no sameAs profile declared (see sd-entity-grounding)": "aucun profil sameAs déclaré (voir sd-entity-grounding)",

@@ -50,6 +50,7 @@ import { entityGraphConnectivity } from './entity-graph.js';
 import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
 import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 import { agentUsability } from './agentic.js';
+import { topicalFocus, keywordCannibalization } from './semantic.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
@@ -63,7 +64,8 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,
     metaRobotsNoindex, uniqueTitles, brokenInternalLinks, redirectHygiene, hreflang,
-    metaPerPage, titlePattern, titleH1Alignment, headingsOutline, anchorText,
+    metaPerPage, titlePattern, titleH1Alignment, topicalFocus, keywordCannibalization,
+    headingsOutline, anchorText,
     charset, favicon, contentReadability, figureCaption,
     jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness, sdArticle, sdProduct,
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,

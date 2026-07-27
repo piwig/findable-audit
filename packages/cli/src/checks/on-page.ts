@@ -36,7 +36,8 @@ export const metaPerPage: Check = {
 /** Separators conventionally used between a title's topic and brand segments. */
 const TITLE_SEPARATOR = /\s[|\-–—·]\s/;
 
-function splitTitleSegments(title: string): string[] {
+/** "Primary topic — Brand" split on the conventional separators. Shared with checks/semantic.ts. */
+export function splitTitleSegments(title: string): string[] {
   return title.split(TITLE_SEPARATOR).map((s) => s.trim()).filter(Boolean);
 }
 
