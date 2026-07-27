@@ -1,0 +1,6 @@
+# A perfect site publishes a vulnerability-reporting address (RFC 9116).
+# The Expires date is deliberately far in the future: this fixture must keep
+# scoring exactly 100 for years without anyone remembering to renew it.
+Contact: mailto:security@example.com
+Expires: 2099-12-31T23:59:59.000Z
+Preferred-Languages: en, fr

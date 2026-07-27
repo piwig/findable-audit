@@ -15,9 +15,10 @@ import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from 
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { emitFiles } from './generate/index.js';
+import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--submit] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -26,6 +27,10 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
   sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
+--submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
+  Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
+  is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
+  changes the exit code.
 
 Audits a website's readiness for AI search (GEO) and technical SEO.
 Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
@@ -70,6 +75,7 @@ const parseCliArgs = () =>
       'regression-tolerance': { type: 'string', default: '0' },
       'entity-graph': { type: 'string' },
       emit: { type: 'string' },
+      submit: { type: 'boolean', default: false },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -165,6 +171,14 @@ if (entityGraphFile !== undefined) {
     console.error(`findable-audit: --entity-graph file must end in .json, .dot or .mmd (got "${entityGraphFile}")\n\n${USAGE}`);
     process.exit(2);
   }
+}
+
+// --submit: opt-in IndexNow notification. Refused up front without a key —
+// the key file hosted on the site is the ownership proof, and the audit itself
+// verifies it (the `indexnow` check must pass before anything is sent).
+if (values.submit && (values['indexnow-key'] === undefined || values['indexnow-key'].trim() === '')) {
+  console.error(`findable-audit: --submit requires --indexnow-key <key> (the key file proves you own the site)\n\n${USAGE}`);
+  process.exit(2);
 }
 
 // --emit <dir>: validate non-empty. Actual writing happens after the audit,
@@ -300,6 +314,30 @@ try {
     } catch (err) {
       console.error(`findable-audit: cannot write entity graph to "${entityGraphFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
+    }
+  }
+
+  // --submit: notify IndexNow (Bing, Yandex, Seznam, Naver — not Google, which
+  // does not participate). Runs last, after every file is written, and never
+  // changes the exit code: a refused submission is not a failed audit.
+  if (values.submit) {
+    const key = values['indexnow-key']!;
+    const proof = report.results.find((r) => r.id === 'indexnow');
+    if (proof?.status !== 'pass') {
+      console.error(`findable-audit: not submitting — the IndexNow key file is not verified on ${report.url} `
+        + `(check "indexnow": ${proof?.status ?? 'absent'}). Publish /${key}.txt containing exactly the key, then retry.`);
+    } else {
+      const payload = buildIndexNowPayload(report, key);
+      if (payload === null) {
+        console.error('findable-audit: not submitting — no sampled URL to submit.');
+      } else {
+        console.error(`submitting ${payload.urlList.length} URL(s) to IndexNow (Bing, Yandex, Seznam, Naver)…`);
+        const result = await submitIndexNow(payload, { timeoutMs });
+        console.error(`IndexNow: ${result.message}`);
+        if (result.ok) {
+          console.error('note: Google does not participate in IndexNow — submit there via Search Console.');
+        }
+      }
     }
   }
 

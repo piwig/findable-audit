@@ -57,6 +57,20 @@ test('/.well-known/ai.json serves a real JSON object manifest (well-known-ai-jso
   assert.equal(check('well-known-ai-json').status, 'pass', why('well-known-ai-json'));
 });
 
+test('/.well-known/security.txt is published, contactable and unexpired (security-txt)', async () => {
+  // LOT 9. We audit other sites on this signal, so ours has to hold — including
+  // the Expires date, which is the part that rots silently.
+  const res = await fetch(`${base}/.well-known/security.txt`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/plain/);
+  const body = await res.text();
+  assert.match(body, /^Contact:/mi, 'the one required RFC 9116 field');
+  const expires = /^Expires:\s*(.+)$/mi.exec(body);
+  assert.ok(expires, 'Expires field present');
+  assert.ok(Date.parse(expires[1]) > Date.now(), `security.txt expired on ${expires[1]} — renew it`);
+  assert.equal(check('security-txt').status, 'pass', why('security-txt'));
+});
+
 test('every sampled page opens with a direct answer (content-lead-answer)', () => {
   assert.equal(check('content-lead-answer').status, 'pass', why('content-lead-answer'));
 });

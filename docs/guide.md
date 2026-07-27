@@ -1,6 +1,6 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **120 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+findable-audit scores a site out of 100 across **121 checks in 8 families**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -13,7 +13,7 @@ findable-audit scores a site out of 100 across **120 checks in 8 families**. Thi
 | On-page & content | 0.12 | 11 |
 | Performance & Core Web Vitals | 0.10 | 19 |
 | Accessibility | 0.07 | 9 |
-| Security & trust | 0.07 | 9 |
+| Security & trust | 0.07 | 10 |
 
 **Grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
@@ -670,6 +670,11 @@ Trust posture: HTTPS end-to-end, security headers, no mixed content.
 **Fix:** Add `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 
 ---
+
+### `security-txt` (2 pts)
+**Verifies:** `/.well-known/security.txt` (RFC 9116) exists, is served as text (not an HTML app shell), carries the required `Contact:` field, and an `Expires:` date still in the future. Warns — never fails — in every other case.
+**Why:** It is the machine-readable address a security researcher (or an automated scanner) uses to reach you. An absent, contactless or expired file reads as an unattended site, and it is the last `/.well-known/` discovery file alongside `robots.txt`, `llms.txt` and `ai.json`.
+**Fix:** Publish `/.well-known/security.txt` with at least `Contact:` (a mailto: or https: address that reaches someone) and `Expires:` an ISO-8601 date in the future — then renew it before it lapses.
 
 ## Generating indexing files
 

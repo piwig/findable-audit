@@ -16,6 +16,14 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // LOT 9 — security-txt (RFC 9116)
+  "no /.well-known/security.txt (RFC 9116 vulnerability-reporting address)": "pas de /.well-known/security.txt (adresse de signalement de failles, RFC 9116)",
+  "/.well-known/security.txt answers 200 but is not a text file (HTML app shell?)": "/.well-known/security.txt répond 200 mais n'est pas un fichier texte (shell HTML d'une SPA ?)",
+  "/.well-known/security.txt has no Contact field (the only required one)": "/.well-known/security.txt n'a pas de champ Contact (le seul obligatoire)",
+  "security.txt has a Contact but no Expires field (required by RFC 9116)": "security.txt a un Contact mais pas de champ Expires (exigé par la RFC 9116)",
+  "security.txt Expires is not a readable date ({0})": "la date Expires de security.txt est illisible ({0})",
+  "security.txt expired on {0}": "security.txt a expiré le {0}",
+  "security.txt published, contact and expiry valid ({0})": "security.txt publié, contact et date de validité corrects ({0})",
   '{0} @id-linked entities, no dangling references': '{0} entités liées par @id, aucune référence orpheline',
   '{0} child sitemap(s) valid and within limits': '{0} sitemap(s) enfant(s) valides et dans les limites',
   '{0} crawlable link(s); navigation works without JavaScript': '{0} lien(s) explorable(s) ; la navigation fonctionne sans JavaScript',

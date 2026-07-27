@@ -32,7 +32,7 @@ import {
   htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
 } from './accessibility.js';
 import {
-  mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
+  mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
 } from './security.js';
 import {
   htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
@@ -67,7 +67,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
-    mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy,
+    mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
     htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
     resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
     lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,

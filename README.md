@@ -9,7 +9,7 @@ Audit any URL right in your browser — no install: **[findable.bordebat.fr](htt
 
 **SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.**
 
-AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **120 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
+AI assistants are becoming a major way people discover websites, but most sites are only optimized for classic search engines. `findable-audit` runs **121 automatable SEO + GEO + Core Web Vitals + accessibility + security checks** against a site in one command, scores it out of 100 with a weighted **A–F grade** across 8 families, and tells you exactly what to fix.
 
 ## Quick start
 
@@ -94,7 +94,7 @@ node apps/web/server.mjs                                 # self-hosted web app o
 | **On-page & content** | 0.12 | 11 | title & meta description quality and uniqueness, heading outline, anchor text, charset, favicon, readability, figure captions |
 | **Performance & Core Web Vitals** | 0.10 | 19 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching) + opt-in field/lab Core Web Vitals |
 | **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
-| **Security & trust** | 0.07 | 9 | HTTPS end-to-end, HTTP→HTTPS 301, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy |
+| **Security & trust** | 0.07 | 10 | HTTPS end-to-end, HTTP→HTTPS 301, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy, `/.well-known/security.txt` (RFC 9116) |
 
 Every check is documented individually — what it verifies, why it matters, and how to fix a failure — in the [check guide](docs/guide.md) ([version française](docs/guide.fr.md)).
 

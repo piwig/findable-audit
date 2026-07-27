@@ -1,7 +1,7 @@
 # findable-audit
 
 SEO & GEO audit CLI: check how findable your site is by search engines **and AI
-assistants** — 120 checks across 8 families (AI crawler access, answer-engine
+assistants** — 121 checks across 8 families (AI crawler access, answer-engine
 content, structured data, technical SEO, on-page, performance & Core Web Vitals,
 accessibility, security & trust).
 
@@ -63,7 +63,7 @@ findable:
 
 ## Docs
 
-Full documentation — check guide (what each of the 120 checks measures and how to
+Full documentation — check guide (what each of the 121 checks measures and how to
 fix it), bot roster, scoring model, web UI, Claude Code plugin:
 <https://github.com/piwig/findable-audit#readme>
 

@@ -6,7 +6,7 @@ import { stubCtx } from '../helpers/stub.js';
 import { Crawler } from '../../src/crawler.js';
 import {
   headerOf, classifyMixedContent, mixedContent, hsts, xContentTypeOptions, csp,
-  clickjacking, referrerPolicy, permissionsPolicy,
+  clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
 } from '../../src/checks/security.js';
 
 const closers: Array<() => Promise<void>> = [];
@@ -168,5 +168,63 @@ describe('security headers over a real crawl', () => {
     expect((await clickjacking.run(crawler)).status).toBe('fail');
     expect((await referrerPolicy.run(crawler)).status).toBe('fail');
     expect((await permissionsPolicy.run(crawler)).status).toBe('fail');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// security-txt (LOT 9, RFC 9116) — the last /.well-known/ file of backlog #13
+// ---------------------------------------------------------------------------
+
+describe('security-txt', () => {
+  const FUTURE = '2099-01-01T00:00:00.000Z';
+  const PAST = '2001-01-01T00:00:00.000Z';
+  const at = (body: string, contentType = 'text/plain') =>
+    stubCtx({ '/.well-known/security.txt': { contentType, body } });
+
+  it('passes on a file with a Contact and a future Expires', async () => {
+    const r = await securityTxt.run(at(`Contact: mailto:security@example.com\nExpires: ${FUTURE}\n`));
+    expect(r.status).toBe('pass');
+    expect(r.points).toBe(r.maxPoints);
+  });
+
+  it('accepts the fields case-insensitively and ignores comments and blank lines', async () => {
+    const r = await securityTxt.run(at(`# our policy\n\ncontact: https://example.com/security\nEXPIRES: ${FUTURE}\n`));
+    expect(r.status).toBe('pass');
+  });
+
+  it('warns when Expires is missing, since RFC 9116 requires it', async () => {
+    const r = await securityTxt.run(at('Contact: mailto:security@example.com\n'));
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/Expires/i);
+  });
+
+  it('warns when the file has expired, rather than pretending it is fine', async () => {
+    const r = await securityTxt.run(at(`Contact: mailto:security@example.com\nExpires: ${PAST}\n`));
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/expired/i);
+  });
+
+  it('warns when Contact is absent: the one required field carries the whole point', async () => {
+    const r = await securityTxt.run(at(`Encryption: https://example.com/pgp.txt\nExpires: ${FUTURE}\n`));
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/Contact/i);
+  });
+
+  it('warns when the path answers 200 with an HTML app shell', async () => {
+    const r = await securityTxt.run(at('<!doctype html><html><body>app</body></html>', 'text/html'));
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/not a text file|HTML/i);
+  });
+
+  it('warns — never fails — when the file is absent', async () => {
+    const r = await securityTxt.run(stubCtx({ '/': { contentType: 'text/html', body: '<html></html>' } }));
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/security\.txt/);
+  });
+
+  it('never fails, whatever the site serves', async () => {
+    for (const body of ['', 'garbage', 'Contact:', `Expires: ${PAST}`]) {
+      expect((await securityTxt.run(at(body))).status).not.toBe('fail');
+    }
   });
 });

@@ -102,7 +102,7 @@ export const WEB_MESSAGES = {
       // L8: the strongest argument the product has, and it was written nowhere.
       // The number is asserted against the live engine by a dogfooding test.
       proof: 'This site scores 99/100 (A) against its own engine — and the two remaining warnings are documented rather than hidden.',
-      familiesTitle: '8 weighted families · 120 checks',
+      familiesTitle: '8 weighted families · 121 checks',
       familiesDetails: 'The detail of the 8 scoring families',
       families: ['AI access', 'Answer-engine content', 'Structured data', 'Technical SEO', 'On-page', 'Performance / CWV', 'Accessibility', 'Security'],
       howTitle: 'How it works',
@@ -117,7 +117,7 @@ export const WEB_MESSAGES = {
       geoTitle: 'Why GEO matters',
       geoBody: [
         'GEO (Generative Engine Optimization) is the practice of making a website findable, extractable and citable by AI assistants such as ChatGPT, Claude or Perplexity. These assistants answer questions directly, and they can only recommend sites their crawlers can reach, parse and trust. A site that blocks GPTBot, hides its content behind JavaScript or ships no structured data is invisible in AI answers — whatever its classic Google ranking.',
-        'findable-audit measures both dimensions in one pass: the crawl samples several pages, runs 120 checks across 8 weighted families, then returns an A–F grade with the exact fixes to apply first. Nothing to install, no account — and the engine is open source: the same checks power the CLI you can run in CI.',
+        'findable-audit measures both dimensions in one pass: the crawl samples several pages, runs 121 checks across 8 weighted families, then returns an A–F grade with the exact fixes to apply first. Nothing to install, no account — and the engine is open source: the same checks power the CLI you can run in CI.',
       ],
       // Outbound citations to the crawler operators' own documentation: these are
       // the primary sources behind the AI-access family, and they are what our own
@@ -144,7 +144,7 @@ export const WEB_MESSAGES = {
       blocks: [
         { p: 'findable-audit is a free, open-source tool that measures how findable a website is — by classic search engines and by AI assistants such as ChatGPT, Claude and Perplexity.' },
         { p: 'It answers one question: when someone searches for what you offer, can search engines and AI crawlers reach your pages, extract your content and cite you as a source?' },
-        { h2: 'What it checks', p: 'Each audit samples several pages of the target site and runs 120 checks grouped into 8 weighted families: AI access (robots directives for GPTBot, ClaudeBot and friends), answer-engine content (llms.txt, extractable server-rendered copy), structured data (JSON-LD entities, Open Graph), technical SEO (canonicals, redirects, sitemaps), on-page semantics (titles, headings, internal links), performance and Core Web Vitals, accessibility, and security headers.' },
+        { h2: 'What it checks', p: 'Each audit samples several pages of the target site and runs 121 checks grouped into 8 weighted families: AI access (robots directives for GPTBot, ClaudeBot and friends), answer-engine content (llms.txt, extractable server-rendered copy), structured data (JSON-LD entities, Open Graph), technical SEO (canonicals, redirects, sitemaps), on-page semantics (titles, headings, internal links), performance and Core Web Vitals, accessibility, and security headers.' },
         { h2: 'How scoring works', p: 'Every check awards points and ships with a concrete, prioritized fix. Family scores are weighted into a single 0–100 score and an A–F grade, so two audits of the same site are directly comparable over time — the CLI can even fail a CI build when a deploy regresses the score.' },
         { h2: 'Open source', p: 'The engine is MIT-licensed and dependency-light. The same check catalogue powers this web app, a command-line tool and a CI gate. This site is audited with its own engine — dogfooding keeps the recommendations honest.' },
       ],
@@ -343,7 +343,7 @@ export const WEB_MESSAGES = {
     },
     about: {
       title: 'À propos de findable-audit — audit SEO + GEO open source',
-      description: 'Ce que findable-audit vérifie et pourquoi : 120 contrôles SEO et GEO en 8 familles pondérées, le fonctionnement de la note A–F et le projet open source.',
+      description: 'Ce que findable-audit vérifie et pourquoi : 121 contrôles SEO et GEO en 8 familles pondérées, le fonctionnement de la note A–F et le projet open source.',
       h1: 'À propos de findable-audit',
       // Le PREMIER paragraphe est volontairement une réponse courte et
       // autoportante (40–320 caractères) : c'est exactement ce que récompense
@@ -351,7 +351,7 @@ export const WEB_MESSAGES = {
       blocks: [
         { p: 'findable-audit est un outil gratuit et open source qui mesure la findabilité d’un site web — par les moteurs de recherche classiques et par les assistants IA comme ChatGPT, Claude ou Perplexity.' },
         { p: 'Il répond à une question : quand quelqu’un cherche ce que vous proposez, les moteurs et les crawlers IA peuvent-ils atteindre vos pages, extraire votre contenu et vous citer comme source ?' },
-        { h2: 'Ce qui est vérifié', p: 'Chaque audit échantillonne plusieurs pages du site cible et exécute 120 contrôles regroupés en 8 familles pondérées : accès IA (directives robots pour GPTBot, ClaudeBot et consorts), contenu pour moteurs de réponse (llms.txt, contenu extractible rendu côté serveur), données structurées (entités JSON-LD, Open Graph), SEO technique (canonicals, redirections, sitemaps), sémantique on-page (titres, intertitres, liens internes), performance et Core Web Vitals, accessibilité, et en-têtes de sécurité.' },
+        { h2: 'Ce qui est vérifié', p: 'Chaque audit échantillonne plusieurs pages du site cible et exécute 121 contrôles regroupés en 8 familles pondérées : accès IA (directives robots pour GPTBot, ClaudeBot et consorts), contenu pour moteurs de réponse (llms.txt, contenu extractible rendu côté serveur), données structurées (entités JSON-LD, Open Graph), SEO technique (canonicals, redirections, sitemaps), sémantique on-page (titres, intertitres, liens internes), performance et Core Web Vitals, accessibilité, et en-têtes de sécurité.' },
         { h2: 'Comment le score fonctionne', p: 'Chaque contrôle rapporte des points et vient avec une correction concrète et priorisée. Les scores par famille sont pondérés en un score unique sur 100 et une note A–F : deux audits du même site sont directement comparables dans le temps — la CLI peut même faire échouer un build CI quand un déploiement fait régresser le score.' },
         { h2: 'Open source', p: 'Le moteur est sous licence MIT, avec très peu de dépendances. Le même catalogue de contrôles alimente cette application web, un outil en ligne de commande et une gate CI. Ce site est audité avec son propre moteur — le dogfooding garde les recommandations honnêtes.' },
       ],

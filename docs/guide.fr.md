@@ -1,6 +1,6 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **120 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+findable-audit note un site sur 100 à travers **121 checks répartis en 8 familles**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -13,7 +13,7 @@ findable-audit note un site sur 100 à travers **120 checks répartis en 8 famil
 | On-page et contenu | 0,12 | 11 |
 | Performance et Core Web Vitals | 0,10 | 19 |
 | Accessibilité | 0,07 | 9 |
-| Sécurité et confiance | 0,07 | 9 |
+| Sécurité et confiance | 0,07 | 10 |
 
 **Note (grade) :** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
@@ -678,6 +678,11 @@ Posture de confiance : HTTPS de bout en bout, en-têtes de sécurité, pas de co
 **Corriger :** Ajoutez `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 
 ---
+
+### `security-txt` (2 pts)
+**Vérifie :** `/.well-known/security.txt` (RFC 9116) existe, est servi en texte (et non en shell HTML d'une SPA), porte le champ obligatoire `Contact:` et une date `Expires:` encore dans le futur. Dans tous les autres cas : avertissement — jamais d'échec.
+**Pourquoi :** C'est l'adresse lisible par machine qu'un chercheur en sécurité (ou un scanner automatique) utilise pour vous joindre. Un fichier absent, sans contact ou périmé se lit comme un site laissé à l'abandon ; c'est aussi le dernier fichier de découverte `/.well-known/` aux côtés de `robots.txt`, `llms.txt` et `ai.json`.
+**Corriger :** Publiez `/.well-known/security.txt` avec au minimum `Contact:` (une adresse mailto: ou https: qui aboutit) et `Expires:` une date ISO-8601 dans le futur — puis renouvelez-la avant l'échéance.
 
 ## Générer des fichiers d'indexation
 

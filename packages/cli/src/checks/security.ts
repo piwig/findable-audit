@@ -247,3 +247,73 @@ export const permissionsPolicy: Check = {
       'Add `Permissions-Policy: geolocation=(), camera=(), microphone=()`.');
   },
 };
+
+// ---------------------------------------------------------------------------
+// security-txt (LOT 9) — RFC 9116
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse the `Name: value` fields of a security.txt, lower-casing field names
+ * (RFC 9116 §2.2 makes them case-insensitive) and dropping `#` comments and
+ * blank lines. Deliberately literal: no dependency, and an unparseable line is
+ * simply not a field rather than an error.
+ */
+function parseSecurityTxt(body: string): Map<string, string> {
+  const fields = new Map<string, string>();
+  for (const raw of body.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === '' || line.startsWith('#')) continue;
+    const sep = line.indexOf(':');
+    if (sep <= 0) continue;
+    const name = line.slice(0, sep).trim().toLowerCase();
+    const value = line.slice(sep + 1).trim();
+    if (value !== '' && !fields.has(name)) fields.set(name, value);
+  }
+  return fields;
+}
+
+/**
+ * A machine-readable way to report a vulnerability. Absence is a missed good
+ * practice, never a findability defect, so this check warns at worst — the
+ * verdict policy in CLAUDE.md § honesty guard-rails.
+ *
+ * `now` is injectable so the expiry branch is testable without freezing time.
+ */
+export const securityTxt: Check = {
+  id: 'security-txt', family: 'security', maxPoints: 2,
+  async run(ctx) {
+    const res = await ctx.fetch('/.well-known/security.txt');
+    const fix = 'Publish /.well-known/security.txt (RFC 9116) with at least `Contact:` and an `Expires:` date in the future.';
+    if (!res || res.status !== 200) {
+      return makeResult(this, 'warn', 'no /.well-known/security.txt (RFC 9116 vulnerability-reporting address)', fix);
+    }
+    // Same SPA trap as well-known-ai-json: a catch-all route answers 200 with
+    // the app shell, which would otherwise read as a valid file.
+    const looksHtml = /^\s*<(?:!doctype|html)\b/i.test(res.body) || /text\/html/i.test(res.contentType ?? '');
+    if (looksHtml) {
+      return makeResult(this, 'warn', '/.well-known/security.txt answers 200 but is not a text file (HTML app shell?)',
+        'Serve real text/plain at /.well-known/security.txt, or return 404 instead of the HTML app shell.');
+    }
+    const fields = parseSecurityTxt(res.body);
+    const contact = fields.get('contact');
+    if (!contact) {
+      return makeResult(this, 'warn', '/.well-known/security.txt has no Contact field (the only required one)',
+        'Add a `Contact:` line with a mailto: or https: address that reaches someone.');
+    }
+    const expires = fields.get('expires');
+    if (!expires) {
+      return makeResult(this, 'warn', 'security.txt has a Contact but no Expires field (required by RFC 9116)',
+        'Add an `Expires:` line with an ISO-8601 date in the future, and renew it before it lapses.');
+    }
+    const when = Date.parse(expires);
+    if (Number.isNaN(when)) {
+      return makeResult(this, 'warn', t`security.txt Expires is not a readable date (${expires})`,
+        'Use an ISO-8601 timestamp, e.g. `Expires: 2027-01-01T00:00:00.000Z`.');
+    }
+    if (when <= Date.now()) {
+      return makeResult(this, 'warn', t`security.txt expired on ${expires.slice(0, 10)}`,
+        'Renew the `Expires:` date: an expired file signals nobody maintains the contact.');
+    }
+    return makeResult(this, 'pass', t`security.txt published, contact and expiry valid (${expires.slice(0, 10)})`);
+  },
+};
