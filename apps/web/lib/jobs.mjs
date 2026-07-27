@@ -5,12 +5,13 @@
 //   - TTL: a job older than ttlMs is treated as absent and pruned.
 //   - maxJobs: on overflow the oldest (Map insertion order) job is evicted.
 //
-// Job shape (contract): { id, url, lang, kind, urls, ipHash, reports, status,
-//                         progress, report, html, error, createdAt }.
+// Job shape (contract): { id, url, lang, kind, urls, ipHash, maxPages, reports,
+//                         status, progress, report, html, error, createdAt }.
 //   status  : 'running' | 'done' | 'error'
 //   kind    : 'audit' (default) | 'compare'
 //   urls    : the compare URL list (main first), or null for a plain audit
 //   ipHash  : the hashed client IP for stats, or null
+//   maxPages: crawl depth chosen on the form (#60), or null for the default
 //   reports : the compare AuditReport[] once done (empty for a plain audit)
 //   progress: the latest AuditProgress snapshot, or null before the first event
 //   report  : the AuditReport once done, else null
@@ -25,7 +26,7 @@ export function createJobStore(opts = {}) {
   /** @type {Map<string, any>} */
   const jobs = new Map();
 
-  function create({ url, lang, kind = 'audit', urls = null, ipHash = null }) {
+  function create({ url, lang, kind = 'audit', urls = null, ipHash = null, maxPages = null }) {
     const job = {
       id: randomUUID(),
       url,
@@ -33,6 +34,7 @@ export function createJobStore(opts = {}) {
       kind,
       urls,
       ipHash,
+      maxPages,
       reports: [],
       status: 'running',
       progress: null,

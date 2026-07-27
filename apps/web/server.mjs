@@ -23,6 +23,7 @@ import { renderHtml } from '../../packages/cli/dist/report/html.js';
 import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
 import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
+import { diffReports } from '../../packages/cli/dist/report/diff.js';
 import { EMITTED_FILES } from '../../packages/cli/dist/generate/index.js';
 import { TRAINING_BOTS, CITATION_BOTS } from '../../packages/cli/dist/robots.js';
 
@@ -51,6 +52,21 @@ const AUDIT_TIMEOUT_MS = 45_000; // hard cap on a single audit (must stay < ngin
 const AUDIT_TIMEOUT_CWV_MS = 90_000; // raised cap when CWV (PageSpeed) is active; nginx proxy_read_timeout must be >= this.
 const FETCH_TIMEOUT_MS = 10_000; // per-request timeout inside the crawler.
 const MAX_PAGES = 6; // pages sampled per audit (capped for cost/speed; frees the concurrency slot sooner).
+// #60: the reader picks the depth, the server keeps the ceiling. MAX_PAGES is
+// both the default and the hard cap — a hand-crafted ?pages=500 cannot buy a
+// deeper (more expensive) crawl than the form offers.
+const PAGE_CHOICES = [1, 3, MAX_PAGES];
+
+/**
+ * Depth from the query string: an integer in [1, MAX_PAGES], else the default.
+ * Deliberately total — junk never 400s a form submission, it just audits at the
+ * usual depth.
+ */
+function parsePages(raw) {
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw.trim())) return MAX_PAGES;
+  const n = Number(raw.trim());
+  return n >= 1 && n <= MAX_PAGES ? n : MAX_PAGES;
+}
 const CACHE_TTL_MS = 60_000; // reuse a fresh report for the same URL.
 const CACHE_MAX_ENTRIES = 500; // bound the result cache so it can't grow unbounded.
 const REPO_URL = 'https://github.com/piwig/findable-audit';
@@ -204,6 +220,11 @@ const PAGE_STYLE = `
      document rendered with the captcha disabled. */
   .ld-form > div { margin: 0 0 .6rem; }
   .ld-form button { width: 100%; }
+  /* #60: the depth select sits between the URL and the CTA, full width so the
+     form keeps its single-column rhythm on a phone. */
+  .ld-depth { width: 100%; display: block; margin: 0 0 .5rem; font: inherit; font-size: .92rem;
+    padding: .5rem .6rem; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--panel); color: var(--ink); }
   .ld-example { display: inline-block; font-size: .88rem; margin: 0 0 1rem; }
   .ld-proof { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--good);
     background: var(--good-bg); padding: .6rem .85rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0 0; }
@@ -603,7 +624,9 @@ function landingPage(lang = 'en') {
 <div class="pane pane-single" id="single">
 <form class="ld-form" method="get" action="/${lang}/audit">
   <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
-    autocomplete="off" autocapitalize="off" spellcheck="false" required>${turnstileWidget}
+    autocomplete="off" autocapitalize="off" spellcheck="false" required>
+  <select class="ld-depth" name="pages" aria-label="${escapeHtml(s.depthLabel)}">${PAGE_CHOICES.map((n) =>
+    `<option value="${n}"${n === MAX_PAGES ? ' selected' : ''}>${escapeHtml(s.depthOption(n))}</option>`).join('')}</select>${turnstileWidget}
   <button type="submit" class="ld-cta"><span>${escapeHtml(s.cta)}</span></button>
 </form>
 <a class="ld-example" href="/${lang}/example-report/">${escapeHtml(s.exampleLink)}</a>
@@ -913,6 +936,29 @@ function generateFilesSection(jobId, lang) {
     + `<span style="color:#b45309">${escapeHtml(g.note)}</span></p>`;
 }
 
+// #59 (web): "bring your own baseline" — paste a previous `--report *.json`
+// and get the same diff the CLI's --baseline produces. Folded shut by default:
+// it is a power feature, and an open textarea would push the report down.
+//
+// Deliberately stateless: the pasted report is read from the request body,
+// diffed, rendered, and dropped. Nothing is stored, so the privacy promise on
+// the landing page ("we keep nothing") stays literally true.
+function baselineFormSection(jobId, lang) {
+  const b = t(lang).baseline;
+  const action = `/${encodeURIComponent(lang)}/audit/diff?job=${encodeURIComponent(jobId)}`;
+  return '<details style="max-width:860px;margin:0 auto 1rem;font:14px -apple-system,Segoe UI,Roboto,sans-serif">'
+    + `<summary style="cursor:pointer;color:#1a7f37">${escapeHtml(b.summary)}</summary>`
+    + `<p style="color:#555;margin:.5rem 0">${escapeHtml(b.help)}</p>`
+    + `<form method="post" action="${action}" enctype="application/x-www-form-urlencoded">`
+    + `<textarea name="baseline" rows="6" required aria-label="${escapeHtml(b.label)}" `
+    + 'placeholder=\'{"url":"…","score":…,"results":[…]}\' '
+    + 'style="width:100%;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;padding:.5rem;'
+    + 'border:1px solid #d7dcd7;border-radius:8px"></textarea>'
+    + `<button type="submit" style="margin-top:.5rem;padding:.45rem .9rem;border-radius:8px;`
+    + `border:1px solid #1a7f37;background:#1a7f37;color:#fff;cursor:pointer">${escapeHtml(b.cta)}</button>`
+    + '</form></details>';
+}
+
 // Wrap the stored report HTML with a download bar + back link (job-scoped),
 // injected at the TOP of the report so the actions are reachable without
 // scrolling past a long report.
@@ -926,7 +972,8 @@ function withResultChrome(reportHtml, jobId, lang) {
     + `<a href="/audit/export?job=${id}&format=html" style="color:#1a7f37">HTML</a> · `
     + `<a href="/audit/export?job=${id}&format=json" style="color:#1a7f37">JSON</a>`
     + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`
-    + generateFilesSection(jobId, lang);
+    + generateFilesSection(jobId, lang)
+    + baselineFormSection(jobId, lang);
   const marker = '<body>';
   const idx = reportHtml.indexOf(marker);
   if (idx === -1) return bar + reportHtml;
@@ -1034,7 +1081,11 @@ function classifyError(err, lang) {
 }
 
 async function executeAudit(job) {
-  const key = job.url;
+  // Depth is part of a result's identity: a 1-page and a 6-page audit of the
+  // same URL are different reports and must not share a cache entry. The
+  // default keeps the bare-URL key, so it still shares with the sync path.
+  const maxPages = job.maxPages ?? MAX_PAGES;
+  const key = maxPages === MAX_PAGES ? job.url : `${job.url}#pages=${maxPages}`;
   const cached = cache.get(key);
   if (cached !== undefined) {
     jobs.finish(job.id, { report: cached, html: renderHtml(cached, undefined, job.lang, { collapsed: true }) });
@@ -1048,7 +1099,7 @@ async function executeAudit(job) {
   const ac = new AbortController();
   const opts = {
     timeoutMs: FETCH_TIMEOUT_MS,
-    maxPages: MAX_PAGES,
+    maxPages,
     blockPrivateHosts: true,          // fetch-layer SSRF guard, unchanged.
     signal: ac.signal,
     onProgress: (ev) => jobs.setProgress(job.id, ev),
@@ -1057,7 +1108,9 @@ async function executeAudit(job) {
   if (cwvActive()) { opts.cwv = true; opts.psiKey = process.env.PSI_KEY; opts.psiStrategy = 'mobile'; }
   const startedAt = Date.now();
   try {
-    const report = await withTimeout(runAuditImpl(key, checks, opts), auditTimeout());
+    // job.url, not `key`: the key may carry a #pages fragment that is a cache
+    // discriminator, not part of the address to crawl.
+    const report = await withTimeout(runAuditImpl(job.url, checks, opts), auditTimeout());
     cache.set(key, report);
     jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang, { collapsed: true }) });
     recordAuditEvent(report, {
@@ -1349,7 +1402,7 @@ async function handleAuditStart(req, res) {
   // Create the job but DO NOT run the audit yet — execution is lazy, kicked off
   // by /audit/stream or /audit/result (whichever the client hits first).
   const ipHash = await hashIp(ip);
-  const job = jobs.create({ url: url.href, lang, ipHash });
+  const job = jobs.create({ url: url.href, lang, ipHash, maxPages: parsePages(parsed.searchParams.get('pages')) });
   const nonce = crypto.randomBytes(16).toString('base64');
   const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
     + `script-src 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; `
@@ -1645,13 +1698,98 @@ async function handleCompareExport(req, res, job) {
   send(res, 200, 'text/html; charset=utf-8', j.html, { 'content-disposition': `attachment; filename="${filename}"` });
 }
 
+// #59: bounded request-body reader. The only POST body this server accepts is a
+// pasted audit JSON; a 120-check report is ~150 kB, so 2 MB is generous. Over
+// the limit we stop reading and destroy the socket instead of buffering an
+// attacker-chosen amount of memory.
+const MAX_BODY_BYTES = 2_000_000;
+
+function readBody(req, limit = MAX_BODY_BYTES) {
+  return new Promise((resolve) => {
+    const declared = Number(req.headers['content-length']);
+    if (Number.isFinite(declared) && declared > limit) { resolve(null); return; }
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) { resolve(null); req.destroy(); return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', () => resolve(null));
+  });
+}
+
+/** Same shape guard as the CLI's --baseline (index.ts): enough to diff, no more. */
+function isAuditReport(value) {
+  return Boolean(value)
+    && typeof value === 'object'
+    && typeof value.score === 'number'
+    && Array.isArray(value.results)
+    && Array.isArray(value.familyScores);
+}
+
+/**
+ * POST /{lang}/audit/diff?job=<id> — diff the job's report against a pasted
+ * previous report and re-render it with the diff section. The baseline is used
+ * and dropped: it is never written to the job, the cache or the store.
+ */
+async function handleBaselineDiff(req, res) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const lang = /^\/([a-z]{2})\//.exec(parsed.pathname)?.[1] === 'fr' ? 'fr' : 'en';
+  const body = await readBody(req);
+  if (body === null) {
+    send(res, 413, 'text/plain; charset=utf-8', 'Payload Too Large');
+    return;
+  }
+  const job = jobs.get(parsed.searchParams.get('job') ?? '');
+  if (!job || job.status !== 'done' || !job.report) {
+    const e = t(lang).error.jobGone ?? t(lang).error.generic;
+    const p = errorPage(e.title, e.message, { status: 404, lang });
+    send(res, 404, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+  const raw = new URLSearchParams(body).get('baseline') ?? '';
+  let baseline;
+  try {
+    baseline = JSON.parse(raw);
+  } catch {
+    baseline = undefined; // a paste that is not JSON is a user error, not a crash
+  }
+  if (!isAuditReport(baseline)) {
+    const e = t(lang).error.badBaseline;
+    const p = errorPage(e.title, e.message, { status: 400, lang });
+    send(res, 400, 'text/html; charset=utf-8', p.html);
+    return;
+  }
+  const diff = diffReports(job.report, baseline);
+  const html = renderHtml(job.report, undefined, lang, { collapsed: true, diff });
+  send(res, 200, 'text/html; charset=utf-8', withResultChrome(html, job.id, lang));
+}
+
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
-  // Only GET (and HEAD) are supported.
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
+  // GET/HEAD everywhere, plus POST on exactly one route: /{lang}/audit/diff
+  // (#59). Widening the method surface is a security decision, so it is spelled
+  // out here rather than being decided further down the dispatch chain.
+  const isDiffPost = req.method === 'POST' && /^\/[a-z]{2}\/audit\/diff(\?|$)/.test(req.url ?? '');
+  if (req.method !== 'GET' && req.method !== 'HEAD' && !isDiffPost) {
     send(res, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', { allow: 'GET' });
+    return;
+  }
+  if (isDiffPost) {
+    handleBaselineDiff(req, res).catch((err) => {
+      console.error('unhandled /audit/diff error:', err);
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
+    });
+    return;
+  }
+  // Same path reached by GET/HEAD (POST returned above): the resource exists,
+  // the method does not — 405 with Allow, not the generic 404 page.
+  if (/^\/[a-z]{2}\/audit\/diff(\?|$)/.test(req.url ?? '')) {
+    send(res, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', { allow: 'POST' });
     return;
   }
 
@@ -1914,4 +2052,4 @@ server.listen(PORT, HOST, () => {
   console.log(`findable-audit web app listening on http://${HOST}:${PORT}`);
 });
 
-export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest, setRunAuditForTest };
+export { server, jobs, cwvActive, auditTimeout, store, recordAuditEvent, setVerifyTurnstileForTest, setRunAuditForTest, MAX_PAGES, PAGE_CHOICES, parsePages };

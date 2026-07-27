@@ -60,6 +60,9 @@ export const WEB_MESSAGES = {
       internal: { title: 'Something went wrong', message: 'Something went wrong while auditing that site.' },
       reportNotReady: { title: 'Report not ready', message: 'That report is not available for download yet.' },
       captchaFailed: { title: 'Verification failed', message: 'We could not confirm you are human. Please try again.' },
+      // #59: the pasted baseline is unusable (not JSON, or not a findable report).
+      badBaseline: { title: 'Not a findable-audit report', message: 'That paste is not a findable-audit JSON report. Run the CLI with --report audit.json (or use the JSON download above) and paste the whole file.' },
+      jobGone: { title: 'Report expired', message: 'That report is no longer in memory — reports are kept for a few minutes only. Run the audit again, then paste your baseline.' },
       back: 'Audit another site',
     },
     landing: {
@@ -71,6 +74,9 @@ export const WEB_MESSAGES = {
       lead: "Audit a website's search visibility — by classic search engines AND by AI crawlers (GPTBot, ClaudeBot, PerplexityBot…) — in a single pass, with a prioritized action plan.",
       urlLabel: 'Website URL',
       cta: 'Audit',
+      // #60: crawl depth, bounded server-side (PAGE_CHOICES).
+      depthLabel: 'Pages to audit',
+      depthOption: (n) => (n === 1 ? 'Homepage only' : `${n} pages`),
       hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
       // Two modes, one form (L2): the tabs are <a href="#…"> + :target, so the
       // landing keeps `script-src 'none'`.
@@ -209,6 +215,13 @@ export const WEB_MESSAGES = {
       heading: 'Generate indexing files',
       note: 'Generic files — review before deploying, especially robots.txt.',
     },
+    // #59: compare this audit with a previous one the reader already has.
+    baseline: {
+      summary: 'Compare with a previous audit',
+      help: 'Paste a previous JSON report (the JSON download above, or a CLI --report audit.json). It is diffed and rendered on the spot — nothing is stored.',
+      label: 'Previous audit, as JSON',
+      cta: 'Show the diff',
+    },
     compare: {
       needMoreTitle: 'Not enough sites to compare',
       needMore: 'Provide your URL and at least one reachable competitor URL.',
@@ -253,6 +266,9 @@ export const WEB_MESSAGES = {
       internal: { title: 'Une erreur est survenue', message: "Une erreur est survenue lors de l'audit de ce site." },
       reportNotReady: { title: 'Rapport pas encore prêt', message: "Ce rapport n'est pas encore disponible au téléchargement." },
       captchaFailed: { title: 'Vérification échouée', message: "Nous n'avons pas pu confirmer que vous n'êtes pas un robot. Veuillez réessayer." },
+      // #59 : la baseline collée est inutilisable (pas du JSON, ou pas un rapport findable).
+      badBaseline: { title: "Ce n’est pas un rapport findable-audit", message: "Ce collage n’est pas un rapport JSON findable-audit. Lancez la CLI avec --report audit.json (ou utilisez le téléchargement JSON ci-dessus) et collez le fichier entier." },
+      jobGone: { title: 'Rapport expiré', message: "Ce rapport n’est plus en mémoire — les rapports ne sont gardés que quelques minutes. Relancez l’audit, puis collez votre baseline." },
       back: 'Auditer un autre site',
     },
     landing: {
@@ -264,6 +280,9 @@ export const WEB_MESSAGES = {
       lead: "Auditez le référencement d'un site — par les moteurs de recherche classiques ET par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) — en une passe, avec un plan d'action priorisé.",
       urlLabel: 'URL du site',
       cta: 'Auditer',
+      // #60 : profondeur de crawl, bornée côté serveur (PAGE_CHOICES).
+      depthLabel: 'Pages à auditer',
+      depthOption: (n) => (n === 1 ? 'Page d’accueil seule' : `${n} pages`),
       hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
       // Deux modes, un seul formulaire (L2) : les onglets sont des <a href="#…">
       // + :target, la landing garde donc sa CSP `script-src 'none'`.
@@ -402,6 +421,13 @@ export const WEB_MESSAGES = {
     generate: {
       heading: 'Générer les fichiers d’indexation',
       note: 'Fichiers génériques — à relire avant de déployer, en particulier robots.txt.',
+    },
+    // #59 : comparer cet audit avec un précédent que le lecteur possède déjà.
+    baseline: {
+      summary: 'Comparer avec un audit précédent',
+      help: 'Collez un rapport JSON précédent (le téléchargement JSON ci-dessus, ou un --report audit.json de la CLI). Il est comparé et affiché sur-le-champ — rien n’est conservé.',
+      label: 'Audit précédent, en JSON',
+      cta: 'Afficher l’écart',
     },
     compare: {
       needMoreTitle: 'Pas assez de sites à comparer',

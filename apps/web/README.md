@@ -49,6 +49,7 @@ headers and spoof the rate-limit key.
 | GET    | `/`                  | Landing page with the audit form.                   |
 | GET    | `/audit?url=<url>`   | Progress page (HTML); see [Async audit flow](#async-audit-flow-sse-and-export) below for the full `/audit/*` route set. |
 | GET    | `/audit.json?url=<url>` | JSON audit report (200), or a JSON error.        |
+| POST   | `/{lang}/audit/diff?job=<id>` | #59 — diffs the finished report against an audit JSON pasted in the request body, and re-renders the report with the diff section. The **only** non-GET route: bounded body (2 MB, else 413), shape-validated (else 400), and the pasted baseline is never stored. |
 | GET    | `/compare/start?url=<u>&compare=<c1,c2>` | Progress page for an async competitive comparison; see [Competitive comparison](#competitive-comparison-compare) below. |
 | GET    | `/robots.txt` · `/sitemap.xml` · `/llms.txt` · `/.well-known/security.txt` | Discovery files (we dogfood our own GEO advice). |
 | GET    | `/healthz`           | `200 ok` (for systemd / nginx health checks).       |
@@ -249,7 +250,7 @@ network access is required.
 
 | Method | Path                              | Response                                                        |
 | ------ | --------------------------------- | ---------------------------------------------------------------- |
-| GET    | `/audit?url=<url>`                | Progress page (HTML). Creates a job and returns immediately; a `<noscript>` meta-refresh sends non-JS clients straight to `/audit/result`. |
+| GET    | `/audit?url=<url>&pages=<n>`      | Progress page (HTML). `pages` (#60) picks the crawl depth from the form choices and is clamped server-side to [1, MAX_PAGES] — junk falls back to the default. Creates a job and returns immediately; a `<noscript>` meta-refresh sends non-JS clients straight to `/audit/result`. |
 | GET    | `/audit/stream?job=<id>`          | `text/event-stream` (SSE): `progress` events while the job runs, then one `done` or `error` event. Lazily starts the job on first read (idempotent — a second reader/refresh reuses the same in-flight run). |
 | GET    | `/audit/result?job=<id>`          | Final HTML report (200), or a safe HTML error page. Starts+awaits the job if it hasn't run yet, so this route alone is a working no-JS path. |
 | GET    | `/audit/export?job=<id>&format=md\|html\|json` | Downloads the finished report as `.md`, `.html`, or `.json` with `Content-Disposition: attachment` (filename derived from the audited host). 404 if the job is unknown/expired, 409 if it hasn't finished yet. |
