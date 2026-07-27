@@ -4,6 +4,7 @@
   "description": "SEO & GEO audit CLI: 137 checks scoring how findable your site is by search engines and AI assistants (GPTBot, ClaudeBot, PerplexityBot). A-F grade, CI gate, SARIF/JUnit.",
   "type": "module",
   "license": "MIT",
+  "author": "PB OpenTech (https://pb-ot.fr)",
   "engines": {
     "node": ">=20.3"
   },

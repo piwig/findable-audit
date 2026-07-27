@@ -325,3 +325,6 @@ Issues and pull requests are welcome — [CONTRIBUTING.md](CONTRIBUTING.md) cove
 ## License
 
 MIT.
+
+Built and maintained by [PB OpenTech](https://pb-ot.fr), which builds open-source software
+and AI integration for small businesses in Brittany.

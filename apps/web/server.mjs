@@ -574,7 +574,7 @@ ${seo}
 <main${wide ? ' class="wide"' : ''}>
 <header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
 ${bodyHtml}
-<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a> · <a href="https://www.npmjs.com/package/findable-audit">npm</a></footer>
+<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a> · <a href="https://www.npmjs.com/package/findable-audit">npm</a> · <a href="https://pb-ot.fr">PB OpenTech</a></footer>
 </main>
 </body>
 </html>
