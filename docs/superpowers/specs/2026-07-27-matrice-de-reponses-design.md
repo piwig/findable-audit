@@ -175,7 +175,32 @@ zonée, et satisfait le prédicat (contre la fenêtre si `scope: 'chunk'`, contr
 Le meilleur état trouvé sur l'ensemble des pages gagne, et la cellule retient le chemin de la
 page qui porte la preuve.
 
-## 8. Le check `answer-coverage`
+## 8. Le check `answer-coverage` — ⛔ **ABANDONNÉ après mesure (2026-07-27)**
+
+> **Décision renversée par les chiffres.** Le §2 retenait « un check scoré + une section de
+> rapport ». Après calibration sur trois sites réels en crawl multi-pages, le check scoré est
+> retiré : **la matrice est un excellent diagnostic et un mauvais indicateur de note.**
+>
+> **Ce qui a été mesuré** — couverture repliée par question (une intention zonée compte une
+> fois, pas une fois par zone) : **pb-ot 21 %, masse-motoculture 52 %, findable 17 %.**
+>
+> **Pourquoi aucun seuil ne marche.** Ces chiffres sont exacts : ces sites ne publient ni
+> prix ni horaires. Mais ne pas publier ses prix est un **choix commercial légitime**, pas un
+> défaut technique. À tout seuil raisonnable, presque chaque site perdrait les mêmes points —
+> du bruit ajouté à la note, sans pouvoir discriminant. Et l'autre axe ne sauve rien :
+> `weak` vaut 0, 1 et 0 sur les trois sites, donc `covered / (covered + weak)` frôle 100 %
+> partout.
+>
+> **Ce qu'on livre à la place** : l'artefact seul — `--answers <file>` et la section de
+> rapport. Toute la valeur, zéro impact sur la note de qui que ce soit, et l'invariant
+> `perfect-site = 100` reste trivialement vrai. C'est la voie que le §12.4 prévoyait déjà en
+> esprit : quand la mesure ne soutient pas l'affirmation, on n'ajuste pas le seuil, on retire
+> l'affirmation.
+>
+> **Ce qui rouvrirait le dossier** : un corpus assez large pour montrer que la couverture
+> discrimine vraiment deux sites comparables — pas trois points de mesure.
+
+<details><summary>Design d'origine du check scoré, conservé pour mémoire</summary>
 
 Famille `llm-content`, `evidence: 'heuristic'`, `maxPoints: 4`.
 
@@ -203,6 +228,8 @@ de deux pages par site, ce qui sous-estime la couverture d'un audit réel à dix
 **+1 check.** Le compteur de départ est celui asserté dans `test/runner.test.ts`, pas un chiffre
 recopié d'un message de commit — c'est ainsi qu'une erreur de comptage s'est déjà glissée dans
 cette spec. Au moment de la rédaction : 126, plus les checks des grappes de parité en vol.
+
+</details>
 
 ## 9. Le rendu
 
