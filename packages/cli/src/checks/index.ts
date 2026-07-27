@@ -46,6 +46,7 @@ import {
 import {
   lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,
 } from './performance-cwv.js';
+import { httpProtocol, tlsVersion, cdnEdgeCache } from './transport.js';
 import { entityGraphConnectivity } from './entity-graph.js';
 import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
 import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
@@ -74,8 +75,10 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
     brokenSubresources, jsOnlyDestinations, softErrorPages, indexingConflicts, sameAsVerified,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
+    tlsVersion,
     htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
     resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,
+    httpProtocol, cdnEdgeCache,
     lighthousePerf, cwvLcp, cwvCls, cwvInp, cwvAssessment, cwvTtfb, labTbt, labFcp,
   ];
 }
