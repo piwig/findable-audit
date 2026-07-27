@@ -231,7 +231,24 @@ cette spec. Au moment de la rédaction : 126, plus les checks des grappes de par
 
 </details>
 
-## 9. Le rendu
+## 9. Le rendu — ✅ fichier livré (0.9.0), ⏸️ section de rapport en attente
+
+> **Le fichier est livré** : `--answers <fichier>`, `.json` ou Markdown, sur le patron exact
+> de `--entity-graph`. Il porte ses deux mentions obligatoires (§10), la liste des pages
+> crawlées, et l'avertissement quand le crawl s'est arrêté à sa limite.
+>
+> **La section intégrée au rapport HTML est volontairement différée**, et pas par manque de
+> temps. L'inclure par défaut voudrait dire l'afficher à *tous* les utilisateurs — or la
+> mesure du §12 montre qu'un site normal produit beaucoup de cellules `missing` (98 cellules
+> et 9 % de couverture sur un site réel). Déverser ce mur dans chaque rapport referait
+> exactement l'erreur que le §8 vient d'éviter : alarmer tout le monde uniformément, sans
+> rien discriminer.
+>
+> Ce qui manque n'est pas du câblage, c'est de la **présentation** : regrouper par zone plutôt
+> qu'énumérer la hiérarchie, ne montrer que les N trous les plus significatifs, et distinguer
+> visuellement « tu ne réponds pas » de « tu réponds mais on ne peut pas te citer ». Une
+> décision de design à prendre à froid, pas en fin de chantier. Le flag rend la fonctionnalité
+> entièrement utilisable en attendant.
 
 Section « Matrice de réponses » dans les rapports HTML et Markdown, plus un flag
 `--answers <file>` (`.json` / `.md`) sur le patron exact de `--entity-graph`.
