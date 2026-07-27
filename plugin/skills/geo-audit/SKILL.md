@@ -44,6 +44,7 @@ Useful options:
   `jsonld-stubs.json`). Content is generic — review before deploying (the
   `geo-implement` skill adapts these per framework).
 - `--entity-graph <file>`: JSON-LD entity graph across the sampled pages
+- `--submit` (with `--indexnow-key <key>`) notifies IndexNow — Bing, Yandex, Seznam, Naver — of the sampled URLs. Opt-in, and only sent once the key file on the site proves ownership. Never run it against a site the user does not own.
   (`.json`, `.dot` or `.mmd` by extension).
 
 **Exit codes:**

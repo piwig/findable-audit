@@ -61,7 +61,7 @@ Score: 73/100  Grade: C
 
 *(Illustrative excerpt — check lines are trimmed for length; a real run prints every applicable check in each family.)* The `--` rows are checks that don't apply to this run (here, Core Web Vitals were not requested) — skipped checks never count against the score.
 
-More real-site case studies (before/after scores) will be published in `examples/` at launch.
+A full report against a real site — this project's own, audited by its own engine — is published at [findable.bordebat.fr/en/example-report/](https://findable.bordebat.fr/en/example-report/). We do not publish audits of sites we do not own.
 
 ## Install
 
@@ -367,7 +367,10 @@ npm from CI over OIDC trusted publishing, with provenance attached.
 
 ## Contributing
 
-Issues and pull requests are welcome. Run `npm ci`, `npm run build` and `npm test` before submitting.
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to
+run the suites, the non-negotiables (no new runtime dependency, cross-platform, never
+`process.exit`), and the procedure for proposing a new check, including which verdicts a
+check is allowed to hand out. Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
