@@ -64,7 +64,10 @@ export type IntentScope = 'chunk' | 'page';
 export type IntentNature = 'structural' | 'lexical' | 'mixed';
 
 export interface Subject { id: string; label: string; source: 'markup' | 'nav' | 'h1'; }
-export interface Zone    { id: string; label: string; kind: 'area-served' | 'locality' | 'postal'; }
+export interface Zone {
+  id: string; label: string; kind: 'area-served' | 'locality';
+  aliases: string[];   // a postal code is an alias of its town, never a zone of its own
+}
 
 /** Pure data — no functions, so the grid stays diffable and testable as a table. */
 export interface IntentDef {
@@ -79,6 +82,7 @@ export interface IntentDef {
 export interface Cell {
   subject: Subject; zone?: Zone; intent: IntentId;
   question: string; state: CellState; path?: string;  // page carrying the evidence
+  evidence: 'markup' | 'prose' | 'affordance' | 'none';   // what settled the cell
 }
 ```
 
@@ -244,7 +248,7 @@ Deux mentions non négociables, rendues dans les deux langues :
 Trois propriétés le remplacent. Toutes encodées en tests, toutes **bloquantes** avant de figer
 les seuils du §8.
 
-### 12.1 Séparation — le prédicat mesure-t-il quelque chose ?
+### 12.1 Séparation — le prédicat mesure-t-il quelque chose ? — ✅ LIVRÉE
 
 Deux fixtures jumelles : `answers-rich/` (prix, horaires et zones déclarés, intertitres
 descriptifs, réponses autonomes) et `answers-poor/` (**les mêmes faits**, noyés dans un bloc
@@ -252,12 +256,26 @@ sans titre, sans balisage, sans montant explicite). **Écart minimal exigé : 40
 de couverture.** En dessous, les prédicats ne discriminent pas, et aucun réglage de seuil ne
 le rattrapera.
 
-### 12.2 Discrimination `covered` / `weak` — la moitié « survie » travaille-t-elle ?
+### 12.2 Discrimination `covered` / `weak` — la moitié « survie » travaille-t-elle ? — ✅ LIVRÉE
 
 Fixture appariée : **le même fait**, écrit deux fois — une fois dans une fenêtre autonome, une
 fois coupé sur une frontière de chunk avec une ouverture anaphorique. Le couple doit produire
 `covered` **et** `weak`. S'il produit deux fois le même état, `chunkSurvives()` n'apporte rien
 dans ce contexte et l'état `weak` est décoratif.
+
+> **Ce que la porte a effectivement attrapé, le 2026-07-27.** À sa première exécution elle a
+> rendu **75 % contre 75 %** : aucune séparation. Trois défauts de conception, corrigés parce
+> que la porte les a montrés — pas les seuils, qui n'y étaient pour rien.
+>
+> 1. **`chunkSurvives` ne juge que le bloc de tête d'une fenêtre.** Un pavé ouvrant sur une
+>    phrase propre « survivait » quelle que soit l'anaphore de la phrase portant la réponse.
+>    L'extractibilité se juge désormais sur **la phrase qui porte la preuve**, avec repli sur
+>    le bloc quand l'évidence s'étale légitimement (une énumération d'étapes est *une* réponse).
+> 2. **Le code postal était une zone à part**, générant « Plomberie à 35000 : quel prix ? » —
+>    une question que personne ne pose et que la prose nommant la ville ne peut pas satisfaire.
+>    Il devient un **alias** de sa commune.
+> 3. **La porte comparait des cellules réglées par le balisage**, identiques entre jumeaux par
+>    construction. Elle ne mesure plus que les cellules **en prose**, d'où le champ `evidence`.
 
 ### 12.3 Vérité terrain, asymétrique — le prédicat dit-il vrai ?
 
