@@ -18,7 +18,7 @@ not where it started.
   canonicals pointing at blocked URLs — contradictions between signals we already fetch).
 - **Crawl depth named by intention** in the CLI help and on the web form: fast check,
   template audit, site audit, deep investigation.
-- **A  input on the GitHub Action**, so the SVG score badge is one obvious knob
+- **A `badge` input on the GitHub Action**, so the SVG score badge is one obvious knob
   rather than an extension convention.
 
 ### Changed

@@ -42,6 +42,13 @@ inputs:
     description: 'SARIF file to write (for github/codeql-action/upload-sarif). Empty string to disable.'
     required: false
     default: 'findable-audit.sarif'
+  badge:
+    description: >-
+      Path to write the SVG score badge to (e.g. docs/findable-badge.svg). Commit it and
+      point your README at it. Self-contained — no third-party badge service — and its
+      <title> carries the audited host and the audit date, so a stale badge says so.
+    required: false
+    default: ''
   lang:
     description: 'Report chrome language: en or fr.'
     required: false
@@ -88,6 +95,7 @@ runs:
         FINDABLE_REGRESSION_TOLERANCE: ${{ inputs.regression-tolerance }}
         FINDABLE_REPORT: ${{ inputs.report }}
         FINDABLE_SARIF: ${{ inputs.sarif-file }}
+        FINDABLE_BADGE: ${{ inputs.badge }}
         FINDABLE_LANG: ${{ inputs.lang }}
         FINDABLE_VERSION: ${{ inputs.version }}
       run: |
@@ -108,6 +116,7 @@ runs:
         JSON_OUT="$RUNNER_TEMP/findable.json"
         ARGS=("$FINDABLE_URL" --report "$JSON_OUT" --min-score "$FINDABLE_MIN_SCORE")
         [ -n "$FINDABLE_SARIF" ] && ARGS+=(--report "$FINDABLE_SARIF")
+        [ -n "$FINDABLE_BADGE" ] && ARGS+=(--report "$FINDABLE_BADGE")
         for f in $FINDABLE_REPORT; do ARGS+=(--report "$f"); done
         [ -n "$FINDABLE_MAX_PAGES" ] && ARGS+=(--max-pages "$FINDABLE_MAX_PAGES")
         [ -n "$FINDABLE_BASELINE" ] && ARGS+=(--baseline "$FINDABLE_BASELINE")
