@@ -1,12 +1,14 @@
 # Publish packages/cli to npm when a v* tag is pushed.
 #
-# Publishing from CI rather than from a laptop buys npm provenance: the registry
-# records which workflow, commit and runner produced the tarball, and npm shows a
-# "Built and signed on GitHub Actions" badge on the package page. That needs
-# `id-token: write` and npm >= 9.5 (Node 22 ships 10.x).
+# Authentication is OIDC trusted publishing — there is NO npm token anywhere in
+# this repository. The package's "Trusted Publisher" setting on npmjs.com names
+# this repo (piwig/findable-audit) and this file (release.yml); npm accepts a
+# publish only when the OIDC claims match. Rename this file and publishing stops
+# working until the npm side is updated to match.
 #
-# One-time setup: create an npm automation token and add it as the repository
-# secret NPM_TOKEN (Settings > Secrets and variables > Actions).
+# Provenance comes for free: publishing over OIDC from a public repo records
+# which workflow, commit and runner produced the tarball, and npm shows the
+# "Built and signed on GitHub Actions" badge. No --provenance flag needed.
 #
 # Release flow:
 #   npm version <patch|minor|major> --workspace packages/cli   # bumps + commits
@@ -19,7 +21,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # required for --provenance
+  id-token: write   # the critical requirement: it is what mints the OIDC token
 
 jobs:
   publish:
@@ -28,8 +30,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm >= 11.5.1; Node 24 ships an older npm, so
+      # pin the CLI itself rather than hoping the runner image is recent enough.
+      - run: npm install -g npm@latest
 
       - run: npm ci
       - run: npm run build --workspaces
@@ -46,6 +52,7 @@ jobs:
             exit 1
           fi
 
-      - run: npm publish --provenance --access public --workspace packages/cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # No NODE_AUTH_TOKEN: the package's trusted publisher (npmjs.com > package
+      # settings) authorizes this exact repo + workflow over OIDC. Provenance is
+      # generated automatically, so --provenance is not passed either.
+      - run: npm publish --access public --workspace packages/cli
