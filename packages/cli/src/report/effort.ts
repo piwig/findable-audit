@@ -43,6 +43,18 @@ const EFFORT_OVERRIDES: Record<string, Effort> = {
   // Image work.
   'img-dimensions': 'moderate',
   'img-next-gen': 'moderate',
+  // Transport and delivery are host/CDN settings, not engineering — the `performance`
+  // family default of `involved` overstates them.
+  'http-protocol': 'quick',
+  'cdn-edge-cache': 'quick',
+  // Link and copy work inherit `quick` from their families, but each of these is an
+  // editorial pass across pages rather than a markup tweak.
+  'topical-focus': 'moderate',
+  'anchor-target-profile': 'moderate',
+  'internal-link-context': 'moderate',
+  'outbound-link-health': 'moderate',
+  // Two pages competing for one intent are merged or re-aimed, with redirects behind it.
+  'keyword-cannibalization': 'involved',
   // Structured data: a single OG block is quick (family default is 'moderate').
   'open-graph': 'quick',
   // Performance quick-config wins (family default is 'involved').
