@@ -4,8 +4,8 @@ One deterministic crawl → a catalogue of checks across 8 weighted families →
 score and an A–F grade. Monorepo: `packages/cli` (the engine, TypeScript) and `apps/web`
 (a dependency-free Node web UI). `plugin/` ships the whole thing as a Claude Code plugin.
 
-(The check count is deliberately absent from this file — it is already duplicated in nine
-places, and adding a tenth is exactly the trap the skill below exists to avoid.)
+(The check count is deliberately absent from this file — it is already duplicated in eleven
+places, and adding a twelfth is exactly the trap the skill below exists to avoid.)
 
 Read `README.md` for what the tool does and `docs/guide.md` for what every check verifies.
 This file is the part that is **not** obvious from reading the code.
@@ -47,7 +47,7 @@ The invariant that protects this: `test/fixtures/perfect-site/` must score exact
 ## Adding or removing a check
 
 `buildChecks().length` is the single source of truth for the count, and it is asserted in
-`runner.test.ts`. The count is then *duplicated by hand* into user-facing copy across nine
+`runner.test.ts`. The count is then *duplicated by hand* into user-facing copy across eleven
 files — see `.claude/skills/findable-new-check/SKILL.md`, which encodes the whole
 sequence. Use it; the propagation step is the one that gets forgotten.
 

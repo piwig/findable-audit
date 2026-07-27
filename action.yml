@@ -1,7 +1,7 @@
 name: 'findable-audit'
 description: >-
   SEO & GEO audit gate: score how findable a site is by search engines and AI
-  assistants (113 checks, 8 families). Fails the job below min-score or on
+  assistants (120 checks, 8 families). Fails the job below min-score or on
   regression vs a baseline; writes SARIF/JUnit/JSON/HTML/Markdown reports.
 author: 'piwig'
 branding:
@@ -35,7 +35,7 @@ inputs:
   report:
     description: >-
       Additional report file(s) to write, space-separated; the extension picks
-      the format: .md / .html / .json / .sarif / .xml (JUnit).
+      the format: .md / .html / .json / .sarif / .xml (JUnit) / .svg (status badge).
     required: false
     default: ''
   sarif-file:

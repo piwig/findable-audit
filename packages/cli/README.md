@@ -1,7 +1,7 @@
 # findable-audit
 
 SEO & GEO audit CLI: check how findable your site is by search engines **and AI
-assistants** — 113 checks across 8 families (AI crawler access, answer-engine
+assistants** — 120 checks across 8 families (AI crawler access, answer-engine
 content, structured data, technical SEO, on-page, performance & Core Web Vitals,
 accessibility, security & trust).
 
@@ -27,7 +27,7 @@ Node ≥ 20.3, zero configuration. The crawler stays polite: same-origin only,
 
 | Flag | What it does |
 |---|---|
-| `--report <file>` (repeatable) | Write exactly the named report file(s); format by extension: `.html`/`.htm`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit — GitLab CI / Jenkins), anything else Markdown. |
+| `--report <file>` (repeatable) | Write exactly the named report file(s); format by extension: `.html`/`.htm`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit — GitLab CI / Jenkins), `.svg` (status badge for a README), anything else Markdown. |
 | `--no-report` | Terminal output only. |
 | `--min-score <n>` | Exit `1` below this score — the CI floor. |
 | `--baseline <audit.json>` + `--fail-on-regression` [`--regression-tolerance <n>`] | Diff against a prior `--report *.json` and exit `1` when the score drops — the CI regression gate. |
@@ -63,7 +63,7 @@ findable:
 
 ## Docs
 
-Full documentation — check guide (what each of the 113 checks measures and how to
+Full documentation — check guide (what each of the 120 checks measures and how to
 fix it), bot roster, scoring model, web UI, Claude Code plugin:
 <https://github.com/piwig/findable-audit#readme>
 

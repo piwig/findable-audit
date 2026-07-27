@@ -61,6 +61,22 @@ test('--lang xx is rejected with exit code 2', async () => {
   expect(r.stderr).toMatch(/--lang/);
 });
 
+test('--report *.svg writes a self-contained status badge', async () => {
+  await withFixture(async (base) => {
+    const out = path.join(process.cwd(), 'tmp-cli-badge.svg');
+    rmSync(out, { force: true });
+    const r = await runCli([DIST, base, '--report', out, '--min-score', '0']);
+    expect(r.status).toBe(0);
+    expect(existsSync(out)).toBe(true);
+    const body = readFileSync(out, 'utf8');
+    expect(body.startsWith('<svg')).toBe(true);
+    expect(body).toContain('>findable<');
+    expect(body).toMatch(/>[A-F] \d{1,3}\/100</);
+    expect(body).not.toMatch(/<script/i);
+    rmSync(out, { force: true });
+  });
+});
+
 test('--report *.junit.xml writes a JUnit XML report', async () => {
   await withFixture(async (base) => {
     const out = path.join(process.cwd(), 'tmp-cli-report.junit.xml');

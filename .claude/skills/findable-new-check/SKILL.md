@@ -1,14 +1,15 @@
 ---
 name: findable-new-check
-description: Use when adding, removing or renaming a check in findable-audit — walks the full sequence from spec to dogfooding, including the check-count propagation across nine files that no test catches.
+description: Use when adding, removing or renaming a check in findable-audit — walks the full sequence from spec to dogfooding, including the check-count propagation across eleven files that no test catches.
 ---
 
 # Adding a check to findable-audit
 
 `buildChecks().length` is the **only** source of truth for the check count. Everything
-else — README, both guides, the CLI help, the web copy, the plugin skill — repeats that
-number by hand. Three gates fail loudly if you get the code wrong; **nothing fails if you
-forget the copy.** That asymmetry is what this skill exists for.
+else — both READMEs, both guides, the CLI help, the web copy, the plugin skill, the
+Action's Marketplace description — repeats that number by hand. Three gates fail loudly if
+you get the code wrong; **nothing fails if you forget the copy.** That asymmetry is what
+this skill exists for.
 
 Derive the real numbers from code, never from a previous document:
 
@@ -83,6 +84,8 @@ ignoring `node_modules`, `dist/`, `package-lock.json` and `graphify-out/`).
 | File | What to change |
 |---|---|
 | `README.md` | intro paragraph, "**N checks in 8 families**", the *Checks* column of the family table, and the competitive-comparison line |
+| `packages/cli/README.md` | intro line **and** the *Docs* line — this is the npm package page, the first thing an installer reads |
+| `action.yml` | the `description:` block (Marketplace listing copy) |
 | `docs/guide.md` | intro line, family table row, **new `### <id> (N pts)` section** (Verifies / Why / Fix) |
 | `docs/guide.fr.md` | same three, in French (note the table uses `0,18` with a comma) |
 | `plugin/skills/geo-audit/SKILL.md` | the headline count **and** the per-family breakdown line |

@@ -9,6 +9,7 @@ import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 import { renderSarif } from './report/sarif.js';
+import { renderBadge } from './report/badge.js';
 import { renderJunit } from './report/junit.js';
 import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
@@ -16,7 +17,7 @@ import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { emitFiles } from './generate/index.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -32,9 +33,9 @@ By default, two report files are written to the current directory: <host>-<date>
   (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
   by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), .xml -> JUnit
-  (GitLab CI / Jenkins), anything else -> Markdown.
+  (GitLab CI / Jenkins), .svg -> status badge for a README, anything else -> Markdown.
 --lang selects the report language (en or fr; default en): chrome, check titles, "why", fixes and the
-  checks' own dynamic messages. Terminal, JSON, SARIF and JUnit output stay English.
+  checks' own dynamic messages. Terminal, JSON, SARIF, JUnit and the SVG badge stay English.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
 --cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
 --psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
@@ -246,6 +247,7 @@ try {
   for (const file of targets) {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report);
+    else if (/\.svg$/i.test(file)) body = renderBadge(report);
     else if (/\.json$/i.test(file)) body = renderJson(report);
     else if (/\.xml$/i.test(file)) body = renderJunit(report);
     else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff });

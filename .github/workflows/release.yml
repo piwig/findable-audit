@@ -1,0 +1,51 @@
+# Publish packages/cli to npm when a v* tag is pushed.
+#
+# Publishing from CI rather than from a laptop buys npm provenance: the registry
+# records which workflow, commit and runner produced the tarball, and npm shows a
+# "Built and signed on GitHub Actions" badge on the package page. That needs
+# `id-token: write` and npm >= 9.5 (Node 22 ships 10.x).
+#
+# One-time setup: create an npm automation token and add it as the repository
+# secret NPM_TOKEN (Settings > Secrets and variables > Actions).
+#
+# Release flow:
+#   npm version <patch|minor|major> --workspace packages/cli   # bumps + commits
+#   git tag v$(node -p "require('./packages/cli/package.json').version")
+#   git push && git push --tags
+name: release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write   # required for --provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+      - run: npm run build --workspaces
+      - run: npm test --workspaces
+
+      # The tag must match the version being published: a mismatched tag would
+      # publish a version nobody can check out.
+      - name: Tag matches packages/cli version
+        run: |
+          PKG=$(node -p "require('./packages/cli/package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "tag $GITHUB_REF_NAME does not match packages/cli version $PKG" >&2
+            exit 1
+          fi
+
+      - run: npm publish --provenance --access public --workspace packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

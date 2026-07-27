@@ -14,7 +14,8 @@
   "keywords": ["seo", "geo", "llms.txt", "ai-search", "audit", "lint", "junit", "sarif", "ci", "github-actions", "structured-data", "json-ld"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "fast-xml-parser": "^5.10.1",

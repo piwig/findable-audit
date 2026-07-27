@@ -3,7 +3,17 @@
 > Document de travail interne (2026-07-21). Base pour prioriser l'évolution de l'outil.
 > Source : recherche multi-agents (4 sweeps du marché SEO/GEO, juillet 2026) + vérification sur le code source. Snapshot daté — le marché GEO bouge vite (Semrush et Chrome Lighthouse ont ajouté des checks IA ces derniers mois).
 
-## 0. ▶️ PROCHAINS LOTS À LANCER (mis à jour 2026-07-24 après livraison LOT 1 + LOT 2 + déploiement VPS/Cloudflare + redirect www)
+## 0. ▶️ PROCHAINS LOTS À LANCER (mis à jour **2026-07-27**, après LOT 7)
+
+**État vérifié le 2026-07-27** (le §0.bis ci-dessous est l'ancienne liste du 24/07, conservée pour l'historique — plusieurs de ses items sont livrés) :
+
+- ✅ **LOT 3, LOT 4, LOT 5, LOT 6, refonte design, Lot E (messages FR)** — livrés. Prod redéployée le 27/07 sur `6844abd` : elle tournait un commit en retard, les constats de checks s'affichaient encore en anglais sur les rapports FR.
+- ✅ **Bug CWV prod (ex-n°2)** — **non reproductible, clos**. `PSI_KEY` est bien posée en drop-in systemd sur le VPS, l'API PSI répond 200, et un audit réel avec le moteur déployé rend le dashboard CWV complet (famille performance 47/47, aucun « non mesuré »). Réserve : vérifié moteur + clé, pas un clic dans le formulaire (Turnstile bloque un POST scripté).
+- ✅ **LOT 7 « Sortie publique »** (2026-07-27, spec `docs/superpowers/specs/2026-07-27-lot7-sortie-publique.md`) : badge de score `--report *.svg` (#12), `prepublishOnly` + `.github/workflows/release.yml` (publication npm sur tag, avec provenance), décomptes 113 → 120 corrigés dans `packages/cli/README.md` et `action.yml` **et** ces deux fichiers ajoutés à la table de propagation du skill `findable-new-check` (la raison pour laquelle ils rotaient), topics + homepage posés sur le dépôt GitHub.
+- ⏳ **Reste de LOT 7, côté utilisateur** : `npm publish` (exige `npm login` ou le secret `NPM_TOKEN` — rien ne publie sans ce geste) et la case « publish to Marketplace » d'une release GitHub (`action.yml` a déjà son `branding`, le dépôt est éligible).
+- ▶️ **Suite proposée** : LOT 8 « le web rattrape le CLI » (#58 graphe d'entités, #59 diff baseline, #2b tableau KPI CWV, #60 profondeur bornée) → LOT 9 « fermer la boucle » (#11 `fix --apply`, #61 IndexNow, `security.txt`) → LOT 10 historique public (#10 v2, **arbitrage produit sur la persistance d'abord**) → LOT 11 checks bon marché du §13 (#21, #25, #28, #23, #27) → LOT 12 GEO avancé (`docs/backlog-geo-avance.md`).
+
+## 0.bis Archive — liste du 2026-07-24 (après LOT 1 + LOT 2 + déploiement VPS/Cloudflare + redirect www)
 
 **Ordre validé par l'utilisateur (2026-07-24)** — même cycle que les lots précédents (spec → plan → TDD → tests → commit → push → déploiement VPS si web ; contraintes mémoire `[[findable-audit-report-ux-phase1]]` : zéro nouvelle dép, cross-platform, `process.exitCode` jamais `process.exit`, admin privé/gitignoré, SSH VPS resette → boucler) :
 

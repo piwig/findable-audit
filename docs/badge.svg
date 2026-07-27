@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120.3" height="20" viewBox="0 0 120.3 20" role="img" aria-label="findable-audit: 99/100 (grade A) — findable.bordebat.fr, audited 2026-07-27">
+<title>findable-audit: 99/100 (grade A) — findable.bordebat.fr, audited 2026-07-27</title>
+<clipPath id="findable-badge-clip"><path d="M3 0 h114.3 a3 3 0 0 1 3 3 v14 a3 3 0 0 1 -3 3 h-114.3 a3 3 0 0 1 -3 -3 v-14 a3 3 0 0 1 3 -3 z"/></clipPath>
+<g clip-path="url(#findable-badge-clip)">
+<rect x="0" y="0" width="56.2" height="20" fill="#1c2230"/>
+<rect x="56.2" y="0" width="64.1" height="20" fill="#1a7f37"/>
+</g>
+<text x="28.1" y="14" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#ffffff" textLength="42.2" lengthAdjust="spacingAndGlyphs">findable</text>
+<text x="88.25" y="14" text-anchor="middle" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#ffffff" textLength="50.1" lengthAdjust="spacingAndGlyphs">A 99/100</text>
+</svg>

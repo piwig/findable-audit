@@ -3,6 +3,7 @@
 [![CI](https://github.com/piwig/findable-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/piwig/findable-audit/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/findable-audit)](https://www.npmjs.com/package/findable-audit)
 [![Try it live](https://img.shields.io/badge/Try%20it%20live-findable-1a7f37)](https://findable.bordebat.fr)
+[![findable score: A 99/100](docs/badge.svg)](https://findable.bordebat.fr/en/example-report/)
 
 Audit any URL right in your browser — no install: **[findable.bordebat.fr](https://findable.bordebat.fr)**.
 
@@ -256,7 +257,7 @@ jobs:
 
 The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`,
 `regression-tolerance`, extra `report` files (extension picks the format —
-`.md` / `.html` / `.json` / `.sarif` / `.xml` JUnit) and `lang`. By default
+`.md` / `.html` / `.json` / `.sarif` / `.xml` JUnit / `.svg` badge) and `lang`. By default
 (`version: 'local'`) it builds the CLI from the action's own checkout — once
 the package is published on npm, pin `version: '0.2.0'` to run
 `npx findable-audit@0.2.0` instead. A complete gate example (baseline
@@ -288,11 +289,32 @@ Export the entity graph for inspection or diagrams:
 npx findable-audit https://your-site.com --entity-graph graph.mmd  # or .dot / .json
 ```
 
-The action exposes `score` and `grade` as step outputs, so you can drive a **score badge** from them (a shields.io endpoint, or a static badge in your README):
+### Score badge
 
-```markdown
-![findable-audit](https://img.shields.io/badge/findable--audit-B-1a7f37)
+`--report <file>.svg` writes a **status badge** — the same two-segment pill you see at
+the top of this README, which is itself the output of a real audit of
+findable.bordebat.fr:
+
+```bash
+npx findable-audit https://your-site.com --report docs/badge.svg --no-report
 ```
+
+The SVG is self-contained (no script, no external reference, no third-party badge
+service), so it works in a private repo and behind a firewall, and it cannot silently
+change under you. Its `<title>` carries the audited host and the audit date, so a badge
+committed months ago says how old it is instead of implying freshness. Commit it, point
+your README at it, and regenerate it in the same CI job that runs the gate — the action's
+`report` input takes the same extension:
+
+```yaml
+      - uses: piwig/findable-audit@main
+        with:
+          url: https://your-site.com
+          report: 'docs/badge.svg'
+```
+
+The action also exposes `score` and `grade` as step outputs if you would rather drive a
+shields.io endpoint from them.
 
 You can also emit SARIF straight from the CLI: `findable-audit https://your-site.com --report audit.sarif`.
 
