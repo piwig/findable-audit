@@ -87,16 +87,16 @@ describe('runAudit with concurrent checks', () => {
     expect(report.results.map((r) => r.id)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
   }, 30_000);
 
-  it('really overlaps them: several checks start before the first one finishes', async () => {
+  it('really overlaps them: the site sees several requests at once', async () => {
     const srv = await countingServer(60);
-    const started: string[] = [];
-    const checks = Array.from({ length: 8 }, (_, i) => slowCheck(`c${i}`, started));
-    const t0 = Date.now();
+    const checks = Array.from({ length: 8 }, (_, i) => slowCheck(`c${i}`, []));
     await runAudit(srv.url, checks);
-    const elapsed = Date.now() - t0;
-    // Sequentially this is 8 × 60ms of check latency on top of the crawl; the
-    // gate lets six of them fly at once, so it cannot be the sum.
-    expect(elapsed).toBeLessThan(8 * 60);
+    // Deliberately NOT a wall-clock assertion: elapsed time depends on whatever
+    // else the machine is doing, and a test that fails under load is worse than
+    // no test. Observed overlap is the property itself — sequential execution
+    // could never make the server see more than one request at a time.
+    expect(srv.peak()).toBeGreaterThan(1);
+    expect(srv.peak()).toBeLessThanOrEqual(6);
   }, 30_000);
 
   it('a crashing check is still isolated to a skip, concurrency or not', async () => {
