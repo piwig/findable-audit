@@ -2,9 +2,9 @@ import type { FetchedResource } from '../types.js';
 import { parsePage } from '../checks/dom.js';
 import { mainContent } from '../checks/content.js';
 import { chunkContent, type Chunk } from '../checks/chunker.js';
-import { chunkSurvives } from '../checks/geo-retrieval.js';
+import { hasFactAnchor, opensWithoutBackreference } from '../checks/content.js';
 import { INTENT_GRID, type Bucket, type IntentDef, type IntentId } from './grid.js';
-import { PREDICATES } from './predicates.js';
+import { PREDICATES, type PredicateInput } from './predicates.js';
 import { extractSubjects, type Subject, type Zone } from './subjects.js';
 import { extractJsonLd, flatten, typesOf } from '../checks/jsonld.js';
 import type { Lang } from '../report/i18n.js';
@@ -19,12 +19,21 @@ import type { Lang } from '../report/i18n.js';
 
 export type CellState = 'covered' | 'weak' | 'missing';
 
+/**
+ * What settled the cell. Rendered per cell so a reader can see that "price covered" rests
+ * on a currency pattern in prose while "hours covered" rests on `openingHoursSpecification`
+ * — and so the calibration gate can compare only the cells where extractability is even
+ * in play (markup and affordances are identical between twin corpora by construction).
+ */
+export type CellEvidence = 'markup' | 'prose' | 'affordance' | 'none';
+
 export interface Cell {
   subject: Subject;
   zone?: Zone;
   intent: IntentId;
   question: string;
   state: CellState;
+  evidence: CellEvidence;
   /** Path of the page carrying the best evidence found, when there is any. */
   path?: string;
 }
@@ -75,15 +84,55 @@ export function renderQuestion(intent: IntentDef, lang: Lang, subject: string, z
   return intent.question[lang].replace('{subject}', subject).replace('{zone}', zone ?? '');
 }
 
+/** Sentences of a block. Naive on purpose — a dependency-free split is enough to tell a
+ *  quotable sentence from a paragraph that only holds the answer somewhere inside it. */
+function sentencesOf(block: string): string[] {
+  return block.split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter((s) => s.length > 0);
+}
+
 /** Does this window talk about the subject at all? Cheap gate before the predicate. */
 function mentions(chunk: Chunk, label: string): boolean {
   return fold(chunk.text).includes(fold(label));
 }
 
+/**
+ * Is the answer quotable, or merely present?
+ *
+ * The judgement is made on the BLOCK that carries the evidence, not on the retrieval
+ * window around it. `chunkSurvives` only inspects a window's lead block, so a long
+ * paragraph opening on a clean sentence "survives" no matter how anaphoric the sentence
+ * carrying the actual answer is — the §12.1 separation gate caught exactly that, scoring
+ * a buried corpus identically to a well-structured one.
+ *
+ * Page-scoped intents are exempt: "how do I reach a human" is answered by a `tel:` link,
+ * not by a quotable sentence, so extractability does not apply to them.
+ */
+function gradeExtractability(intent: IntentDef, chunk: Chunk, args: PredicateInput): { state: CellState; evidence: CellEvidence } {
+  if (intent.scope === 'page') return { state: 'covered', evidence: 'affordance' };
+
+  const holds = (text: string) => PREDICATES[intent.id]({ ...args, chunk: { ...chunk, blocks: [text], text } });
+
+  // If the predicate is still satisfied with no prose at all, the answer lives in the
+  // markup. It is machine-readable by construction, so extractability does not apply.
+  if (holds('')) return { state: 'covered', evidence: 'markup' };
+
+  const blocks = chunk.blocks.filter((b) => !chunk.headings.includes(b));
+  // Sentence first — that is the unit a model quotes. Block as a fallback, because some
+  // evidence legitimately spans sentences (an enumeration of steps is one answer, not
+  // three), and splitting it would report a well-written passage as unquotable.
+  const evidence = blocks.flatMap(sentencesOf).find(holds) ?? blocks.find(holds);
+  if (!evidence) return { state: 'weak', evidence: 'prose' };
+
+  const anchored = hasFactAnchor([...chunk.headings, evidence].join(' '));
+  const quotable = anchored && opensWithoutBackreference(evidence);
+  return { state: quotable ? 'covered' : 'weak', evidence: 'prose' };
+}
+
 function evaluate(
   intent: IntentDef, subject: Subject, zone: Zone | undefined, pages: FetchedResource[],
-): { state: CellState; path?: string } {
+): { state: CellState; evidence: CellEvidence; path?: string } {
   let best: CellState = 'missing';
+  let bestEvidence: CellEvidence = 'none';
   let bestPath: string | undefined;
 
   for (const page of pages) {
@@ -93,15 +142,18 @@ function evaluate(
 
     for (const chunk of chunks) {
       if (!mentions(chunk, subject.label)) continue;
-      if (intent.zoned && zone && !mentions(chunk, zone.label)) continue;
-      if (!PREDICATES[intent.id]({ chunk, page, pageText, subject: subject.label, zone: zone?.label })) continue;
+      if (intent.zoned && zone && ![zone.label, ...zone.aliases].some((l) => mentions(chunk, l))) continue;
+      const args = { chunk, page, pageText, subject: subject.label, zone: zone?.label };
+      if (!PREDICATES[intent.id](args)) continue;
 
-      const state: CellState = chunkSurvives(chunk) ? 'covered' : 'weak';
-      if (RANK[state] > RANK[best]) { best = state; bestPath = pathOf(page); }
-      if (best === 'covered') return { state: best, path: bestPath };
+      const graded = gradeExtractability(intent, chunk, args);
+      if (RANK[graded.state] > RANK[best]) {
+        best = graded.state; bestEvidence = graded.evidence; bestPath = pathOf(page);
+      }
+      if (best === 'covered') return { state: best, evidence: bestEvidence, path: bestPath };
     }
   }
-  return { state: best, path: bestPath };
+  return { state: best, evidence: bestEvidence, path: bestPath };
 }
 
 /**
@@ -121,13 +173,14 @@ export function buildAnswerMatrix(pages: FetchedResource[]): AnswerMatrix {
     for (const intent of intents) {
       const targets: (Zone | undefined)[] = intent.zoned ? (zones.length ? zones : []) : [undefined];
       for (const zone of targets) {
-        const { state, path } = evaluate(intent, subject, zone, pages);
+        const { state, evidence, path } = evaluate(intent, subject, zone, pages);
         cells.push({
           subject,
           zone,
           intent: intent.id,
           question: renderQuestion(intent, lang, subject.label, zone?.label),
           state,
+          evidence,
           path,
         });
       }

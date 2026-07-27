@@ -15,7 +15,18 @@ import { extractJsonLd, flatten, typesOf, str } from '../checks/jsonld.js';
 export type SubjectSource = 'markup' | 'nav' | 'h1';
 
 export interface Subject { id: string; label: string; source: SubjectSource }
-export interface Zone { id: string; label: string; kind: 'area-served' | 'locality' | 'postal' }
+export interface Zone {
+  id: string;
+  label: string;
+  kind: 'area-served' | 'locality';
+  /**
+   * Other strings naming the same place. A postal code is an alias of its town, not an
+   * area of its own: treating it as a zone generated "Plomberie à 35000 : quel prix ?" —
+   * a question nobody asks, and one that prose naming the town can never satisfy, so it
+   * came back missing on every site.
+   */
+  aliases: string[];
+}
 
 /** Hard caps from the spec: 12 x 6 x 6 intents is 432 cells, which is already a lot to read. */
 export const MAX_SUBJECTS = 12;
@@ -80,11 +91,12 @@ function headings(root: HTMLElement): string[] {
 }
 
 /** Areas the markup declares. `areaServed` may be a string, a Place node, or a list of either. */
-function markupZones(nodes: Record<string, unknown>[]): Zone[] {
-  const out: Zone[] = [];
+function markupZones(nodes: Record<string, unknown>[]): { zones: Zone[]; postal: string[] } {
+  const zones: Zone[] = [];
+  const postal: string[] = [];
   const add = (label: string | undefined, kind: Zone['kind']) => {
     const l = label ? norm(label) : '';
-    if (l) out.push({ id: key(l), label: l, kind });
+    if (l) zones.push({ id: key(l), label: l, kind, aliases: [] });
   };
 
   for (const n of nodes) {
@@ -96,10 +108,11 @@ function markupZones(nodes: Record<string, unknown>[]): Zone[] {
     const address = n.address as Record<string, unknown> | undefined;
     if (address && typeof address === 'object') {
       add(str(address.addressLocality), 'locality');
-      add(str(address.postalCode), 'postal');
+      const code = str(address.postalCode);
+      if (code) postal.push(norm(code));
     }
   }
-  return out;
+  return { zones, postal };
 }
 
 function dedupe<T extends { id: string }>(items: T[], cap: number): T[] {
@@ -126,6 +139,7 @@ export function extractSubjects(pages: FetchedResource[]): { subjects: Subject[]
   const fromNav: Subject[] = [];
   const fromH1: Subject[] = [];
   const zones: Zone[] = [];
+  const postal: string[] = [];
 
   for (const p of pages) {
     const nodes = flatten(extractJsonLd(p.body));
@@ -140,11 +154,21 @@ export function extractSubjects(pages: FetchedResource[]): { subjects: Subject[]
     for (const label of headings(root)) {
       if (isServiceLabel(label)) fromH1.push({ id: key(label), label, source: 'h1' });
     }
-    zones.push(...markupZones(nodes));
+    const z = markupZones(nodes);
+    zones.push(...z.zones);
+    postal.push(...z.postal);
+  }
+
+  // Postal codes ride along on the town they belong to: a passage that writes "35000"
+  // instead of "Rennes" still answers a question about Rennes.
+  const deduped = dedupe(zones, MAX_ZONES);
+  for (const code of postal) {
+    const target = deduped.find((z) => z.kind === 'locality') ?? deduped[0];
+    if (target && !target.aliases.includes(code)) target.aliases.push(code);
   }
 
   return {
     subjects: dedupe([...fromMarkup, ...fromNav, ...fromH1], MAX_SUBJECTS),
-    zones: dedupe(zones, MAX_ZONES),
+    zones: deduped,
   };
 }

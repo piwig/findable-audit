@@ -53,9 +53,18 @@ describe('extractSubjects — zones', () => {
       address: { '@type': 'PostalAddress', addressLocality: 'Orgères', postalCode: '35230' },
     });
     const { zones } = extractSubjects([page(body)]);
-    expect(zones.map((z) => z.label)).toEqual(expect.arrayContaining(['Rennes', 'Ille-et-Vilaine', 'Orgères', '35230']));
+    expect(zones.map((z) => z.label)).toEqual(expect.arrayContaining(['Rennes', 'Ille-et-Vilaine', 'Orgères']));
     expect(zones.find((z) => z.label === 'Orgères')?.kind).toBe('locality');
-    expect(zones.find((z) => z.label === '35230')?.kind).toBe('postal');
+  });
+
+  // A postal code is another name for a town, not a place of its own. Making it a zone
+  // generated "Plomberie à 35230 : quel prix ?" — a question nobody asks and that prose
+  // naming the town can never satisfy, so it came back missing on every real site.
+  it('attaches the postal code to its town rather than inventing a zone for it', () => {
+    const body = ld({ '@type': 'LocalBusiness', address: { '@type': 'PostalAddress', addressLocality: 'Orgères', postalCode: '35230' } });
+    const { zones } = extractSubjects([page(body)]);
+    expect(zones.map((z) => z.label)).toEqual(['Orgères']);
+    expect(zones[0].aliases).toEqual(['35230']);
   });
 
   // A city named in a customer testimonial is not an area served. Guessing zones from
