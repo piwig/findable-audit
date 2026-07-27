@@ -75,6 +75,10 @@ export interface ReportMessages {
   vizTitle: string;          // priority-bars panel heading + aria-label
   compareChartLabel: string; // compare grouped-bars aria-label/<title>
   // JSON-LD entity graph drawn inline in the report (#58)
+  // #64 — one-screen executive summary
+  summaryTitle: string;
+  summaryActions: string;
+  summaryProjection: (from: number, to: number) => string;
   // #63 — evidence axis: what a verdict rests on
   evidenceHeuristic: string;   // badge shown next to a heuristic check
   evidenceTip: string;         // its tooltip, and the legend under the detail heading
@@ -177,6 +181,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Overall score: ${score} out of 100 — grade ${grade}`,
     vizTitle: 'Where to regain points',
     compareChartLabel: 'Family scores by site',
+    summaryTitle: 'Findability summary',
+    summaryActions: 'What to do first',
+    summaryProjection: (from, to) => `Doing these three: ${from} → ${to}/100.`,
     evidenceHeuristic: 'heuristic',
     evidenceTip: 'A bar we chose, not a standard: reasonable people can disagree, and effectiveness varies by site. Advice, not a defect.',
     egTitle: 'Entity graph',
@@ -274,6 +281,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Score global : ${score} sur 100 — note ${grade}`,
     vizTitle: 'Où regagner des points',
     compareChartLabel: 'Scores par famille et par site',
+    summaryTitle: 'Synthèse de findabilité',
+    summaryActions: 'Par quoi commencer',
+    summaryProjection: (from, to) => `Ces trois actions : ${from} → ${to}/100.`,
     evidenceHeuristic: 'heuristique',
     evidenceTip: 'Une barre que nous avons choisie, pas une norme : on peut raisonnablement en discuter, et l\'effet varie selon les sites. Un conseil, pas un défaut.',
     egTitle: 'Graphe d\'entités',

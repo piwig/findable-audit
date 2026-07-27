@@ -7,6 +7,16 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.5.0 — 2026-07-27
+
+### Added
+
+- **`--summary <file>`: the one-screen version**, for whoever decides rather than whoever
+  fixes — score, verdict, the three axes, the three highest-gain actions with their cost,
+  and the score those three would reach. `.html` (printable, self-contained, no script) or
+  Markdown by extension. It is assembled from the same numbers as the full report, so the
+  two cannot disagree, and it deliberately carries no check table.
+
 ## 0.4.0 — 2026-07-27
 
 ### Added

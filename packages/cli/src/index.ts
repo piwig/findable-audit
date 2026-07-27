@@ -15,10 +15,11 @@ import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from 
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { emitFiles } from './generate/index.js';
+import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--submit] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -27,6 +28,9 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
   sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
+--summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
+  the three highest-gain actions with their cost, and what they would be worth together. Format by extension
+  (.html or anything else Markdown). No check table — that is what --report is for.
 --submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
   Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
@@ -76,6 +80,7 @@ const parseCliArgs = () =>
       'entity-graph': { type: 'string' },
       emit: { type: 'string' },
       submit: { type: 'boolean', default: false },
+      summary: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -171,6 +176,13 @@ if (entityGraphFile !== undefined) {
     console.error(`findable-audit: --entity-graph file must end in .json, .dot or .mmd (got "${entityGraphFile}")\n\n${USAGE}`);
     process.exit(2);
   }
+}
+
+// --summary <file>: validated up front, written after the audit.
+const summaryFile = values.summary;
+if (summaryFile !== undefined && summaryFile.trim() === '') {
+  console.error(`findable-audit: --summary must not be empty\n\n${USAGE}`);
+  process.exit(2);
 }
 
 // --submit: opt-in IndexNow notification. Refused up front without a key —
@@ -305,6 +317,22 @@ try {
       reportWriteFailed = true;
     }
   }
+  // --summary <file>: the one-screen deliverable (#64). Independent of --report:
+  // a reader who wants both gets both, and a client who only ever sees the
+  // summary never has to open a 121-row table to learn where the site stands.
+  if (summaryFile !== undefined) {
+    const body = /\.html?$/i.test(summaryFile)
+      ? renderSummaryHtml(report, now, langTyped)
+      : renderSummaryMarkdown(report, now, langTyped);
+    try {
+      writeFileSync(summaryFile, body, 'utf8');
+      console.error(`summary written to ${summaryFile}`);
+    } catch (err) {
+      console.error(`findable-audit: cannot write summary to "${summaryFile}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
+
   // --entity-graph <file>: write the JSON-LD entity graph in the chosen format.
   if (entityGraphFile !== undefined && report.entityGraph) {
     const renderer = pickEntityGraphRenderer(entityGraphFile)!;
