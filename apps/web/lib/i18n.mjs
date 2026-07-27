@@ -149,7 +149,7 @@ export const WEB_MESSAGES = {
     },
     about: {
       title: 'About findable-audit — open-source SEO + GEO audit',
-      description: 'What findable-audit checks and why: 120 SEO and GEO checks across 8 weighted families, how the A–F score works, and the open-source project behind it.',
+      description: 'What findable-audit checks and why: 121 SEO and GEO checks across 8 weighted families, how the A–F score works, and the open-source project behind it.',
       h1: 'About findable-audit',
       // The FIRST paragraph is deliberately a short, self-contained answer
       // (40–320 chars): that is exactly what our own `content-lead-answer`
@@ -321,7 +321,7 @@ export const WEB_MESSAGES = {
       // L8 : l'argument le plus fort du produit, écrit nulle part jusqu'ici.
       // Le chiffre est vérifié contre le moteur réel par un test de dogfooding.
       proof: 'Ce site obtient 99/100 (A) avec son propre moteur — et les deux avertissements restants sont documentés plutôt que masqués.',
-      familiesTitle: '8 familles pondérées · 120 vérifications',
+      familiesTitle: '8 familles pondérées · 121 vérifications',
       familiesDetails: 'Le détail des 8 familles de score',
       families: ['Accès IA', 'Contenu pour moteurs de réponse', 'Données structurées', 'SEO technique', 'On-page', 'Performance / CWV', 'Accessibilité', 'Sécurité'],
       howTitle: 'Comment ça marche',
@@ -347,7 +347,7 @@ export const WEB_MESSAGES = {
       geoTitle: 'Pourquoi le GEO compte',
       geoBody: [
         'Le GEO (Generative Engine Optimization) consiste à rendre un site trouvable, extractible et citable par les assistants IA comme ChatGPT, Claude ou Perplexity. Ces assistants répondent directement aux questions, et ne peuvent recommander que les sites que leurs crawlers atteignent, comprennent et jugent fiables. Un site qui bloque GPTBot, cache son contenu derrière du JavaScript ou n’expose aucune donnée structurée est invisible dans les réponses IA — quel que soit son classement Google classique.',
-        'findable-audit mesure les deux dimensions en une seule passe : le crawl échantillonne plusieurs pages, exécute 120 vérifications réparties en 8 familles pondérées, puis rend une note A–F avec les corrections à appliquer en premier. Rien à installer, pas de compte — et le moteur est open source : les mêmes vérifications alimentent la CLI utilisable en CI.',
+        'findable-audit mesure les deux dimensions en une seule passe : le crawl échantillonne plusieurs pages, exécute 121 vérifications réparties en 8 familles pondérées, puis rend une note A–F avec les corrections à appliquer en premier. Rien à installer, pas de compte — et le moteur est open source : les mêmes vérifications alimentent la CLI utilisable en CI.',
       ],
       // Citations sortantes vers la documentation des opérateurs de crawlers :
       // ce sont les sources primaires de la famille « accès IA », et c'est

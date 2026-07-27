@@ -83,7 +83,7 @@ node apps/web/server.mjs                                 # self-hosted web app o
 
 ## What it checks
 
-**120 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
+**121 checks in 8 families.** Each family earns a subscore (`0–100`) from its own non-skipped checks; those subscores are combined with the weights below into the overall `/100` score and letter grade.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
@@ -352,13 +352,18 @@ Almost every individual check here exists somewhere else. What no free/OSS/self-
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope; pair findable-audit (input side) with a monitor (output side) if you need it.
 - **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we don't confirm a visit happened.
 - **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API; the keyless endpoint is aggressively rate-limited.
-- **Raw rule count** — SEOmator advertises 251 rules to our 120 checks.
+- **Raw rule count** — SEOmator advertises 251 rules to our 121 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 
 ## Why GEO
 
 A growing share of product and local-business discovery now happens inside AI assistants instead of a search results page. Those assistants rely on their own crawlers (GPTBot, ClaudeBot, PerplexityBot), on machine-readable content (server-rendered text and, for the engines that read it, `llms.txt`) and on structured data (JSON-LD) to decide what to cite. A site can rank fine on Google and still be invisible to AI answers — because a robots.txt rule blocks AI crawlers, or the content only exists after JavaScript runs. GEO is the practice of making a site legible and citable for answer engines; `findable-audit` measures it the way Lighthouse measures performance.
+
+## Changelog
+
+Notable changes are in [CHANGELOG.md](CHANGELOG.md). Released versions are published to
+npm from CI over OIDC trusted publishing, with provenance attached.
 
 ## Contributing
 

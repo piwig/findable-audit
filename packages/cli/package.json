@@ -1,7 +1,7 @@
 {
   "name": "findable-audit",
-  "version": "0.2.1",
-  "description": "SEO & GEO audit CLI: check how findable your site is by search engines and AI assistants.",
+  "version": "0.3.0",
+  "description": "SEO & GEO audit CLI: 121 checks scoring how findable your site is by search engines and AI assistants (GPTBot, ClaudeBot, PerplexityBot). A-F grade, CI gate, SARIF/JUnit.",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -23,23 +23,37 @@
     "url": "git+https://github.com/piwig/findable-audit.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/piwig/findable-audit#readme",
+  "homepage": "https://findable.bordebat.fr",
   "bugs": {
     "url": "https://github.com/piwig/findable-audit/issues"
   },
   "keywords": [
     "seo",
     "geo",
-    "llms.txt",
+    "generative-engine-optimization",
     "ai-search",
-    "audit",
-    "lint",
-    "junit",
+    "ai-crawlers",
+    "gptbot",
+    "claudebot",
+    "perplexity",
+    "llms.txt",
+    "llms-txt",
+    "seo-audit",
+    "site-audit",
+    "core-web-vitals",
+    "accessibility",
+    "security-headers",
+    "structured-data",
+    "json-ld",
+    "robots-txt",
+    "sitemap",
+    "indexnow",
     "sarif",
+    "junit",
     "ci",
     "github-actions",
-    "structured-data",
-    "json-ld"
+    "lint",
+    "cli"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
