@@ -91,7 +91,12 @@ export function isQuestionHeading(text: string): boolean {
 
 const ANAPHORIC_OPENERS = new Set([
   'it', 'this', 'that', 'these', 'those', 'they', 'he', 'she', 'such',
-  'il', 'ils', 'elle', 'elles', 'cela', 'ceci', "c'est", 'ce', 'cette', 'ces', 'celui', 'celle', 'ceux',
+  'il', 'ils', 'elle', 'elles', 'cela', 'ceci', "c'est", 'ce', 'cet', 'cette', 'ces', 'celui', 'celle', 'ceux', 'celles',
+  // The first word is matched with hyphens included, so the compound demonstratives need
+  // their own entries: "celui-ci" never reduces to "celui". Textbook French anaphora that
+  // was slipping through — found while building the answer matrix.
+  'celui-ci', 'celle-ci', 'ceux-ci', 'celles-ci',
+  'celui-là', 'celle-là', 'ceux-là', 'celles-là', 'celui-la', 'celle-la', 'ceux-la', 'celles-la',
   'however', 'moreover', 'therefore', 'also', 'cependant', 'toutefois', 'donc', 'ainsi',
 ]);
 const CONNECTOR_PREFIXES = ['de plus', 'en outre', 'par ailleurs'];

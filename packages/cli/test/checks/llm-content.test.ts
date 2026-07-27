@@ -270,6 +270,13 @@ describe('isQuestionHeading', () => {
 // ---------------------------------------------------------------------------
 
 describe('opensWithoutBackreference vs isSelfSufficientStart', () => {
+  // The compound demonstratives were slipping through: the first word is matched with
+  // hyphens included, so "celui-ci" never reduced to the "celui" already in the list.
+  it('rejects the compound French demonstratives', () => {
+    for (const t of ['Celui-ci est de 89 €.', 'Celle-ci arrive demain.', 'Ceux-là sont en stock.', 'Cet outil suffit.']) {
+      expect(opensWithoutBackreference(t), t).toBe(false);
+    }
+  });
   it('both reject an anaphoric or connector opening, in FR and EN', () => {
     for (const t of ['It also helps us plan.', 'Cela aide aussi.', 'However we ship weekly.', 'Par ailleurs nous livrons.']) {
       expect(opensWithoutBackreference(t), t).toBe(false);
