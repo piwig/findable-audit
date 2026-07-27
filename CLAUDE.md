@@ -22,6 +22,13 @@ node packages/cli/dist/index.js <url> --max-pages 6 --report out.json
 Always `npm run build --workspaces` before running the CLI or the web tests: `apps/web`
 imports from `packages/cli/dist/`, so a stale build silently tests old code.
 
+**Never run `vitest` from the repository root.** There is no vitest config there, so it globs
+everything: `apps/web`'s `*.test.mjs` files are `node:test` and come back as "No test suite
+found", and any leftover agent worktree under `.claude/worktrees/` is scanned too — its stale
+`dist/` produces genuine-looking failures in code that is already merged. Both suites must be
+run from their own workspace (`npm test --workspaces`, or `vitest` from `packages/cli`), and
+worktrees should be removed as soon as their branch is integrated.
+
 ## Non-negotiable conventions
 
 - **Cross-platform strict.** No POSIX shell in shipped code, `path.join` everywhere,

@@ -71,6 +71,9 @@ Node ≥ 20.3, zero configuration. The crawler stays polite: same-origin only, a
 | `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs (review before deploying). |
 | `--submit` + `--indexnow-key <key>` | Notify IndexNow (Bing, Yandex, Seznam, Naver) of the audited URLs. Opt-in, and only once the key file on your site proves you own it. |
 | `--entity-graph <file>` | Export the JSON-LD entity graph (`.json` / `.dot` / `.mmd`). |
+| `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page holds a passage that answers each one *and stands on its own* when a model is handed it in isolation. `.json` or Markdown. |
+| `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth. `.html` or Markdown. |
+| `--verify-profiles` / `--check-outbound` | The **only** two capabilities that fetch anything outside the audited origin — profile back-links, and outbound-link liveness. Both opt-in, both bounded, neither implies the other. Without them the audit touches nothing but your own site. |
 | `--cwv` [`--psi-key <key>`] | Opt into Core Web Vitals via PageSpeed Insights. |
 | `--lang <en\|fr>` | Report language (chrome, check titles, explanations, fixes and messages). |
 
