@@ -33,6 +33,45 @@ imports from `packages/cli/dist/`, so a stale build silently tests old code.
   is a selling point in the README.
 - `.gitattributes` pins `* text=auto eol=lf`.
 - Commit subjects: one line, `type(scope): …`.
+- **A change to `packages/cli` is not delivered until it is published to npm** — see
+  *Shipping* below.
+
+## Shipping: a change nobody can install did not ship
+
+Three surfaces deliver this engine, and **two of them run the npm package, not this
+checkout**:
+
+- `npx findable-audit <url>` — what the README, the guides and every quick-start show.
+- The Claude Code plugin — all three skills (`geo-audit`, `geo-implement`,
+  `fix-technical-seo`) shell out to `npx findable-audit`.
+- The composite `action.yml` — defaults to `version: local` (builds from its own
+  checkout), but users are told they can pin a published version instead.
+
+So a merged, deployed, green-tested change to `packages/cli` reaches **nobody** until a
+release goes out. The VPS deploy only updates the web app.
+
+**After any change to `packages/cli` (a check, the scoring, a report renderer, a CLI
+flag, a bug fix), plan the release in the same breath as the commit.** Propose it to the
+user — the tag push is what publishes, so it follows the same ask-before-push rule as
+everything else here.
+
+```bash
+# 1. bump packages/cli/package.json (semver: new check or flag -> minor, fix -> patch;
+#    anything that moves a score is at least minor, it changes users' output)
+# 2. keep plugin/.claude-plugin/plugin.json's version in step with it
+# 3. commit, then:
+git tag v<version> && git push origin v<version>   # .github/workflows/release.yml does the rest
+```
+
+`release.yml` re-runs build + the full suite, refuses a tag that disagrees with
+`packages/cli/package.json`, then publishes with `--provenance`.
+
+**npm token gotcha** (cost two failed runs on 2026-07-27): the `NPM_TOKEN` secret must be
+a **granular access token** with *bypass 2FA* enabled — a classic token gets
+`E403 … two-factor authentication … is required`. And for a token that has never
+published this package, the scope must be **All packages**: one restricted to selected
+packages cannot *create* a package and npm answers `E404 … is not in this registry`,
+which reads like a missing package but is a permission refusal.
 
 ## How scoring works (and why checks skip)
 
