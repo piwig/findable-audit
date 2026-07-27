@@ -116,6 +116,17 @@ One nuance worth knowing (per Perplexity's docs): PerplexityBot is the *index-ti
 
 **Grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
 
+### What a normal score looks like
+
+Across a 12-site sweep — static-site generators, framework documentation, a news site, an e-commerce store, a public-sector site and a minimal-HTML forum — scores landed between **57 and 81, median 67**: one B, three C, seven D, one F, and **no A**. Sites with dedicated accessibility and platform teams sit in the 70s.
+
+So a 65 is not a broken site. GEO adoption is genuinely early, and the scale is deliberately demanding — but two structural quirks account for part of that spread, and we would rather write them down than quietly tune them away:
+
+- **`llms.txt` carries 14 of the 87 points** in the heaviest family, for a convention this project's own documentation calls a *signal of unproven value* (large studies find no measurable citation gain, adoption is ~3%, and Google states it has no ranking impact).
+- **"No JSON-LD at all" costs 24 of 88 points** in structured data, spread over four checks that share a single root cause — so one missing thing is counted four times.
+
+Both are open calibration questions, tracked in the [roadmap](docs/competitive-analysis-and-roadmap.md). Until they are settled, treat the grade as a ladder rather than a verdict: **the number that matters is the delta between two runs of your own site**, which is exactly what `--baseline` measures.
+
 ## Reports
 
 Every successful audit writes `<host>-<date>.md` and `<host>-<date>.html` to the current directory. The HTML report is self-contained, responsive, printable (**Print to PDF**), available in **English and French**, and contains **no JavaScript at all** — every disclosure is a native `<details>`, so it stays servable under `script-src 'none'`.

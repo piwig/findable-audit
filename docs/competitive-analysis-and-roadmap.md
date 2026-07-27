@@ -299,6 +299,24 @@ corrigent pas à l'intuition — il faut mesurer sur plusieurs sites avant de bo
   checks sont en réalité `measured` (« aucune liste ni tableau » est vérifiable), soit ils
   doivent redescendre à `warn`. ⚠️ Les deux options **déplacent la note de tous les
   utilisateurs**, donc mineure et décision explicite — pas un correctif silencieux.
+- **#71 [Honnêteté/scoring] `llms-txt` pèse 10 points et se déclare `measured`.** Balayage de
+  12 sites réels le 2026-07-27 : `llms-txt` échoue sur **10 sites sur 12**, `llms-full-txt`
+  sur 11. Ensemble ils valent **14 des 87 points** de `llm-content`, la famille la plus lourde
+  (0,18). Or `CLAUDE.md` ligne 109 dit : « `llms.txt` is documented in the guide as a *signal
+  of unproven value*. Keep it that way. » — et le §7 P0 de ce document exigeait un **poids
+  faible**. Pire, `evidence: 'measured'` affirme que le bon état est défini **hors** du projet
+  (RFC, W3C, WCAG, schema.org, un seuil publié par Google) : c'est faux pour une convention
+  que Google déclare sans effet sur le classement. En l'état, le check le plus lourd de
+  l'outil impose une convention que sa propre doc qualifie de non prouvée, et présente ce
+  jugement comme une mesure. Deux corrections possibles : basculer en `heuristic` + `warn` max
+  et redescendre le poids, ou assumer et retirer la mention « valeur non prouvée » du guide —
+  mais pas les deux en même temps.
+- **#72 [Scoring] « Pas de JSON-LD » est compté quatre fois.** `json-ld` (10), `json-ld-entity`
+  (6), `json-ld-valid` (4) et `sd-organization` (4) échouent ensemble dès qu'un site n'a aucun
+  balisage — **24 des 88 points** de `structured-data` pour une seule cause racine. Observé sur
+  9 à 11 sites du balayage. Un défaut unique ne devrait pas coûter quatre fois ; les trois
+  checks dérivés devraient `skip` quand `json-ld` a déjà constaté l'absence, comme n'importe
+  quelle précondition manquante ailleurs dans l'outil.
 - **#70 [Calibration] `internal-link-context` ne discrimine presque rien.** Son plancher est
   à **10 %** de liens internes en contenu principal (`MIN_CONTEXTUAL_SHARE = 0.1`). Le
   commentaire du code assume ce choix — une navigation répétée sur N pages écrase
