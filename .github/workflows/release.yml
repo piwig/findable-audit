@@ -52,7 +52,80 @@ jobs:
             exit 1
           fi
 
+      # Publishing is irreversible, so the tarball is inspected BEFORE it goes
+      # out. `files` only ships `dist`, which means a publish that skipped the
+      # build would upload a package with no code in it and nobody would notice
+      # until an install failed.
+      - name: The tarball actually contains the CLI
+        run: |
+          npm pack --dry-run --json --workspace packages/cli > /tmp/pack.json
+          node -e '
+            const pack = require("/tmp/pack.json")[0];
+            const names = pack.files.map((f) => f.path);
+            const required = ["dist/index.js", "dist/checks/index.js", "README.md", "LICENSE"];
+            const missing = required.filter((f) => !names.includes(f));
+            if (missing.length) {
+              console.error("tarball is missing: " + missing.join(", "));
+              process.exit(1);
+            }
+            if (names.length < 50) {
+              console.error(`tarball has only ${names.length} files — a partial build?`);
+              process.exit(1);
+            }
+            console.log(`tarball ok: ${names.length} files, ${(pack.size / 1024).toFixed(0)} kB`);
+          '
+
       # No NODE_AUTH_TOKEN: the package's trusted publisher (npmjs.com > package
       # settings) authorizes this exact repo + workflow over OIDC. Provenance is
       # generated automatically, so --provenance is not passed either.
       - run: npm publish --access public --workspace packages/cli
+
+  # What the tests above never touch: the artefact that actually reaches users.
+  # Everything before this point runs against the checkout. This installs the
+  # published package from the registry, on both platforms we claim to support,
+  # and runs it — the six releases before this job existed were verified by hand,
+  # which is the kind of step that gets skipped exactly once.
+  smoke:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the published version and run it
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # The registry needs a moment to serve a brand-new version.
+          for i in 1 2 3 4 5 6; do
+            if npm view "findable-audit@$VERSION" version >/dev/null 2>&1; then break; fi
+            echo "waiting for findable-audit@$VERSION to appear on the registry ($i)"
+            sleep 10
+          done
+          OUT=$(npx -y "findable-audit@$VERSION" --version)
+          echo "installed: $OUT"
+          [ "$OUT" = "$VERSION" ] || { echo "--version printed '$OUT', expected '$VERSION'" >&2; exit 1; }
+          npx -y "findable-audit@$VERSION" --help | grep -q "Usage: findable" || { echo "--help output unexpected" >&2; exit 1; }
+
+      - name: Audit a real site with the published binary
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Our own site: auditing someone else's from CI on every release would
+          # be impolite. A failure here means the published engine is broken, or
+          # our own site is down — both are worth a red run.
+          npx -y "findable-audit@$VERSION" https://findable.bordebat.fr \
+            --max-pages 2 --no-report --json > report.json
+          node -e '
+            const r = require("./report.json");
+            if (typeof r.score !== "number" || !Array.isArray(r.results) || r.results.length < 100) {
+              console.error("published binary produced an implausible report", { score: r.score, checks: r.results?.length });
+              process.exit(1);
+            }
+            console.log(`published binary scored ${r.score}/100 (${r.grade}) over ${r.results.length} checks`);
+          '

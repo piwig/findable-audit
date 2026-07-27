@@ -19,7 +19,7 @@ import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--summary <file>] [--submit] [--verify-profiles] [--emit <dir>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -31,6 +31,11 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
 --summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
   the three highest-gain actions with their cost, and what they would be worth together. Format by extension
   (.html or anything else Markdown). No check table — that is what --report is for.
+--verify-profiles fetches the profiles your JSON-LD declares in sameAs and checks each one links back
+  to your site — the return link is what turns a claim into a verified identity. This is the ONLY option
+  that fetches anything off your own origin (at most 8 URLs, http(s) only, same SSRF guard); without it
+  the audit touches nothing but the audited site. It never hunts for a presence you did not declare, and
+  a platform that refuses robots (LinkedIn, Instagram...) is reported as unverifiable, never held against you.
 --submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
   Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
@@ -83,6 +88,7 @@ const parseCliArgs = () =>
       'entity-graph': { type: 'string' },
       emit: { type: 'string' },
       submit: { type: 'boolean', default: false },
+      'verify-profiles': { type: 'boolean', default: false },
       summary: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
@@ -232,7 +238,7 @@ const htmlReportWanted = values.report === undefined
 
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
+  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted };
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 

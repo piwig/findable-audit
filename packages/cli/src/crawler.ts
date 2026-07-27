@@ -98,6 +98,12 @@ export interface CrawlerOptions {
    * loopback fixtures. The public web app turns it ON.
    */
   blockPrivateHosts?: boolean;
+  /**
+   * Wire up the off-origin capability (#65). Off by default: when false the
+   * Crawler does not even expose fetchExternal, so a check cannot reach
+   * off-origin by accident and its "skip when absent" contract is real.
+   */
+  verifyProfiles?: boolean;
   /** External abort signal, combined with the per-request timeout on every fetch. */
   signal?: AbortSignal;
   // --- Test seams (default to the real implementations). Injectable so the
@@ -118,6 +124,13 @@ export interface CrawlerOptions {
  * sites uninvited.
  */
 const MAX_INFLIGHT_REQUESTS = 6;
+
+/**
+ * Off-origin URLs one audit may fetch, total. Profile verification needs a
+ * handful; anything beyond that is a bug or an attempt to use this tool as a
+ * proxy, and both deserve the same answer.
+ */
+const MAX_EXTERNAL_FETCHES = 8;
 
 /** Counting semaphore: admits at most `limit` runners, queues the rest in order. */
 class RequestGate {
@@ -157,7 +170,13 @@ export class Crawler implements CrawlContext {
   private gate = new RequestGate(MAX_INFLIGHT_REQUESTS);
   /** Separate cache for fetchWithUA, keyed `${userAgent} ${url}`. Never shared with `cache`. */
   private uaCache = new Map<string, FetchedResource | null>();
+  /** Off-origin responses (profile verification). Never shared with the origin caches. */
+  private externalCache = new Map<string, FetchedResource | null>();
+  /** Distinct off-origin URLs actually fetched this run, against the budget. */
+  private externalSpent = 0;
   private originResolved = false;
+  /** Present only when the caller opted into off-origin verification. */
+  fetchExternal?: (url: string) => Promise<FetchedResource | null>;
 
   constructor(
     url: string,
@@ -166,6 +185,9 @@ export class Crawler implements CrawlContext {
     private opts: CrawlerOptions = {},
   ) {
     this.baseUrl = new URL(url);
+    // An OWN property, assigned only when asked for: deleting a prototype method
+    // would be a no-op, and a check must be able to test for absence.
+    if (opts.verifyProfiles) this.fetchExternal = (target: string) => this.externalFetch(target);
   }
 
   /** Per-request signal: the timeout combined with any caller-supplied signal. */
@@ -215,6 +237,33 @@ export class Crawler implements CrawlContext {
     } finally {
       this.inflight.delete(target);
     }
+  }
+
+  /**
+   * Off-origin fetch, for verifying declared profiles (#65). See
+   * `CrawlContext.fetchExternal` for the contract and why it is this narrow.
+   *
+   * Only wired up when the caller opted in — `runAudit` deletes the method
+   * otherwise, so a check cannot reach off-origin by accident.
+   */
+  private async externalFetch(url: string): Promise<FetchedResource | null> {
+    let target: URL;
+    try {
+      target = new URL(url);
+    } catch {
+      return null;
+    }
+    // http(s) only: no file:, no data:, no anything a declared string could smuggle.
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return null;
+    const key = target.toString();
+    if (this.externalCache.has(key)) return this.externalCache.get(key)!;
+    // The budget is spent on distinct URLs, checked before the request so a
+    // misbehaving check cannot walk the web on the audited site's behalf.
+    if (this.externalSpent >= MAX_EXTERNAL_FETCHES) return null;
+    this.externalSpent++;
+    const out = await this.gate.run(() => this.performFetch(key, this.buildSignal(), this.userAgent));
+    this.externalCache.set(key, out);
+    return out;
   }
 
   /**

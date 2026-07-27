@@ -73,6 +73,8 @@ export interface AuditOptions {
   psiKey?: string;
   /** PSI strategy (default 'mobile'). */
   psiStrategy?: 'mobile' | 'desktop';
+  /** Verify declared sameAs profiles by fetching them off-origin (#65). Opt-in: see CrawlContext.fetchExternal. */
+  verifyProfiles?: boolean;
   /** Include the built entity graph in the returned AuditReport (for --entity-graph export). */
   includeEntityGraph?: boolean;
   /**
@@ -88,6 +90,9 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
 
   const crawler = new Crawler(url, opts.timeoutMs, opts.userAgent, {
     blockPrivateHosts: opts.blockPrivateHosts,
+    // #65: off-origin verification is wired up only when asked for, so the
+    // default audit still touches nothing but the audited origin.
+    verifyProfiles: opts.verifyProfiles,
     signal: opts.signal,
   });
 

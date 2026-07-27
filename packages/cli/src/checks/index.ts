@@ -1,3 +1,4 @@
+import { sameAsVerified } from './sameas-verified.js';
 import { brokenSubresources } from './broken-subresources.js';
 import { jsOnlyDestinations } from './js-only-destinations.js';
 import { softErrorPages } from './soft-error-pages.js';
@@ -71,7 +72,7 @@ export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
     htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
-    brokenSubresources, jsOnlyDestinations, softErrorPages, indexingConflicts,
+    brokenSubresources, jsOnlyDestinations, softErrorPages, indexingConflicts, sameAsVerified,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
     htmlWeight, renderBlockingJs, renderBlockingCss, imgDimensions, imgLazyLoading, imgNextGen,
     resourceHints, domSize, textCompression, assetCaching, inlineHeadVolume,

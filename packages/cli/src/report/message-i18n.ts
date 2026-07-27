@@ -16,6 +16,13 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // #65 — verification des profils sameAs
+  "profile verification is opt-in (run with --verify-profiles)": "la vérification des profils est optionnelle (lancez avec --verify-profiles)",
+  "no sameAs profile declared (see sd-entity-grounding)": "aucun profil sameAs déclaré (voir sd-entity-grounding)",
+  "could not read any of the {0} declared profile(s) — all unverifiable (platform refused)": "aucun des {0} profil(s) déclaré(s) n'a pu être lu — tous invérifiables (plateforme refusée)",
+  "{0} of {1} readable profile(s) link back to the site{2}": "{0} profil(s) lisible(s) sur {1} renvoient vers le site{2}",
+  "only {0} of {1} readable profile(s) link back{2}": "seulement {0} profil(s) lisible(s) sur {1} renvoient un lien{2}",
+  "no link back from {0} readable profile(s){1}": "aucun lien retour depuis {0} profil(s) lisible(s){1}",
   // LOT 10 — checks issus du fan-out d agents (subresources, js-only, soft-error, conflits d indexation)
   "no subresources on sampled pages": "aucune sous-ressource sur les pages échantillonnées",
   "no same-origin subresources ({0} third-party only)": "aucune sous-ressource de même origine ({0} tierce(s) uniquement)",

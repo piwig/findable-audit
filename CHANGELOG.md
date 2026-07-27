@@ -7,6 +7,29 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.7.0 — 2026-07-27
+
+### Added
+
+- **`sameas-verified` (opt-in `--verify-profiles`) — 125 → 126 checks.** Fetches the
+  profiles your JSON-LD declares in `sameAs` and checks each links back. Anyone can list
+  a LinkedIn or Wikipedia URL in their own markup; only whoever controls that profile can
+  make it point back, and that return link is what turns a claim into a verifiable
+  identity.
+
+  This is the **only** capability in the tool that leaves the audited origin, so it is
+  deliberately narrow: opt-in, at most 8 URLs per audit, http(s) only, under the same SSRF
+  guard as everything else, and wired up only when asked for — without the flag the
+  Crawler does not even expose it. It only ever looks at profiles you **declared**; it
+  never hunts for a presence you did not claim, because that is not verifiable from a
+  crawl. A platform that refuses robots is reported as *unverifiable* and never held
+  against the site — "we could not read it" and "it does not link back" are different
+  facts, and only the second is about you. Warns at worst, never fails.
+- **The published package is now smoke-tested by CI.** Everything before ran against the
+  checkout; this installs the published version from the registry on Linux and Windows,
+  checks `--version` matches the tag, and runs a real audit with it. The tarball is also
+  inspected **before** publishing, since publishing cannot be undone.
+
 ## 0.6.0 — 2026-07-27
 
 ### Added

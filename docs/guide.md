@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **125 checks in 8 families**.
+findable-audit scores a site out of 100 across **126 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 125 checks, **96 are measured and 29 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 126 checks, **97 are measured and 29 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -10,7 +10,7 @@ findable-audit scores a site out of 100 across **125 checks in 8 families**.
 |---|---|---:|
 | AI crawler access | 0.16 | 9 |
 | Answer-engine content | 0.18 | 21 |
-| Structured data & metadata | 0.15 | 20 |
+| Structured data & metadata | 0.15 | 21 |
 | Technical SEO | 0.15 | 26 |
 | On-page & content | 0.12 | 11 |
 | Performance & Core Web Vitals | 0.10 | 19 |
@@ -697,6 +697,11 @@ Trust posture: HTTPS end-to-end, security headers, no mixed content.
 **Verifies:** Reads the pages the crawl actually sampled and flags any that answer HTTP 200 while their own <title> or <h1> is an error message ("Page not found", "404 Not Found", "Page introuvable", "Une erreur est survenue"), or that serve almost no main content on a URL that is not the homepage.
 **Why:** Reads the pages the crawl actually sampled and flags any that answer HTTP 200 while their own <title> or <h1> is an error message ("Page not found", "404 Not Found", "Page introuvable", "Une erreur est survenue"), or that serve almost no main content on a URL that is not the homepage. This is where `soft-404` cannot look: that check fires one synthetic probe at a random path that cannot exist, so it only learns what the server does with an obviously-missing route, never what it does with the real URLs a sitemap or an internal link advertised. Crawlers and AI answer engines trust the status line — RFC 9110 makes the status code carry the semantics of the response — so an error page served as 200 gets indexed, chunked and quoted as if it were content, while the genuinely missing page never drops out of the index. The lexicon is bilingual (FR + EN) and a marked page must also be short (under 400 words of main content), so an article that merely writes about 404 errors is never flagged.
 **Fix:** Return 404 (or 410 for permanently removed content) on the routes whose page says it failed, and give every URL that answers 200 a real document.
+
+### `sameas-verified` (3 pts)
+**Verifies:** *(opt-in: `--verify-profiles`)* Fetches each profile URL declared in your JSON-LD `sameAs` and checks whether it links back to your site. Warns at worst — never fails.
+**Why:** Anyone can list a LinkedIn or Wikipedia URL in their own markup; only whoever controls that profile can make it point back, so the return link is what turns a claim into an identity an engine can rely on. This is the only check that fetches anything off your own origin (at most 8 URLs, http(s) only, under the same SSRF guard), and it only ever looks at profiles you declared — it never goes hunting for a presence you did not claim. A platform that refuses robots (LinkedIn answers 999, Instagram serves a login wall) is reported as **unverifiable** and never held against you: "we could not read it" and "it does not link back" are different facts, and only the second is about your site.
+**Fix:** On each profile you list in `sameAs`, fill in the website field with your site URL. Most platforms have one, and it is what makes the pair verifiable in both directions.
 
 ## Generating indexing files
 

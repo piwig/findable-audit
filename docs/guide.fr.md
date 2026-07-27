@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **125 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **126 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 125 checks, **96 sont mesurés et 29 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 126 checks, **97 sont mesurés et 29 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -10,7 +10,7 @@ findable-audit note un site sur 100 à travers **125 checks répartis en 8 famil
 |---|---|---:|
 | Accès crawlers IA | 0,16 | 9 |
 | Contenu pour moteurs de réponse | 0,18 | 21 |
-| Données structurées et métadonnées | 0,15 | 20 |
+| Données structurées et métadonnées | 0,15 | 21 |
 | SEO technique | 0,15 | 26 |
 | On-page et contenu | 0,12 | 11 |
 | Performance et Core Web Vitals | 0,10 | 19 |
@@ -705,6 +705,11 @@ Posture de confiance : HTTPS de bout en bout, en-têtes de sécurité, pas de co
 **Vérifie :** Parcourt les pages réellement échantillonnées par le crawl et signale celles qui répondent HTTP 200 alors que leur propre <title> ou <h1> est un message d'erreur (« Page not found », « 404 Not Found », « Page introuvable », « Une erreur est survenue »), ou qui ne servent quasiment aucun contenu principal sur une URL qui n'est pas l'accueil.
 **Pourquoi :** Parcourt les pages réellement échantillonnées par le crawl et signale celles qui répondent HTTP 200 alors que leur propre <title> ou <h1> est un message d'erreur (« Page not found », « 404 Not Found », « Page introuvable », « Une erreur est survenue »), ou qui ne servent quasiment aucun contenu principal sur une URL qui n'est pas l'accueil. C'est précisément là où `soft-404` ne peut pas regarder : ce check envoie une seule sonde synthétique vers un chemin aléatoire qui ne peut pas exister, il n'apprend donc que ce que le serveur fait d'une route manifestement absente, jamais ce qu'il fait des vraies URL annoncées par un sitemap ou un lien interne. Les crawlers et les moteurs de réponse IA font confiance à la ligne de statut — la RFC 9110 fait porter au code de statut la sémantique de la réponse — si bien qu'une page d'erreur servie en 200 est indexée, découpée et citée comme du vrai contenu, tandis que la page réellement manquante ne sort jamais de l'index. Le lexique est bilingue (FR + EN) et une page marquée doit en plus être courte (moins de 400 mots de contenu principal), de sorte qu'un article qui parle simplement des erreurs 404 n'est jamais signalé.
 **Corriger :** Renvoyez un 404 (ou un 410 pour un contenu définitivement supprimé) sur les routes dont la page annonce elle-même un échec, et donnez un vrai document à chaque URL qui répond 200.
+
+### `sameas-verified` (3 pts)
+**Vérifie :** *(optionnel : `--verify-profiles`)* Récupère chaque URL de profil déclarée dans le `sameAs` de votre JSON-LD et contrôle qu'elle renvoie un lien vers votre site. Avertissement au pire — jamais d'échec.
+**Pourquoi :** N'importe qui peut inscrire une URL LinkedIn ou Wikipédia dans son propre balisage ; seul celui qui contrôle ce profil peut le faire pointer en retour, et c'est ce lien retour qui transforme une affirmation en identité sur laquelle un moteur peut s'appuyer. C'est le seul check qui sort de votre origine (8 URL au maximum, http(s) uniquement, sous la même garde SSRF), et il n'examine que les profils que vous avez déclarés — il ne part jamais à la recherche d'une présence non revendiquée. Une plateforme qui refuse les robots (LinkedIn répond 999, Instagram sert un mur de connexion) est signalée comme **invérifiable** et ne vous est jamais reprochée : « nous n'avons pas pu lire » et « il n'y a pas de lien retour » sont deux faits différents, et seul le second parle de votre site.
+**Corriger :** Sur chaque profil listé dans `sameAs`, renseignez le champ site web avec l'URL de votre site. La plupart des plateformes en proposent un, et c'est lui qui rend la paire vérifiable dans les deux sens.
 
 ## Générer des fichiers d'indexation
 

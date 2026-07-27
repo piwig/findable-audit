@@ -161,6 +161,25 @@ export interface CrawlContext {
    * be retried with a genuinely fresh request.
    */
   fetchWithUA?(path: string, userAgent: string): Promise<FetchedResource | null>;
+  /**
+   * Fetch an OFF-ORIGIN URL — the only capability in the tool that leaves the
+   * audited site. It exists for one job: verifying that a profile a site
+   * *declares* in `sameAs` actually exists and points back (#65). Everything
+   * about it is deliberately narrow:
+   *
+   * - **Opt-in.** Absent unless the caller asked for it (`--verify-profiles`),
+   *   so the default audit still touches nothing but the audited origin and the
+   *   README's "nothing leaves your machine" stays literally true.
+   * - **Budgeted.** A whole audit may fetch at most `MAX_EXTERNAL_FETCHES`
+   *   distinct external URLs, whatever a check asks for.
+   * - **Guarded.** http(s) only, and when the SSRF guard is on (the web app) it
+   *   applies here exactly as it does to the audited origin — a site that
+   *   declares `sameAs: ["http://169.254.169.254/…"]` must not turn our server
+   *   into its errand boy.
+   *
+   * Dependent checks MUST skip when it is absent, never assume it.
+   */
+  fetchExternal?(url: string): Promise<FetchedResource | null>;
   /** Sampled pages (homepage included). Attached by the runner; absent in unit tests. */
   sample?: PageSample;
   /** JSON-LD entity graph across the sampled pages. Attached by the runner; absent in unit tests. */
