@@ -301,6 +301,16 @@ Identité lisible par machine et éligibilité aux résultats enrichis.
 
 ---
 
+### `rich-result-eligibility` (4 pts)
+**Vérifie :** *(skip si aucun type balisé n'a d'exigences Google publiées)* Pour chaque type détecté — Article, extrait Produit, fiche marchande, Recipe, Event, Breadcrumb, Video, extrait d'avis, note agrégée — que les propriétés REQUIRED de Google sont présentes (échec sinon) et ses RECOMMENDED aussi (avertissement).
+**Pourquoi :** la validité schema.org n'est pas l'éligibilité. Un `Product` sans `offers.price` est un balisage valide qui ne produira jamais de résultat enrichi.
+**Correction :** renseignez les propriétés REQUIRED que Google publie pour chaque type balisé ; les RECOMMENDED font la différence entre éligible et compétitif.
+
+### `sd-page-entity` (3 pts)
+**Vérifie :** *(skip s'il n'y a ni nœud WebPage/CreativeWork en page d'accueil ni page d'article)* Que les nœuds `WebPage`/`Article`/`CreativeWork` nomment leur entité principale via `about` ou `mainEntity`, et que l'entité nommée est ancrée — un `@id` résolvable dans le graphe, ou un `sameAs`. Avertissement au pire.
+**Pourquoi :** une page qui ne dit jamais de quoi elle parle laisse le moteur le déduire de la prose. Le nommer supprime la devinette.
+**Correction :** ajoutez `about` (et `mentions` pour les entités secondaires) pointant vers un `@id` présent dans votre graphe.
+
 ## SEO technique
 
 Hygiène de crawlabilité et d'indexation.
@@ -417,6 +427,21 @@ Hygiène de crawlabilité et d'indexation.
 
 ---
 
+### `internal-link-context` (3 pts)
+**Vérifie :** *(skip en dessous de 5 pages échantillonnées, ou si l'échantillon ne contient aucun lien interne)* La part des liens internes situés dans le contenu principal plutôt que dans la navigation, l'en-tête ou le pied de page ; avertit en dessous de 10 %.
+**Pourquoi :** un lien qui n'existe que dans le mobilier du site porte bien moins de signal qu'un lien rencontré au fil du texte.
+**Correction :** liez depuis le corps de vos pages, pas seulement depuis la navigation et le pied de page.
+
+### `internal-equity-leaks` (3 pts)
+**Vérifie :** *(skip si l'échantillon ne contient aucun lien interne)* Les `<a>` internes portant `rel=nofollow`, `sponsored` ou `ugc`. Les cibles en redirection sont volontairement exclues — un 30x ne perd aucune équité — et les cibles `noindex` sont comptées dans le message mais jamais notées, désindexer une page étant un choix normal. Avertissement au pire.
+**Pourquoi :** un `rel=nofollow` sur vos propres liens les empêche d'être suivis sans rien apporter, et vient presque toujours d'un réglage de thème ou d'extension posé par accident.
+**Correction :** retirez `rel=nofollow` des liens vers vos propres pages.
+
+### `outbound-link-health` (3 pts)
+**Vérifie :** *(opt-in : skip sans `--check-outbound`)* Jusqu'à 10 liens sortants, un par hôte, ceux du contenu principal d'abord, sondés en HEAD avec repli sur un GET par plage. Seuls 404 et 410 comptent comme cassés ; 401, 403, 429, 5xx, délais dépassés et échecs DNS sont rapportés comme invérifiables, jamais comme morts.
+**Pourquoi :** une citation qui ne résout plus affaiblit la page qui l'a faite, pour le lecteur comme pour un moteur qui juge vos sources.
+**Correction :** mettez à jour ou retirez les liens sortants qui renvoient 404/410.
+
 ## On-page et contenu
 
 Titres, en-têtes, meta et correction du `<head>`.
@@ -477,6 +502,21 @@ Titres, en-têtes, meta et correction du `<head>`.
 **Corriger :** Enveloppez les images explicatives dans `<figure>`/`<figcaption>`.
 
 ---
+
+### `topical-focus` (3 pts)
+**Vérifie :** *(skip si aucune page ne déclare au moins 3 mots de sujet en titre/H1 et ne porte 100 mots de prose)* Dans quelle mesure la prose du contenu principal renforce le sujet déclaré par le `<title>` et le `<h1>` (comptés double) et la meta description ; avertit en dessous de 35 %.
+**Pourquoi :** un titre est une promesse. Quand le corps ne la tient pas, un moteur qui a retenu la page pour ce sujet n'y trouve rien à citer.
+**Correction :** dites dans le corps ce que le titre annonce.
+
+### `keyword-cannibalization` (3 pts)
+**Vérifie :** *(nécessite au moins 2 pages ; skip en dessous de 2 pages comparables)* Les pages distinctes dont les ensembles de mots de `<title>`/`<h1>`, marque retirée, se recouvrent à Jaccard ≥ 0,6. Les titres identiques au caractère près, les corps quasi dupliqués et les variantes de langue déclarées sont exclus — ils relèvent respectivement de `unique-titles`, `content-uniqueness` et hreflang.
+**Pourquoi :** deux pages qui promettent la même chose divisent le signal, et aucune ne gagne l'intention.
+**Correction :** fusionnez-les, ou réorientez l'une vers une intention distincte et posez une redirection.
+
+### `anchor-target-profile` (3 pts)
+**Vérifie :** *(skip en dessous de 2 cibles internes au profil évaluable)* Par cible interne, si le texte d'ancre dominant partage des mots significatifs et non-marque avec le titre/H1 de la cible, et si 3 ancres ou plus montrent une diversité. Les liens de changement de langue (`hreflang`) et le lien du logo sont ignorés.
+**Pourquoi :** les mots sur lesquels on clique sont le meilleur indice dont dispose un moteur sur le contenu de la destination.
+**Correction :** nommez la destination dans le texte du lien.
 
 ## Performance et Core Web Vitals
 
@@ -578,6 +618,16 @@ Les heuristiques statiques s'exécutent toujours ; les Core Web Vitals terrain/l
 **Corriger :** Raccourcissez la chaîne de requêtes critique et éliminez le CSS/JS bloquant.
 
 ---
+
+### `http-protocol` (3 pts)
+**Vérifie :** *(skip en HTTP simple, sur un port non standard, une adresse privée, un échec DNS ou une poignée de main qui n'aboutit pas)* Le protocole réellement négocié par ALPN sur une connexion TLS vers l'origine ; avertit en HTTP/1.1 ou si aucun protocole n'est négocié. Une annonce `Alt-Svc: h3` est rapportée mais jamais notée — c'est une annonce, et cette sonde ne parle pas QUIC pour la vérifier.
+**Pourquoi :** HTTP/1.1 sérialise les requêtes par connexion ; HTTP/2 supprime cette file pour chaque visiteur et chaque crawler.
+**Correction :** activez HTTP/2 chez votre hébergeur ou votre CDN — c'est un réglage, pas un chantier.
+
+### `cdn-edge-cache` (2 pts)
+**Vérifie :** *(skip si aucun en-tête de CDN ou de cache n'est présent, ou si aucune page échantillonnée ne déclare à la fois une politique cacheable et un statut de cache)* Les empreintes de CDN et de cache de périphérie lues dans les en-têtes déjà collectés par le crawl — aucune requête supplémentaire. Avertit quand des pages demandent à être mises en cache et qu'aucune n'a été servie depuis la périphérie.
+**Pourquoi :** une page cacheable qui n'atteint jamais la périphérie paie la latence de l'origine à chaque requête.
+**Correction :** vérifiez les règles de cache que votre CDN applique au HTML.
 
 ## Accessibilité
 
@@ -708,8 +758,13 @@ Posture de confiance : HTTPS de bout en bout, en-têtes de sécurité, pas de co
 
 ### `sameas-verified` (3 pts)
 **Vérifie :** *(optionnel : `--verify-profiles`)* Récupère chaque URL de profil déclarée dans le `sameAs` de votre JSON-LD et contrôle qu'elle renvoie un lien vers votre site. Avertissement au pire — jamais d'échec.
-**Pourquoi :** N'importe qui peut inscrire une URL LinkedIn ou Wikipédia dans son propre balisage ; seul celui qui contrôle ce profil peut le faire pointer en retour, et c'est ce lien retour qui transforme une affirmation en identité sur laquelle un moteur peut s'appuyer. C'est le seul check qui sort de votre origine (8 URL au maximum, http(s) uniquement, sous la même garde SSRF), et il n'examine que les profils que vous avez déclarés — il ne part jamais à la recherche d'une présence non revendiquée. Une plateforme qui refuse les robots (LinkedIn répond 999, Instagram sert un mur de connexion) est signalée comme **invérifiable** et ne vous est jamais reprochée : « nous n'avons pas pu lire » et « il n'y a pas de lien retour » sont deux faits différents, et seul le second parle de votre site.
+**Pourquoi :** N'importe qui peut inscrire une URL LinkedIn ou Wikipédia dans son propre balisage ; seul celui qui contrôle ce profil peut le faire pointer en retour, et c'est ce lien retour qui transforme une affirmation en identité sur laquelle un moteur peut s'appuyer. Avec `outbound-link-health`, c'est l'un des deux seuls checks qui sortent de votre origine — et aucun des deux n'implique l'autre : il faut demander explicitement celui qu'on veut (ici 8 URL au maximum, http(s) uniquement, sous la même garde SSRF). Il n'examine que les profils que vous avez déclarés — il ne part jamais à la recherche d'une présence non revendiquée. Une plateforme qui refuse les robots (LinkedIn répond 999, Instagram sert un mur de connexion) est signalée comme **invérifiable** et ne vous est jamais reprochée : « nous n'avons pas pu lire » et « il n'y a pas de lien retour » sont deux faits différents, et seul le second parle de votre site.
 **Corriger :** Sur chaque profil listé dans `sameAs`, renseignez le champ site web avec l'URL de votre site. La plupart des plateformes en proposent un, et c'est lui qui rend la paire vérifiable dans les deux sens.
+
+### `tls-version` (3 pts)
+**Vérifie :** *(mêmes conditions de skip que `http-protocol`)* La version de TLS et la suite de chiffrement réellement négociées : échec en TLS 1.0/1.1 (RFC 8996), avertissement sans confidentialité persistante, succès sinon. Une version par poignée de main — on rapporte ce qu'obtient un client moderne, pas la matrice complète qu'accepterait le serveur.
+**Pourquoi :** un TLS obsolète est déprécié par la RFC 8996 et signalé à l'utilisateur par un avertissement du navigateur.
+**Correction :** servez TLS 1.2 au minimum, préférez TLS 1.3, et gardez des suites à confidentialité persistante.
 
 ## Générer des fichiers d'indexation
 

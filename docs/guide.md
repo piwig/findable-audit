@@ -293,6 +293,16 @@ Machine-readable identity and rich-result eligibility.
 
 ---
 
+### `rich-result-eligibility` (4 pts)
+**Verifies:** *(skip when no marked-up type has published Google requirements)* For each detected type — Article, Product snippet, merchant listing, Recipe, Event, Breadcrumb, Video, Review snippet, aggregate rating — that Google's REQUIRED properties are present (fail if not) and its RECOMMENDED ones too (warn).
+**Why:** schema.org validity is not eligibility. A `Product` without `offers.price` is valid markup that still cannot produce a rich result.
+**Fix:** Fill the REQUIRED properties Google publishes for each type you mark up; treat RECOMMENDED as the gap between eligible and competitive.
+
+### `sd-page-entity` (3 pts)
+**Verifies:** *(skip when no homepage WebPage/CreativeWork node and no article page)* That `WebPage`/`Article`/`CreativeWork` nodes name their primary entity through `about` or `mainEntity`, and that the entity named is anchored — a resolvable `@id` in the graph, or a `sameAs`. Warn at worst.
+**Why:** A page that never states its subject leaves the engine to infer it from prose. Naming it removes the guess.
+**Fix:** Add `about` (and `mentions` for secondary entities) pointing at an `@id` that exists in your graph.
+
 ## Technical SEO
 
 Crawlability and indexation hygiene.
@@ -409,6 +419,21 @@ Crawlability and indexation hygiene.
 
 ---
 
+### `internal-link-context` (3 pts)
+**Verifies:** *(skip below 5 sampled pages, or when the sample has no internal link)* The share of internal links sitting in the main content rather than in nav, header or footer; warn below 10%.
+**Why:** A link that exists only in sitewide furniture carries far less signal than one a crawler meets inside the copy.
+**Fix:** Link from inside your body copy, not only from the navigation and footer.
+
+### `internal-equity-leaks` (3 pts)
+**Verifies:** *(skip when the sample has no internal link)* Internal `<a>` carrying `rel=nofollow`, `sponsored` or `ugc`. Redirect targets are excluded deliberately — no equity is lost through a 30x — and `noindex` targets are counted in the message but never graded, because deliberately de-indexing a page is a normal choice. Warn at worst.
+**Why:** `rel=nofollow` on your own links stops them being followed for no gain, and is almost always an accidental template or plugin setting.
+**Fix:** Remove `rel=nofollow` from links to your own pages.
+
+### `outbound-link-health` (3 pts)
+**Verifies:** *(opt-in: skip unless `--check-outbound` is passed)* Up to 10 outbound links, one per host, main-content links first, probed with HEAD and a ranged GET fallback. Only 404 and 410 count as broken; 401, 403, 429, 5xx, timeouts and DNS failures are reported as unverifiable, never as dead.
+**Why:** A citation that no longer resolves weakens the page that made it, for readers and for engines weighing your sourcing.
+**Fix:** Update or remove the outbound links returning 404/410.
+
 ## On-page & content
 
 Titles, headings, meta, and document-head correctness.
@@ -469,6 +494,21 @@ Titles, headings, meta, and document-head correctness.
 **Fix:** Wrap explanatory images in `<figure>`/`<figcaption>`.
 
 ---
+
+### `topical-focus` (3 pts)
+**Verifies:** *(skip when no page declares at least 3 title/H1 topic words and carries 100 words of prose)* How much of the main-content prose reinforces the topic declared by `<title>` and `<h1>` (weighted double) plus the meta description; warn below 35%.
+**Why:** A title is a promise. When the body does not deliver on it, a retriever that pulled the page for that topic finds nothing worth quoting.
+**Fix:** Say in the body what the title claims the page is about.
+
+### `keyword-cannibalization` (3 pts)
+**Verifies:** *(needs at least 2 pages; skip below 2 comparable ones)* Distinct pages whose `<title>`/`<h1>` token sets, brand removed, overlap at Jaccard ≥ 0.6. Byte-identical titles, near-duplicate bodies and declared language variants are excluded — they belong to `unique-titles`, `content-uniqueness` and hreflang respectively.
+**Why:** Two pages promising the same thing split the signal, and neither wins the intent.
+**Fix:** Merge them, or re-aim one at a distinct intent and redirect.
+
+### `anchor-target-profile` (3 pts)
+**Verifies:** *(skip below 2 internal targets with a gradable profile)* Per internal target, whether the dominant anchor text shares meaningful, non-brand words with the target's title/H1, and whether 3 or more anchors show any diversity. Language-switcher links (`hreflang`) and the brand logo link are ignored.
+**Why:** The words people click are the strongest hint an engine gets about what the destination covers.
+**Fix:** Name the destination in the anchor text.
 
 ## Performance & Core Web Vitals
 
@@ -570,6 +610,16 @@ Static heuristics run always; field/lab Core Web Vitals are opt-in via `--cwv --
 **Fix:** Shorten the critical request chain and eliminate render-blocking CSS/JS.
 
 ---
+
+### `http-protocol` (3 pts)
+**Verifies:** *(skip on plain HTTP, a non-standard port, a private address, a DNS failure, or a handshake that does not complete)* The protocol ALPN actually negotiates over one TLS connection to the origin; warn on HTTP/1.1 or on no ALPN protocol at all. An `Alt-Svc: h3` advertisement is reported but never graded — it is an announcement, and this probe cannot speak QUIC to verify it.
+**Why:** HTTP/1.1 serialises requests per connection; HTTP/2 removes that queue for every visitor and every crawler.
+**Fix:** Enable HTTP/2 at your host or CDN — it is a configuration setting, not an engineering project.
+
+### `cdn-edge-cache` (2 pts)
+**Verifies:** *(skip when no CDN or cache header is present, or when no sampled page both declares a cacheable policy and reports a cache status)* CDN and edge-cache fingerprints read from headers the crawl already collected — no extra request. Warn when pages ask to be cached and none was served from the edge.
+**Why:** A cacheable page that never hits the edge pays origin latency on every single request.
+**Fix:** Check the cache rules your CDN applies to HTML.
 
 ## Accessibility
 
@@ -700,8 +750,13 @@ Trust posture: HTTPS end-to-end, security headers, no mixed content.
 
 ### `sameas-verified` (3 pts)
 **Verifies:** *(opt-in: `--verify-profiles`)* Fetches each profile URL declared in your JSON-LD `sameAs` and checks whether it links back to your site. Warns at worst — never fails.
-**Why:** Anyone can list a LinkedIn or Wikipedia URL in their own markup; only whoever controls that profile can make it point back, so the return link is what turns a claim into an identity an engine can rely on. This is the only check that fetches anything off your own origin (at most 8 URLs, http(s) only, under the same SSRF guard), and it only ever looks at profiles you declared — it never goes hunting for a presence you did not claim. A platform that refuses robots (LinkedIn answers 999, Instagram serves a login wall) is reported as **unverifiable** and never held against you: "we could not read it" and "it does not link back" are different facts, and only the second is about your site.
+**Why:** Anyone can list a LinkedIn or Wikipedia URL in their own markup; only whoever controls that profile can make it point back, so the return link is what turns a claim into an identity an engine can rely on. With `outbound-link-health`, this is one of only two checks that fetch anything off your own origin — and neither implies the other: you have to ask for the one you want (here at most 8 URLs, http(s) only, under the same SSRF guard). It only ever looks at profiles you declared — it never goes hunting for a presence you did not claim. A platform that refuses robots (LinkedIn answers 999, Instagram serves a login wall) is reported as **unverifiable** and never held against you: "we could not read it" and "it does not link back" are different facts, and only the second is about your site.
 **Fix:** On each profile you list in `sameAs`, fill in the website field with your site URL. Most platforms have one, and it is what makes the pair verifiable in both directions.
+
+### `tls-version` (3 pts)
+**Verifies:** *(same skip conditions as `http-protocol`)* The TLS version and cipher suite actually negotiated: fail on TLS 1.0/1.1 (RFC 8996), warn without forward secrecy, pass otherwise. One version per handshake — this reports what a modern client is given, not the full matrix a server would accept.
+**Why:** Obsolete TLS is deprecated by RFC 8996 and surfaced to users as a browser warning.
+**Fix:** Serve TLS 1.2 at minimum, prefer TLS 1.3, and keep forward-secret cipher suites.
 
 ## Generating indexing files
 

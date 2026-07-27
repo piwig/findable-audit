@@ -290,6 +290,20 @@ Observations sur le rapport HTML rendu après un audit, sur le site live :
 
 ## 13. Gap analysis par dimension d’audit (net-new backlog, 2026-07-21)
 
+> **MàJ 2026-07-27 — dix items de ce §13 sont livrés, en quatre grappes parallèles.**
+> #22 → `http-protocol`, `tls-version`, `cdn-edge-cache` · #24 → `rich-result-eligibility` ·
+> #26 et #51 **fusionnés** → `outbound-link-health` (opt-in `--check-outbound`, seuls 404/410
+> comptent) · #30 → `topical-focus` · #31 → `keyword-cannibalization` · #33 → `sd-page-entity` ·
+> #48 → `anchor-target-profile` · #49 → `internal-link-context` · #50 → `internal-equity-leaks`.
+> **126 → 137 checks.** HTTP/3 est explicitement **hors d'atteinte** : `Alt-Svc: h3` est une
+> annonce, pas un protocole négocié, et Node 20/22 n'embarque pas de client QUIC — c'est
+> rapporté, jamais noté.
+>
+> Deux notes de ce §13 étaient périmées et sont corrigées : `rel` **est** lu depuis le LOT 5
+> (`geo-retrieval.ts`, pour `ugc`/`nofollow`/`sponsored`), et la boîte de recherche de liens
+> annexes de #24 n'existe plus — Google a retiré la fonctionnalité et sa documentation le
+> 29 novembre 2024, donc aucune règle n'a été encodée pour elle plutôt qu'inventée.
+
 Analyse en éventail (1 agent expert / dimension, ancré sur les 107 checks réels) : *qu’est-ce qu’on ne fait pas, et qu’est-ce qui aurait une forte valeur ?* Tags : **valeur** (H/M/L) · **effort** (S/M/L/XL) · **faisabilité** (✅ au crawl seul · 🔑 opt-in avec clé fournie par l’utilisateur, comme `PSI_KEY` pour les CWV · 💰 index payant · ⛔ hors-scope). L’honnêteté de scope est un livrable : l’autorité de backlinks web-scale (classe Ahrefs/Majestic) reste **hors-scope** pour un outil on-site zéro-dép.
 
 > **⭐ Priorités transverses (les vrais différenciateurs GEO) :** (a) **parité de contenu CSR/SPA — « ce que GPTBot voit vraiment »** (les crawlers IA n’exécutent pas le JS) ; (b) **parité de service aux bots IA / cloaking** (fetch en GPTBot vs navigateur, diff) ; (c) **⭐⭐ outil de positionnement concurrentiel** = scorecard tête-à-tête N URLs + **part de voix dans les réponses IA** (GPT/Claude/Perplexity te citent-ils ?) ; (d) **carte d’équité de liens internes** (PageRank interne, pages orphelines, fuites d’équité) — quasi aucun outil gratuit ne le fait.
