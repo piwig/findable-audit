@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(129);
+    expect(report.results).toHaveLength(131);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -35,17 +35,20 @@ describe('runAudit', () => {
     // skips for the same reason as answer-units; injection-hygiene runs and passes.
     // The three #22 transport checks skip on a loopback fixture: it is served over plain
     // HTTP, so there is no handshake to read, and it emits no CDN/edge headers.
+    // The semantic pair skips too: keyword-cannibalization needs 2 pages, and this
+    // homepage carries neither 3 title/H1 topic words nor 100 words of prose.
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
-      'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
+      'alt-descriptive', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links', 'broken-subresources',
+      'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat', 'content-freshness',
+      'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp', 'cwv-ttfb',
       'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate', 'hreflang',
-      'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title', 'indexing-conflicts', 'indexnow', 'internal-linking',
-      'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map', 'mixed-content',
-      'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains', 'redirect-hygiene',
-      'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article', 'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity',
-      'sd-localbusiness', 'sd-product', 'sd-special-types', 'sd-video', 'sd-website-searchaction',
-      'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans', 'sitemap-urls-valid', 'tls-version', 'trailing-slash',
-      'unique-titles', 'www-consolidation',
+      'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title', 'indexing-conflicts',
+      'indexnow', 'internal-linking', 'keyword-cannibalization', 'lab-fcp', 'lab-tbt', 'lighthouse-perf',
+      'link-equity-map', 'mixed-content', 'nap-consistency', 'outbound-citations', 'pagination-canonical', 'redirect-chains',
+      'redirect-hygiene', 'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article', 'sd-breadcrumb',
+      'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-product', 'sd-special-types', 'sd-video',
+      'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod', 'sitemap-orphans', 'sitemap-urls-valid', 'tls-version',
+      'topical-focus', 'trailing-slash', 'unique-titles', 'www-consolidation',
     ]);
   });
   it('marks a crashing check as skip and excludes it from the score', async () => {
