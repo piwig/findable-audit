@@ -154,7 +154,8 @@ function logoUrl(value: unknown): string {
   return '';
 }
 
-function sameAsList(value: unknown): string[] {
+/** Absolute http(s) URLs declared in a `sameAs` value (string or array). */
+export function sameAsList(value: unknown): string[] {
   const arr = Array.isArray(value) ? value : value ? [value] : [];
   return arr.filter((v): v is string => typeof v === 'string' && /^https?:\/\//i.test(v));
 }

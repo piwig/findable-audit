@@ -48,6 +48,14 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'les {0} page(s) comparées visent chacune une intention distincte',
   'page(s) competing for the same intent: {0}':
     'page(s) en concurrence sur la même intention : {0}',
+  // #24 — éligibilité aux résultats enrichis Google
+  "no type with published Google rich-result requirements in the sampled JSON-LD": "aucun type soumis à des exigences de résultat enrichi publiées par Google dans le JSON-LD échantillonné",
+  "{0} rich-result candidate(s) carry every field Google requires and recommends": "{0} candidat(s) au résultat enrichi portent tous les champs exigés et recommandés par Google",
+  "Google rich-result requirements unmet on: {0}": "exigences de résultat enrichi Google non satisfaites sur : {0}",
+  // #33 — clarté d'entité au niveau de la page (about / mentions)
+  "no homepage WebPage/CreativeWork node and no article page to carry about/mentions": "aucun nœud WebPage/CreativeWork sur l'accueil ni page d'article pour porter about/mentions",
+  "{0} page(s) name an anchored primary entity": "{0} page(s) nomment une entité principale ancrée",
+  "page subject left implicit on: {0}{1}": "sujet de la page laissé implicite sur : {0}{1}",
   // #65 — verification des profils sameAs
   "profile verification is opt-in (run with --verify-profiles)": "la vérification des profils est optionnelle (lancez avec --verify-profiles)",
   "no sameAs profile declared (see sd-entity-grounding)": "aucun profil sameAs déclaré (voir sd-entity-grounding)",
