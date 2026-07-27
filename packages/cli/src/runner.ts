@@ -6,6 +6,14 @@ import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
 import { fetchPsi, type PsiResult } from './perf/psi.js';
 import { buildEntityGraph, type EntityGraph } from './report/entity-graph.js';
+import { mapProbes } from './checks/concurrency.js';
+
+/**
+ * How many checks may be in flight at once. Higher than the request gate on
+ * purpose: a check spends nearly all its time waiting on the gate, so this only
+ * decides how many are queued behind it, never how hard the audited site is hit.
+ */
+const CHECK_CONCURRENCY = 12;
 
 export class UnreachableSiteError extends Error {}
 
@@ -126,9 +134,20 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     crawler.psi = await psiPromise;
     emit({ phase: 'cwv', done: 1, total: 1 });
   }
-  const results: CheckResult[] = [];
-  for (let i = 0; i < checks.length; i++) {
-    const check = checks[i];
+  // Checks run a few at a time instead of one after another. They are pure
+  // consumers of the crawler — each fetches what it needs and returns a verdict
+  // — so nothing about the verdicts depends on the order they run in, and
+  // mapProbes returns results in the ORIGINAL order regardless of who finishes
+  // first. What changes is wall-clock: the audit stops being the sum of every
+  // check's network wait.
+  //
+  // The audited site is protected by the crawler, not by this number: every
+  // request goes through a single global gate (MAX_INFLIGHT_REQUESTS), and
+  // concurrent callers asking for the same URL share one in-flight request
+  // rather than issuing duplicates. Raising CHECK_CONCURRENCY therefore
+  // overlaps more *waiting*, never more load.
+  let done = 0;
+  const results = await mapProbes(checks, async (check) => {
     let res: CheckResult;
     try {
       res = await check.run(crawler);
@@ -136,9 +155,10 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
       // A crashing check must not affect the score: mark it skipped.
       res = makeResult(check, 'skip', `check crashed: ${(err as Error).message}`);
     }
-    results.push(res);
-    emit({ phase: 'checks', done: i + 1, total: checks.length, checkId: check.id, family: res.family });
-  }
+    done++;
+    emit({ phase: 'checks', done, total: checks.length, checkId: check.id, family: res.family });
+    return res;
+  }, CHECK_CONCURRENCY);
   const { score, grade, familyScores } = computeScore(results);
   emit({ phase: 'score', done: 1, total: 1 });
   const sampledPages = crawler.sample.pages.map(pathOf);

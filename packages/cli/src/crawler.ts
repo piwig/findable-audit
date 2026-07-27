@@ -108,6 +108,40 @@ export interface CrawlerOptions {
   allowPort?: (port: string) => boolean;
 }
 
+/**
+ * Simultaneous HTTP requests to the audited origin, across the whole audit.
+ *
+ * This is the number that protects someone else's server. Checks may run
+ * twelve at a time and each may fan out over a list of URLs; none of that
+ * reaches the network without passing here first. Six matches what a browser
+ * opens per host, which is the most defensible ceiling for a tool that visits
+ * sites uninvited.
+ */
+const MAX_INFLIGHT_REQUESTS = 6;
+
+/** Counting semaphore: admits at most `limit` runners, queues the rest in order. */
+class RequestGate {
+  private active = 0;
+  private waiting: Array<() => void> = [];
+
+  constructor(private readonly limit: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    // A loop, not a single await: a woken waiter must re-check, because another
+    // caller can take the freed slot between the release and the wake-up.
+    while (this.active >= this.limit) {
+      await new Promise<void>((resolve) => this.waiting.push(resolve));
+    }
+    this.active++;
+    try {
+      return await fn();
+    } finally {
+      this.active--;
+      this.waiting.shift()?.();
+    }
+  }
+}
+
 export class Crawler implements CrawlContext {
   baseUrl: URL;
   /** Sampled pages, attached by the runner after the homepage fetch. */
@@ -117,6 +151,10 @@ export class Crawler implements CrawlContext {
   /** JSON-LD entity graph, attached by the runner after sampling. */
   entityGraph?: import('./report/entity-graph.js').EntityGraph;
   private cache = new Map<string, FetchedResource | null>();
+  /** In-flight requests, so concurrent callers for one URL share a single fetch. */
+  private inflight = new Map<string, Promise<FetchedResource | null>>();
+  /** The one throttle the audited site actually sees. */
+  private gate = new RequestGate(MAX_INFLIGHT_REQUESTS);
   /** Separate cache for fetchWithUA, keyed `${userAgent} ${url}`. Never shared with `cache`. */
   private uaCache = new Map<string, FetchedResource | null>();
   private originResolved = false;
@@ -136,20 +174,47 @@ export class Crawler implements CrawlContext {
     return AbortSignal.any(signals);
   }
 
+  /**
+   * Single-flight, gated fetch.
+   *
+   * Checks now run concurrently, which makes two properties load-bearing that
+   * did not matter when everything was sequential:
+   *
+   * - **Single-flight.** Several checks routinely want the same URL (the
+   *   homepage, robots.txt, the sitemap). The resolved cache alone would let N
+   *   concurrent callers each issue their own request for it. Sharing the
+   *   in-flight promise means the audited site sees exactly one.
+   * - **Gated.** Every request — here, under an explicit UA, and no-follow
+   *   chains — passes through one global gate, so no amount of check
+   *   parallelism can turn an audit into a burst against someone's server.
+   */
   async fetch(path: string): Promise<FetchedResource | null> {
     const target = new URL(path, this.baseUrl).toString();
     if (this.cache.has(target)) return this.cache.get(target)!;
-    const signal = this.buildSignal();
-    const out = await this.performFetch(target, signal, this.userAgent);
-    // After the very first successful fetch (the homepage), pin every later
-    // request to the origin we actually landed on after redirections.
-    if (out && !this.originResolved) {
-      this.originResolved = true;
-      const final = new URL(out.finalUrl || target);
-      if (final.origin !== this.baseUrl.origin) this.baseUrl = new URL(`${final.origin}/`);
+    const pending = this.inflight.get(target);
+    if (pending) return pending;
+
+    const run = this.gate.run(async () => {
+      // Re-check inside the gate: a caller queued behind the gate may find the
+      // answer already cached by the time it gets its turn.
+      if (this.cache.has(target)) return this.cache.get(target)!;
+      const out = await this.performFetch(target, this.buildSignal(), this.userAgent);
+      // After the very first successful fetch (the homepage), pin every later
+      // request to the origin we actually landed on after redirections.
+      if (out && !this.originResolved) {
+        this.originResolved = true;
+        const final = new URL(out.finalUrl || target);
+        if (final.origin !== this.baseUrl.origin) this.baseUrl = new URL(`${final.origin}/`);
+      }
+      this.cache.set(target, out);
+      return out;
+    });
+    this.inflight.set(target, run);
+    try {
+      return await run;
+    } finally {
+      this.inflight.delete(target);
     }
-    this.cache.set(target, out);
-    return out;
   }
 
   /**
@@ -173,8 +238,9 @@ export class Crawler implements CrawlContext {
     // neither a header value nor a URL, so it is a collision-proof delimiter.
     const key = `${userAgent}\n${target}`;
     if (this.uaCache.has(key)) return this.uaCache.get(key)!;
-    const signal = this.buildSignal();
-    const out = await this.performFetch(target, signal, userAgent);
+    // Through the same gate as fetch(): the parity probes hit the audited origin
+    // like any other request, and the ceiling is per-site, not per-code-path.
+    const out = await this.gate.run(() => this.performFetch(target, this.buildSignal(), userAgent));
     // Cache only successful (2xx) responses (finding #3): within one parity audit
     // every (userAgent, url) is probed at most once EXCEPT the deliberate
     // transient-retry, so caching a null / 4xx / 5xx would defeat that retry and
@@ -233,6 +299,13 @@ export class Crawler implements CrawlContext {
    * is sent to it. It never consults or populates the follow-mode cache.
    */
   async fetchChain(path: string, opts: { maxHops?: number } = {}): Promise<FetchChainResult | null> {
+    // The whole chain holds one gate slot: its hops are a single logical request
+    // to the site, and releasing between hops would let other callers interleave
+    // into a redirect walk we want to keep tight.
+    return this.gate.run(() => this.fetchChainUngated(path, opts));
+  }
+
+  private async fetchChainUngated(path: string, opts: { maxHops?: number } = {}): Promise<FetchChainResult | null> {
     const maxHops = opts.maxHops ?? MAX_CHAIN_HOPS;
     const signal = this.buildSignal();
     let currentUrl: string;
