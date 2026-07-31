@@ -3,14 +3,14 @@
 Source : `docs/research/2026-07-24-geo-avant-garde.md` (idéation) + `docs/research/2026-07-25-deep-research-citations-verifiee.md` (claims vérifiés 3-0/2-0).
 Grille d'organisation : **retrieval → selection → generation** (taxonomie AgentGEO, arXiv 2603.09296, confirmée 2-0).
 
-## Quick wins — section « GEO avancé » (à implémenter en premier)
+## Quick wins — section « GEO avancé » ✅ livrés (constaté dans le code le 2026-07-31)
 
-| # | Idée | Principe | Étape | Coût |
-|---|------|----------|-------|------|
-| QW1 | 🕐 **Cohérence tripartite de fraîcheur** | `Last-Modified` HTTP vs `dateModified` JSON-LD vs `lastmod` sitemap : s'ils divergent, le signal de fraîcheur est ignoré (anti « fake freshness ») | retrieval | faible — les 3 sources sont déjà crawlées |
-| QW2 | 🖋️ **Taux de hedging** | « peut-être / il semble / selon les cas » dans les leads — les moteurs citent les affirmations nettes | selection | faible — lexical FR/EN |
-| QW3 | 🎯 **Citabilité par passage** | « unités de réponse » : affirmation directe + chiffre/date/entité + autosuffisante + < N mots | selection | moyen — heuristique AST |
-| QW4 | ✂️ **Chunk-boundary hygiene** | tableaux sans en-têtes répétés, réponses FAQ séparées de leur question, listes orphelines de leur titre | generation | moyen — DOM pur |
+| # | Idée | Principe | Étape | Livré comme |
+|---|------|----------|-------|-------------|
+| QW1 | 🕐 **Cohérence tripartite de fraîcheur** | `Last-Modified` HTTP vs `dateModified` JSON-LD vs `lastmod` sitemap : s'ils divergent, le signal de fraîcheur est ignoré (anti « fake freshness ») | retrieval | `freshness-coherence` |
+| QW2 | 🖋️ **Taux de hedging** | « peut-être / il semble / selon les cas » dans les leads — les moteurs citent les affirmations nettes | selection | `hedging-rate` (advisory, warn max) |
+| QW3 | 🎯 **Citabilité par passage** | « unités de réponse » : affirmation directe + chiffre/date/entité + autosuffisante + < N mots | selection | `answer-units` (advisory, warn max) |
+| QW4 | ✂️ **Chunk-boundary hygiene** | tableaux sans en-têtes répétés, réponses FAQ séparées de leur question, listes orphelines de leur titre | generation | `chunk-boundary` (advisory, warn max) |
 
 ## LOT 5 — socle chunker partagé ✅ livré (2026-07-26, 117 → 119)
 
@@ -26,8 +26,8 @@ Spec : `docs/superpowers/specs/2026-07-26-lot5-chunker.md`.
 
 | Idée | Principe | Pourquoi attendre |
 |------|----------|-------------------|
-| 🤖 **Agent-usability score** | actions clés faisables sans JS (formulaires, labels, schema.org Actions) | synergie #14 agentic |
-| 🔁 **Boucle sameAs réelle** | résoudre Wikidata/Wikipedia, matcher libellés, lien retour | fetchs externes |
+| 🤖 **Agent-usability score** | actions clés faisables sans JS (formulaires, labels, schema.org Actions) | ✅ livré — `agent-usability` (`checks/agentic.ts`) |
+| 🔁 **Boucle sameAs réelle** | résoudre Wikidata/Wikipedia, matcher libellés, lien retour | ✅ livré — `sameas-verified` |
 | ⚔️ **Cohérence d'entité cross-page** | variance des prix/adresses/claims entre pages échantillonnées | précision d'extraction |
 | 📇 **Fact-sheet canonique** | page de faits clés machine-lisibles, datés, sourcés (extension `--emit`) | dépend de QW3 |
 | 🕳️ **Negative space** | questions évidentes sans réponse par type de site (prix ? horaires ?) | taxonomie par type |
