@@ -11,6 +11,7 @@ import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
 import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg } from './charts.js';
 import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
 import type { Effort } from './effort.js';
+import { renderSparklineSvg, type HistoryEntry } from './history.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -208,6 +209,13 @@ const STYLE = `
   .viz-bars { margin-top: .5rem; }
   .viz-bars h3 { margin: 0 0 .3rem; font-size: .85rem; color: var(--muted); }
   .viz-bars svg { width: 100%; height: auto; display: block; }
+  .trends { margin: 1rem 0; }
+  .trends h2 { font-size: 1rem; margin: 0 0 .5rem; }
+  .trend-row { display: flex; align-items: center; gap: .6rem; padding: .15rem 0; }
+  .trend-label { min-width: 9rem; font-size: .85rem; color: var(--muted); }
+  .trend-now { font-variant-numeric: tabular-nums; font-weight: 600; font-size: .85rem; }
+  .trend-row .spark { color: var(--good); flex: none; }
+  .trend-caption { margin: .3rem 0 0; font-size: .8rem; color: var(--faint); }
   footer { margin-top: 2rem; color: var(--faint); font-size: .8rem; border-top: 1px solid var(--line); padding-top: .75rem; }
 
   /* --- JSON-LD entity graph (#58): drawn from data every audit already builds --- */
@@ -313,7 +321,7 @@ export function renderHtml(
   report: AuditReport,
   now: Date = new Date(),
   lang: Lang = 'en',
-  { collapsed = false, diff }: { collapsed?: boolean; diff?: ReportDiff } = {},
+  { collapsed = false, diff, history }: { collapsed?: boolean; diff?: ReportDiff; history?: HistoryEntry[] } = {},
 ): string {
   const m = messages(lang);
   const familyLabels = FAMILY_LABELS_I18N[lang];
@@ -403,6 +411,22 @@ export function renderHtml(
 ${renderPriorityBars(report.familyScores, lang)}
 </div>
 </details>`
+    : '';
+
+  // --history: sparklines only make sense with >= 2 points; a first run keeps
+  // the report identical to one produced without --history at all.
+  const series = (history ?? []).filter((e) => e.url === report.url);
+  const trendsSection = series.length >= 2
+    ? `<section class="trends">
+<h2>${escapeHtml(m.trendsTitle)}</h2>
+<div class="trend-row"><span class="trend-label">${escapeHtml(m.trendsOverall)}</span>${renderSparklineSvg(series.map((e) => e.score))}<span class="trend-now">${series[series.length - 1].score}</span></div>
+${families.map((f) => {
+      const vals = series.map((e) => e.families[f]).filter((v): v is number => typeof v === 'number');
+      if (vals.length < 2) return '';
+      return `<div class="trend-row"><span class="trend-label">${escapeHtml(familyShort[f])}</span>${renderSparklineSvg(vals)}<span class="trend-now">${vals[vals.length - 1]}</span></div>`;
+    }).join('\n')}
+<p class="trend-caption">${escapeHtml(m.trendsRuns(series.length))}</p>
+</section>`
     : '';
 
   const passed = report.results.filter((r) => r.status === 'pass').length;
@@ -550,6 +574,7 @@ ${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `
 ${actionPlan}
 <div id="cwv">${cwvSection}</div>
 ${diff ? renderDiffHtmlSection(diff, lang) : ''}
+${trendsSection}
 <section id="detail">
 <h2>${escapeHtml(m.detailTitle)}</h2>
 ${report.results.some((r) => r.evidence === 'heuristic')

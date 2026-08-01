@@ -18,9 +18,10 @@ import { pickAnswersRenderer } from './report/answers.js';
 import { emitFiles } from './generate/index.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
+import { parseHistory, appendHistory, type HistoryEntry } from './report/history.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -47,6 +48,10 @@ const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <fi
   as broken, so a network hiccup never fails your audit.
 --verify-profiles and --check-outbound are the ONLY options that fetch anything off your own origin, and
   neither implies the other; without them the audit touches nothing but the audited site.
+--history <file.json> appends this run (date + overall and per-family scores, never full results) to a
+  small JSON series and reads it back: with 2+ runs the HTML report opens with sparklines — the score's
+  direction over time, overall and per family. The file is safe to commit; oldest entries are dropped
+  past 500. A file that is not a findable-audit history is refused, never overwritten.
 --submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
   Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
@@ -103,6 +108,7 @@ const parseCliArgs = () =>
       'verify-profiles': { type: 'boolean', default: false },
       'check-outbound': { type: 'boolean', default: false },
       summary: { type: 'string' },
+      history: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
@@ -216,6 +222,32 @@ if (summaryFile !== undefined && summaryFile.trim() === '') {
   process.exit(2);
 }
 
+// --history <file.json>: read (and validate) the prior series up front, so a
+// file we cannot parse aborts BEFORE the audit spends minutes crawling — and
+// is never overwritten. A missing file simply starts a fresh series.
+const historyFile = values.history;
+let priorHistory: HistoryEntry[] = [];
+if (historyFile !== undefined) {
+  if (historyFile.trim() === '' || !/\.json$/i.test(historyFile)) {
+    console.error(`findable-audit: --history file must end in .json (got "${historyFile}")\n\n${USAGE}`);
+    process.exit(2);
+  }
+  let raw: string | undefined;
+  try {
+    raw = readFileSync(historyFile, 'utf8');
+  } catch {
+    raw = undefined; // no file yet: first run starts the series
+  }
+  if (raw !== undefined) {
+    try {
+      priorHistory = parseHistory(raw);
+    } catch (err) {
+      console.error(`findable-audit: "${historyFile}" is not a findable-audit history file (${(err as Error).message}) — refusing to overwrite it`);
+      process.exit(2);
+    }
+  }
+}
+
 // --submit: opt-in IndexNow notification. Refused up front without a key —
 // the key file hosted on the site is the ownership proof, and the audit itself
 // verifies it (the `indexnow` check must pass before anything is sent).
@@ -310,13 +342,27 @@ try {
     targets = [`${base}.md`, `${base}.html`];
   }
   let reportWriteFailed = false;
+  // --history: append this run BEFORE rendering, so the sparklines in the HTML
+  // written just below include today's point (the reader sees the line end at
+  // the score printed above it).
+  let history: HistoryEntry[] | undefined;
+  if (historyFile !== undefined) {
+    history = appendHistory(priorHistory, report, now);
+    try {
+      writeFileSync(historyFile, JSON.stringify(history, null, 2) + '\n', 'utf8');
+      console.error(`history appended to ${historyFile} (${history.length} run${history.length === 1 ? '' : 's'})`);
+    } catch (err) {
+      console.error(`findable-audit: cannot write history to "${historyFile}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
   for (const file of targets) {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report);
     else if (/\.svg$/i.test(file)) body = renderBadge(report);
     else if (/\.json$/i.test(file)) body = renderJson(report);
     else if (/\.xml$/i.test(file)) body = renderJunit(report);
-    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff });
+    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff, history });
     else body = compare ? renderCompareMarkdown(reports, langTyped, compareOpts) : renderMarkdown(report, now, langTyped, { diff });
     try {
       writeFileSync(file, body, 'utf8');

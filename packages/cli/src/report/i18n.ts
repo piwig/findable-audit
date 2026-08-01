@@ -111,6 +111,9 @@ export interface ReportMessages {
   /** Layer-3 detail. */
   detailTitle: string;
   familyBreakdown: string;        // <summary> of the folded 8-family breakdown
+  trendsTitle: string;            // heading of the --history sparklines section
+  trendsOverall: string;          // label of the overall-score sparkline
+  trendsRuns: (n: number) => string; // caption: how many runs the series holds
   showPassed: (n: number) => string; // <summary> of the folded passing checks
   noIssues: string;               // family whose checks all pass
 }
@@ -214,6 +217,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     planRest: (n) => `Show the ${n} remaining items`,
     detailTitle: 'Every check, family by family',
     familyBreakdown: 'The detail of the 8 scoring families',
+    trendsTitle: 'Score over time',
+    trendsOverall: 'Overall',
+    trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} in this series`,
     showPassed: (n) => `Show the ${n} passing check${n > 1 ? 's' : ''}`,
     noIssues: 'Everything passes in this family.',
   },
@@ -315,6 +321,9 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     planRest: (n) => `Afficher les ${n} points restants`,
     detailTitle: 'Tous les contrôles, famille par famille',
     familyBreakdown: 'Le détail des 8 familles de score',
+    trendsTitle: 'Score dans le temps',
+    trendsOverall: 'Global',
+    trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} dans cette série`,
     showPassed: (n) => `Afficher ${n === 1 ? 'le contrôle réussi' : `les ${n} contrôles réussis`}`,
     noIssues: 'Tout passe dans cette famille.',
   },
