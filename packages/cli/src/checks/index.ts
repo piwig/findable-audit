@@ -55,13 +55,14 @@ import { entityGraphConnectivity } from './entity-graph.js';
 import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
 import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 import { agentUsability } from './agentic.js';
+import { llmsTxtLint } from './llms-lint.js';
 import { topicalFocus, keywordCannibalization } from './semantic.js';
 
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
     homepageOk, robotsDirectives, aiServingParity, snippetPreviewDirectives,
-    llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
+    llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, imagesAlt,
     freshnessCoherence, hedgingRate, answerUnits, chunkBoundary,

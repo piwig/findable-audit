@@ -250,6 +250,9 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'llms-full.txt served with content-type "{0}" (SPA fallback?)':
     'llms-full.txt servi avec le content-type « {0} » (repli de SPA ?)',
   'llms.txt found but has no markdown H1 title': 'llms.txt trouvé mais sans titre H1 markdown',
+  'llms.txt has lint issues: {0}': 'llms.txt présente des problèmes de lint : {0}',
+  'llms.txt lints clean ({0} same-origin link(s) verified)':
+    'llms.txt passe le lint ({0} lien(s) de même origine vérifié(s))',
   'llms.txt missing': 'llms.txt absent',
   'llms.txt served with content-type "{0}" (SPA fallback?)': 'llms.txt servi avec le content-type « {0} » (repli de SPA ?)',
   'llms.txt structured (summary + section + {0} descriptive links)': 'llms.txt structuré (résumé + section + {0} liens descriptifs)',
@@ -359,6 +362,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'no preview directives set on: {0}': 'aucune directive d’aperçu définie sur : {0}',
   'no question-style subheadings on: {0}': 'aucun intertitre formulé en question sur : {0}',
   'no raster <img> elements to assess': 'aucun élément <img> matriciel à évaluer',
+  'no readable llms.txt to lint (see llms-txt)':
+    'aucun llms.txt lisible à analyser (voir llms-txt)',
   'no redirect chains across {0} URL(s)': 'aucune chaîne de redirection sur {0} URL',
   'no Referrer-Policy header': 'aucun en-tête Referrer-Policy',
   'no render-blocking head scripts on {0} page(s)':
