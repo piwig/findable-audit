@@ -160,6 +160,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--min-score <n>` | Exit `1` below this score (default `60`) — the CI floor. |
 | `--baseline <f.json>` + `--fail-on-regression` | Fail when the score drops versus a committed baseline, even while above the floor. |
 | `--compare <url2,url3>` | Side-by-side scorecard against competitors, overall and per family. |
+| `--history <f.json>` | Append this run (date + overall and per-family scores, never full results) to a small committable JSON series; with 2+ runs the HTML report opens with sparklines — the score's direction over time. |
 | `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page answers each one *and stands on its own* when a model is handed it in isolation. |
 | `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth together. |
 | `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs. |
