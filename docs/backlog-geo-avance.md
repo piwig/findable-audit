@@ -42,7 +42,7 @@ Source : session automatique du 2026-08-01 (recherches SearXNG : guides llms.txt
 
 | # | Idée | Principe | Impact/Effort |
 |---|------|----------|---------------|
-| A1 | 🧾 **Lint d'un llms.txt existant** | on sait *générer* un squelette (`--emit`), mais pas *valider* un llms.txt déjà en place : format (H1 unique, blockquote, sections H2, liens Markdown), liens qui résolvent (pas de 404), cohérence avec le sitemap et le contenu réel. Les guides 2026 en font un standard d'audit à part entière | fort / faible |
+| A1 | ✅ 🧾 **Lint d'un llms.txt existant** — livré 2026-08-01 (check `llms-txt-lint`, commit `e94a041`) | on sait *générer* un squelette (`--emit`), mais pas *valider* un llms.txt déjà en place : format (H1 unique, blockquote, sections H2, liens Markdown), liens qui résolvent (pas de 404), cohérence avec le sitemap et le contenu réel. Les guides 2026 en font un standard d'audit à part entière | fort / faible |
 | A2 | 🚪 **Accès effectif des crawlers IA** | au-delà de robots.txt (`ai-access`) : requêter le site avec les User-Agents des crawlers IA majeurs (GPTBot, ClaudeBot, PerplexityBot…) et comparer les codes/contenus obtenus, pour détecter les blocages CDN/WAF (Cloudflare & co) invisibles dans robots.txt | fort / moyen |
 | A3 | 🥇 **« Top 3 corrections » en tête de rapport** | trier les échecs par points récupérables ÷ effort estimé et les afficher en tête (terminal + HTML) ; différenciant vs les audits « liste plate » | moyen / faible |
 | A4 | 📈 **Sparkline de score dans le rapport HTML** | `--history` stocke déjà la série ; l'afficher (tendance du score global + par axe) dans le HTML | moyen / faible |
