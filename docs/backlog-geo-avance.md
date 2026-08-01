@@ -53,3 +53,14 @@ Source : session automatique du 2026-08-01 (recherches SearXNG : guides llms.txt
 - Ne jamais promettre « +40 % » (réfuté 0-3) ; l'efficacité varie par domaine (confirmé 3-0).
 - La retrouvabilité bat la réécriture stylistique (confirmé 3-0) — les checks amont restent prioritaires.
 - Une part des réponses IA se fait sans fetch live ni citation (34 %/24 %, 92 % sans lien pour Gemini) : vendre la *probabilité* de citation, jamais la garantie.
+
+## Ajouts 2026-08-01 — 2e session (hygiène de dépôt + veille SearXNG audit technique)
+
+Sources : signaux internes (fichiers de travail à la racine du dépôt, chantier local non commité `packages/cli/src/report/history.ts` — probable A4 en cours) ; SearXNG local (seomix.fr audit technique, lafabriquedunet.fr alternatives Screaming Frog : sitemaps/canonical/pagination, oplia.fr preuve sociale). Sans doublon avec A1-A5.
+
+| # | Idée | Principe | Impact/Effort |
+|---|------|----------|---------------|
+| A6 | 🧹 **Nettoyer la racine du dépôt** | déplacer/ignorer les fichiers de travail (`extract_lantern.js`, `final_quotes.js`, `pull_strings.js`, `quote_windows.js`, `lantern_*.txt`, `audit-prod.json`/`.err`, `findable.bordebat.fr-baseline.json`) vers `examples/` ou `.gitignore` ; dette qui pollue clones et recherches | moyen / faible |
+| A7 | 🗺️ **Croisement sitemap.xml vs crawl** | lire `sitemap.xml` (découverte via robots.txt) et comparer aux pages atteintes par liens internes : pages orphelines et pages crawlé-mais-absentes-du-sitemap ; check standard des crawlers type Screaming Frog, borné par `--max-pages` | fort / moyen |
+| A8 | ⭐ **Check preuve sociale structurée** | détecter la présence d'avis/notes balisés (`AggregateRating`, `Review` JSON-LD) sur les pages clés des sites locaux ; argument de vente direct pour la prospection PB OpenTech (les fiches + avis convertissent) | moyen / faible |
+| A9 | 📌 **Terminer et committer le chantier sparkline (A4)** | `history.ts` + modifs `html.ts`/`i18n.ts`/`index.ts` existent en local non commité : finaliser, tester, committer — sinon risque de perte et de dérive avec `origin/main` | fort / faible |
