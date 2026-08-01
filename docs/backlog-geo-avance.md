@@ -36,6 +36,18 @@ Spec : `docs/superpowers/specs/2026-07-26-lot5-chunker.md`.
 | 🗂️ **Matrice politiques IA** | robots.txt × ai.txt × tdmrep.json × RSL : contradictions | pile pas stabilisée |
 | 🛰️ **Affordances agentiques** | tier WebMCP / NLWeb / agents.json sur tout le crawl | standards jeunes |
 
+## Ajouts 2026-08-01 — restitution & vérification d'accès (veille SearXNG + signaux internes)
+
+Source : session automatique du 2026-08-01 (recherches SearXNG : guides llms.txt 2026 — seoscore.tools, airanklab.com, limy.ai, pressonify.ai « 11 AI crawlers » ; checklists d'audit IA — loudpixel.ai). Priorisé par ratio impact/effort. Aucun recouvrement avec les lots ci-dessus (qui portent sur de nouveaux *checks de contenu* ; ici : validation d'artefacts existants + ergonomie de restitution).
+
+| # | Idée | Principe | Impact/Effort |
+|---|------|----------|---------------|
+| A1 | 🧾 **Lint d'un llms.txt existant** | on sait *générer* un squelette (`--emit`), mais pas *valider* un llms.txt déjà en place : format (H1 unique, blockquote, sections H2, liens Markdown), liens qui résolvent (pas de 404), cohérence avec le sitemap et le contenu réel. Les guides 2026 en font un standard d'audit à part entière | fort / faible |
+| A2 | 🚪 **Accès effectif des crawlers IA** | au-delà de robots.txt (`ai-access`) : requêter le site avec les User-Agents des crawlers IA majeurs (GPTBot, ClaudeBot, PerplexityBot…) et comparer les codes/contenus obtenus, pour détecter les blocages CDN/WAF (Cloudflare & co) invisibles dans robots.txt | fort / moyen |
+| A3 | 🥇 **« Top 3 corrections » en tête de rapport** | trier les échecs par points récupérables ÷ effort estimé et les afficher en tête (terminal + HTML) ; différenciant vs les audits « liste plate » | moyen / faible |
+| A4 | 📈 **Sparkline de score dans le rapport HTML** | `--history` stocke déjà la série ; l'afficher (tendance du score global + par axe) dans le HTML | moyen / faible |
+| A5 | 💬 **Commentaire de PR via l'action GitHub** | `action.yml` existe ; publier le diff vs `--baseline` (checks gagnés/perdus, delta de score) en commentaire de PR, comme les outils CI comparables | moyen / moyen |
+
 ## Garde-fous (recherche vérifiée)
 
 - Ne jamais promettre « +40 % » (réfuté 0-3) ; l'efficacité varie par domaine (confirmé 3-0).
