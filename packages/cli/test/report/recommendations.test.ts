@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectRecommendations } from '../../src/report/recommendations.js';
+import { collectRecommendations, topFixes } from '../../src/report/recommendations.js';
 import type { CheckResult } from '../../src/types.js';
 
 const results: CheckResult[] = [
@@ -29,5 +29,22 @@ describe('collectRecommendations', () => {
     expect(recs.find((r) => r.id === 'fail-perf')!.effort).toBe('involved'); // performance
     expect(recs.find((r) => r.id === 'fail-onpage')!.effort).toBe('quick');  // on-page
     expect(recs.find((r) => r.id === 'warn-sec')!.effort).toBe('quick');     // security
+  });
+});
+
+describe('topFixes', () => {
+  const recs = collectRecommendations(results);
+  it('ranks by weighted payoff ÷ effort cost, not by raw impact', () => {
+    // fail-perf: 0.6/4 (involved) = 0.15 ; fail-onpage: 0.36/1 = 0.36 ;
+    // warn-sec: 2*.06=0.12/1 = 0.12 -> the cheap on-page fix outranks the big perf project.
+    expect(topFixes(recs).map((r) => r.id)).toEqual(['fail-onpage', 'fail-perf', 'warn-sec']);
+  });
+  it('caps at n and never mutates its input', () => {
+    const before = recs.map((r) => r.id);
+    expect(topFixes(recs, 2)).toHaveLength(2);
+    expect(recs.map((r) => r.id)).toEqual(before);
+  });
+  it('is empty when there is nothing to fix', () => {
+    expect(topFixes([])).toEqual([]);
   });
 });

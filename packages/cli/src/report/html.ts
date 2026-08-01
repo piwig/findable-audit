@@ -2,7 +2,7 @@ import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { gradeOf } from '../scoring.js';
 import { renderCwvHtml } from './cwv.js';
-import { collectRecommendations, type Recommendation } from './recommendations.js';
+import { collectRecommendations, topFixes, type Recommendation } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
 import { localizeMessage } from './message-i18n.js';
@@ -133,6 +133,12 @@ const STYLE = `
 
   /* --- layer 2: the plan --- */
   .action-plan { margin: 1.5rem 0; }
+  .top-fixes { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+    padding: .7rem .9rem; margin: .9rem 0 0; }
+  .top-fixes h3 { font-size: .95rem; margin: 0 0 .35rem; }
+  .top-fixes ol { margin: 0; padding-left: 1.2rem; }
+  .top-fixes li { font-size: .92rem; padding: .2rem 0; }
+  .top-fixes .ap-sev { display: inline-block; margin-right: .35rem; top: 0; }
   .lane { margin: 1.1rem 0 0; }
   .lane-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
     border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
@@ -496,9 +502,19 @@ ${(graph.stats?.danglingRefs ?? 0) > 0 ? `<p class="eg-legend"><span><span class
     return `<div class="lane">${head}${shown}${rest}</div>`;
   };
 
+  // Backlog A3: the three best-payoff fixes (weighted points ÷ effort) open
+  // the plan, so the reader knows where to start before arbitrating lanes.
+  const top = topFixes(recs);
+  const topStrip = top.length === 0 ? '' : `<div class="top-fixes">
+<h3>${escapeHtml(m.topFixesTitle(top.length))}</h3>
+<ol>
+${top.map((r) => `<li><span class="ap-sev ${r.status}"></span><strong>${escapeHtml(checkTitle(r.id, lang))}</strong> — ${escapeHtml(checkFix(r.id, lang, r.fix) ?? r.fix)} <span class="ap-imp">+${r.impact} ${m.pts}</span> <span class="chip">${escapeHtml(m.laneTitle[r.effort])}</span></li>`).join('\n')}
+</ol>
+</div>`;
+
   const actionPlan = `<section class="action-plan" id="plan">
 <h2>${m.actionPlan}</h2>
-${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : LANES.map(renderLane).join('\n')}
+${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `${topStrip}\n${LANES.map(renderLane).join('\n')}`}
 </section>`;
 
   return `<!doctype html>

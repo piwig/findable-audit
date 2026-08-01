@@ -63,3 +63,23 @@ export function collectRecommendations(results: CheckResult[]): Recommendation[]
     })
     .sort((a, b) => (a.status === b.status ? b.weighted - a.weighted : a.status === 'fail' ? -1 : 1));
 }
+
+/** Relative cost of each effort tier, the denominator of the payoff ratio. */
+const EFFORT_COST: Record<Effort, number> = { quick: 1, moderate: 2, involved: 4 };
+
+/**
+ * The N best-payoff fixes: recoverable weighted points ÷ estimated effort,
+ * descending. Ties break on weighted impact, then fails before warns, so a
+ * big quick win always outranks a small one and effort never hides a fail
+ * behind an equal-ratio warn. This is the "top 3 corrections" strip shown
+ * before anything else in the terminal and HTML reports (backlog A3).
+ */
+export function topFixes(recs: Recommendation[], n = 3): Recommendation[] {
+  const ratio = (r: Recommendation): number => r.weighted / EFFORT_COST[r.effort];
+  return [...recs]
+    .sort((a, b) =>
+      ratio(b) - ratio(a)
+      || b.weighted - a.weighted
+      || (a.status === b.status ? 0 : a.status === 'fail' ? -1 : 1))
+    .slice(0, n);
+}

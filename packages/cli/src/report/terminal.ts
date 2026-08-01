@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { FAMILY_LABELS_I18N, FAMILY_SHORT_I18N } from './i18n.js';
+import { collectRecommendations, topFixes } from './recommendations.js';
 
 /** Terminal output stays English: labels & short chips derive from the EN catalog. */
 export const FAMILY_LABELS: Record<Family, string> = FAMILY_LABELS_I18N.en;
@@ -13,6 +14,16 @@ const ICONS: Record<CheckResult['status'], string> = {
 
 export function renderTerminal(report: AuditReport): string {
   const lines: string[] = [pc.bold(`findable-audit report for ${report.url}`), ''];
+  // Backlog A3: best payoff first — recoverable points ÷ estimated effort —
+  // so the reader knows where to start before scrolling the flat list.
+  const top = topFixes(collectRecommendations(report.results));
+  if (top.length > 0) {
+    lines.push(pc.bold(`Top ${top.length} fixes (best payoff first)`));
+    top.forEach((r, i) => {
+      lines.push(`  ${i + 1}. ${r.id.padEnd(22)} +${r.impact} pts  ${pc.dim(`[${r.effort}]`)}  ${r.fix}`);
+    });
+    lines.push('');
+  }
   for (const family of Object.keys(FAMILY_LABELS) as Family[]) {
     const results = report.results.filter((x) => x.family === family);
     if (results.length === 0) continue; // families with no checks yet (e.g. performance)

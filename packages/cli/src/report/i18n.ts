@@ -102,6 +102,8 @@ export interface ReportMessages {
   laneProjection: (count: number, from: number, to: number, grade: string) => string;
   /** Lane whose fixes move the /100 score by less than a whole point. */
   laneFlat: (count: number, score: number) => string;
+  /** Heading of the "top N fixes" payoff strip shown before the lanes (backlog A3). */
+  topFixesTitle: (n: number) => string;
   planEmpty: string;              // nothing to fix at all
   planWhere: string;              // label before the offending paths of an item
   planHow: string;                // <summary> of the per-item "how to do it" disclosure
@@ -205,6 +207,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     laneProjection: (count, from, to, grade) =>
       `the ${count} of them: ${from} → ${to} (${grade})`,
     laneFlat: (count, score) => `the ${count} of them: ${score} → ${score} (under a point)`,
+    topFixesTitle: (n) => `Top ${n} fixes — best payoff first`,
     planEmpty: 'Nothing to fix — every applicable check passes.',
     planWhere: 'Where:',
     planHow: 'How to do it',
@@ -305,6 +308,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     laneProjection: (count, from, to, grade) =>
       `les ${count} : ${from} → ${to} (${grade})`,
     laneFlat: (count, score) => `les ${count} : ${score} → ${score} (moins d’un point)`,
+    topFixesTitle: (n) => `Top ${n} corrections — meilleur rendement d’abord`,
     planEmpty: 'Rien à corriger — tous les contrôles applicables passent.',
     planWhere: 'Où :',
     planHow: 'Comment faire',
