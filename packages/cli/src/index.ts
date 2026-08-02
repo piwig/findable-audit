@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { buildChecks } from './checks/index.js';
-import { runAudit, UnreachableSiteError, type AuditReport } from './runner.js';
+import { runAudit, UnreachableSiteError, type AuditProgress, type AuditReport } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
@@ -307,7 +307,20 @@ const htmlReportWanted = values.report === undefined
 
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
-  const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
+  // Live progress (#A10): one rewritten stderr line — "page 3/10", then
+  // "checks 87/138" — cleared before the result prints. TTY only: a CI log
+  // keeps the single "auditing…" note instead of 150 rewrites, and --quiet
+  // silences both. Never stdout, which belongs to the result alone.
+  const onProgress = process.stderr.isTTY && !values.quiet
+    ? (ev: AuditProgress): void => {
+        const label = ev.phase === 'sample' ? `page ${ev.done}/${ev.total}`
+          : ev.phase === 'checks' ? `checks ${ev.done}/${ev.total}`
+          : ev.phase === 'cwv' ? 'core web vitals (PageSpeed)…'
+          : ev.phase === 'connect' ? 'connecting…' : '';
+        process.stderr.write(`\r\x1b[2K${label}`);
+      }
+    : undefined;
+  const auditOpts = { onProgress, timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
   note(`auditing ${targetUrl} (up to ${maxPages} page${maxPages === 1 ? '' : 's'}, timeout ${timeoutMs}ms)…`);
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
@@ -341,6 +354,7 @@ try {
   // Compare audits reuse auditOpts: CWV is measured only when --cwv was given,
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
+  if (onProgress) process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
   console.log(values.json ? renderJson(report) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report)));
   if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
   // Decide which report files to write:
