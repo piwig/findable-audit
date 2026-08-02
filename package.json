@@ -1,9 +1,9 @@
 {
   "name": "findable-audit-monorepo",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "build": "npm run build --workspaces",
-    "test": "npm test --workspaces"
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run build --workspaces --if-present && npm test --workspaces"
   }
 }
