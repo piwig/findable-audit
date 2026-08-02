@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **137 checks in 8 families**.
+findable-audit scores a site out of 100 across **138 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 137 checks, **101 are measured and 36 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 138 checks, **101 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -84,6 +84,11 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** `/llms.txt` (text/plain) has an H1 title + a summary line + ≥1 `##` section + ≥5 descriptive absolute same-origin links (warn if H1-only or under 5 links; fail if missing/HTML).
 **Why:** `llms.txt` gives models a curated, token-efficient map of your site so they answer about it accurately instead of guessing from raw HTML. Honest caveat: treat it as a **signal of unproven value** — large 2025–26 studies (Ahrefs 137K sites, SE Ranking 300K, Otterly 62K, Trakkr 37.9K) measured **no citation gain**, adoption is ~3.2%, and Google says it has zero ranking impact. It stays in the audit as a cheap, low-weight bet; the value lies in the combined check set, not in this file alone.
 **Fix:** Structure it as `# Site`, a one-line summary, then `## Section` blocks of `- [Title](https://abs-url): note`.
+
+### `llms-txt-lint` (2 pts)
+**Verifies:** Lints an *existing* `/llms.txt` beyond its shape: exactly one H1 root, absolute link targets, same-origin links that resolve on the live site (up to 12 probed; status >= 400 counts as broken), and coherence with `sitemap.xml` (warns when none of the linked URLs appear in a published `<urlset>`). Skips when `llms.txt` is absent or unreadable — that verdict belongs to `llms-txt`.
+**Why:** `llms-txt` judges the file's format; this check judges whether the file is *true*. A curated index pointing at 404s, relative paths or pages the site no longer publishes is worse than none: it hands agents dead ends with full confidence.
+**Fix:** Keep `llms.txt` in sync with the site: one `# Site` root, absolute URLs, no dead links, targets present in the sitemap.
 
 ### `llms-full-txt` (2 pts)
 **Verifies:** `/llms-full.txt` (text/plain) carries real body content — roughly ≥2000 words with multiple headings (warn under 500; fail if missing/HTML).

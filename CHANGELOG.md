@@ -7,6 +7,25 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.11.0 - 2026-08-02
+
+### Added
+
+- New check llms-txt-lint (llm-content, 2 pts, heuristic): lints an existing llms.txt
+  beyond its shape - single H1 root, absolute link targets, same-origin links resolving
+  on the live site (12 probes max), coherence with sitemap.xml. Total is now 138 checks
+  (101 measured, 37 heuristic). (e94a041)
+- Report: top 3 fixes ranked by payoff (weighted points / effort) in the terminal
+  summary and the HTML report. (f8f90f3)
+- Report: score sparklines (global + per family) in the HTML report as soon as a
+  --history file holds 2 runs or more. (700b14a)
+
+### Changed
+
+- Docs: llms-txt-lint documented in both check guides; check counts realigned from
+  137 to 138 across READMEs and guides, with a new test locking catalogue size to
+  guide sections so they cannot drift again.
+
 ## 0.10.0 — 2026-07-27
 
 ### Changed — scoring

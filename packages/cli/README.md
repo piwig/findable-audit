@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/findable-audit)](https://github.com/piwig/findable-audit/blob/main/LICENSE)
 
 **SEO & GEO audit CLI: is your site findable by search engines *and* by AI assistants?**
-137 checks across 8 weighted families — AI crawler access, answer-engine content,
+138 checks across 8 weighted families — AI crawler access, answer-engine content,
 structured data, technical SEO, on-page, performance & Core Web Vitals, accessibility,
 security & trust — scored `/100` with an A–F grade and a prioritized fix list.
 
@@ -106,7 +106,7 @@ findable:
 
 - **Web UI** (`apps/web`): dependency-free Node server, the same engine, self-hostable.
 - **Claude Code plugin**: three skills that run an audit and turn it into a fix plan.
-- **Check guide**: every one of the 137 checks documented — what it verifies, why it
+- **Check guide**: every one of the 138 checks documented — what it verifies, why it
   matters, how to fix it — in [English](https://github.com/piwig/findable-audit/blob/main/docs/guide.md)
   and [French](https://github.com/piwig/findable-audit/blob/main/docs/guide.fr.md).
 

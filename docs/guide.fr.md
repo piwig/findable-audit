@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **137 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **138 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 137 checks, **101 sont mesurés et 36 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 138 checks, **101 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -92,6 +92,11 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** `/llms.txt` (text/plain) a un titre H1 + une ligne de résumé + ≥1 section `##` + ≥5 liens descriptifs absolus de même origine (avertissement si H1 seul ou moins de 5 liens ; échec si absent/HTML).
 **Pourquoi :** `llms.txt` donne aux modèles une carte de votre site, sélective et économe en tokens, pour répondre avec précision plutôt qu'en devinant depuis le HTML brut. Nuance honnête : traitez-le comme un **signal à la valeur non prouvée** — les grandes études 2025–26 (Ahrefs 137K sites, SE Ranking 300K, Otterly 62K, Trakkr 37,9K) ne mesurent **aucun gain de citation**, l'adoption est d'environ 3,2 %, et Google annonce un impact nul sur le classement. Le check reste un pari peu coûteux à faible poids ; la valeur vient de l'ensemble combiné des contrôles, pas de ce seul fichier.
 **Corriger :** Structurez-le en `# Site`, un résumé d'une ligne, puis des blocs `## Section` de `- [Titre](https://url-absolue) : note`.
+
+### `llms-txt-lint` (2 pts)
+**Vérifie :** Contrôle un `/llms.txt` *existant* au-delà de sa forme : un seul H1 racine, des cibles de liens absolues, des liens même-origine qui résolvent sur le site réel (12 sondés au maximum ; un statut >= 400 compte comme cassé), et la cohérence avec `sitemap.xml` (avertit quand aucune des URL liées n'apparaît dans un `<urlset>` publié). Sauté quand `llms.txt` est absent ou illisible — ce verdict appartient à `llms-txt`.
+**Pourquoi :** `llms-txt` juge le format du fichier ; ce check juge si le fichier est *vrai*. Un index sélectif qui pointe vers des 404, des chemins relatifs ou des pages que le site ne publie plus est pire que rien : il fournit aux agents des impasses avec un parfait aplomb.
+**Correction :** Gardez `llms.txt` synchronisé avec le site : une racine `# Site`, des URL absolues, aucun lien mort, des cibles présentes dans le sitemap.
 
 ### `llms-full-txt` (2 pts)
 **Vérifie :** `/llms-full.txt` (text/plain) contient un vrai corps — environ ≥2000 mots avec plusieurs titres (avertissement sous 500 ; échec si absent/HTML).
