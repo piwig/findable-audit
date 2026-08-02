@@ -21,7 +21,7 @@ import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import { parseHistory, appendHistory, type HistoryEntry } from './report/history.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>]
+const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -73,6 +73,10 @@ By default, two report files are written to the current directory: <host>-<date>
 --cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
 --psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
 --psi-strategy selects the PSI form factor (default mobile).
+--quiet silences the informational notes on stderr ("auditing…", "report written to…"); the audit
+  result on stdout and real errors still print. Errors keep the findable-audit: prefix, notes never had it.
+--no-color strips ANSI colors from the terminal output (for pagers, logs, CI). The NO_COLOR
+  environment variable (no-color.org) is honored too; --no-color simply forces it for one run.
 Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
 
 /** Default report basename written when neither --report nor --no-report is given. */
@@ -111,6 +115,8 @@ const parseCliArgs = () =>
       history: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
+      quiet: { type: 'boolean', short: 'q', default: false },
+      'no-color': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     } as const,
@@ -125,6 +131,15 @@ try {
   process.exit(2);
 }
 const { values, positionals } = parsed;
+
+// Output discipline (#A10): the audit result owns stdout; everything else is
+// stderr, split into *notes* (informational, silenced by --quiet) and *errors*
+// (always printed, always prefixed "findable-audit:"). --no-color strips ANSI
+// from the terminal rendering; the NO_COLOR env var is already honored by
+// picocolors at import time, the flag just makes it per-run and discoverable.
+const note = (msg: string): void => { if (!values.quiet) console.error(msg); };
+const stripAnsi = (s: string): string => s.replace(/\x1b\[[0-9;]*m/g, '');
+const colorize = (s: string): string => (values['no-color'] ? stripAnsi(s) : s);
 
 if (values.version) {
   console.log(createRequire(import.meta.url)('../package.json').version);
@@ -293,6 +308,7 @@ const htmlReportWanted = values.report === undefined
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
   const auditOpts = { timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
+  note(`auditing ${targetUrl} (up to ${maxPages} page${maxPages === 1 ? '' : 's'}, timeout ${timeoutMs}ms)…`);
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 
@@ -312,6 +328,7 @@ try {
         continue;
       }
       try {
+        note(`auditing competitor ${cu}…`);
         competitorReports.push(await runAudit(cu, checks, auditOpts));
       } catch (err) {
         console.error(`findable-audit: skipping "${cu}" (${(err as Error).message})`);
@@ -324,8 +341,8 @@ try {
   // Compare audits reuse auditOpts: CWV is measured only when --cwv was given,
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
-  console.log(values.json ? renderJson(report) : compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report));
-  if (diff && !values.json) console.log('\n' + renderDiffTerminal(diff, langTyped));
+  console.log(values.json ? renderJson(report) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report)));
+  if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
   //   --no-report     -> none
@@ -350,7 +367,7 @@ try {
     history = appendHistory(priorHistory, report, now);
     try {
       writeFileSync(historyFile, JSON.stringify(history, null, 2) + '\n', 'utf8');
-      console.error(`history appended to ${historyFile} (${history.length} run${history.length === 1 ? '' : 's'})`);
+      note(`history appended to ${historyFile} (${history.length} run${history.length === 1 ? '' : 's'})`);
     } catch (err) {
       console.error(`findable-audit: cannot write history to "${historyFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
@@ -366,7 +383,7 @@ try {
     else body = compare ? renderCompareMarkdown(reports, langTyped, compareOpts) : renderMarkdown(report, now, langTyped, { diff });
     try {
       writeFileSync(file, body, 'utf8');
-      console.error(`report written to ${file}`);
+      note(`report written to ${file}`);
     } catch (err) {
       // Never process.exit() here (undici sockets closing → libuv crash on
       // Windows); set the flag and let the event loop drain.
@@ -385,8 +402,8 @@ try {
   if (emitDir !== undefined) {
     try {
       const written = emitFiles(report, emitDir, { lang: langTyped });
-      console.error(`generated indexing files in ${emitDir} (${written.length} files)`);
-      console.error(langTyped === 'fr'
+      note(`generated indexing files in ${emitDir} (${written.length} files)`);
+      note(langTyped === 'fr'
         ? '⚠ fichiers génériques — relire avant de déployer, surtout robots.txt'
         : '⚠ generic files — review before deploying, especially robots.txt');
     } catch (err) {
@@ -403,7 +420,7 @@ try {
       : renderSummaryMarkdown(report, now, langTyped);
     try {
       writeFileSync(summaryFile, body, 'utf8');
-      console.error(`summary written to ${summaryFile}`);
+      note(`summary written to ${summaryFile}`);
     } catch (err) {
       console.error(`findable-audit: cannot write summary to "${summaryFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
@@ -420,7 +437,7 @@ try {
       writeFileSync(answersFile, renderer(report.answerMatrix, {
         sampledPages: report.sampledPages, capped, lang,
       }), 'utf8');
-      console.error(`answer matrix written to ${answersFile}`);
+      note(`answer matrix written to ${answersFile}`);
     } catch (err) {
       console.error(`findable-audit: cannot write answer matrix to "${answersFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
@@ -432,7 +449,7 @@ try {
     const renderer = pickEntityGraphRenderer(entityGraphFile)!;
     try {
       writeFileSync(entityGraphFile, renderer(report.entityGraph), 'utf8');
-      console.error(`entity graph written to ${entityGraphFile}`);
+      note(`entity graph written to ${entityGraphFile}`);
     } catch (err) {
       console.error(`findable-audit: cannot write entity graph to "${entityGraphFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
@@ -453,11 +470,11 @@ try {
       if (payload === null) {
         console.error('findable-audit: not submitting — no sampled URL to submit.');
       } else {
-        console.error(`submitting ${payload.urlList.length} URL(s) to IndexNow (Bing, Yandex, Seznam, Naver)…`);
+        note(`submitting ${payload.urlList.length} URL(s) to IndexNow (Bing, Yandex, Seznam, Naver)…`);
         const result = await submitIndexNow(payload, { timeoutMs });
         console.error(`IndexNow: ${result.message}`);
         if (result.ok) {
-          console.error('note: Google does not participate in IndexNow — submit there via Search Console.');
+          note('note: Google does not participate in IndexNow — submit there via Search Console.');
         }
       }
     }

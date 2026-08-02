@@ -184,6 +184,8 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--timeout <ms>` | Per-request timeout (default `10000`). |
 | `--user-agent <ua>` | Override the crawler UA, e.g. `"GPTBot/1.0"`, to see what a UA-filtered crawler gets. |
 | `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default `mobile`). |
+| `--quiet`, `-q` | Silence the informational notes on stderr ("auditing…", "report written to…"). The result on stdout and real errors still print. |
+| `--no-color` | Strip ANSI colors from the terminal output (pagers, logs, CI). The `NO_COLOR` env var is honored too. |
 
 </details>
 
