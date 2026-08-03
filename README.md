@@ -7,7 +7,7 @@
 [![Try it live](https://img.shields.io/badge/Try%20it%20live-findable-1a7f37)](https://findable.bordebat.fr)
 [![findable score: A 99/100](docs/badge.svg)](https://findable.bordebat.fr/en/example-report/)
 
-A robots.txt line, a page that only exists after JavaScript runs, a missing JSON-LD entity — any of these keeps you out of AI answers while your search ranking looks fine. `findable-audit` runs **138 checks** in one deterministic crawl and returns a weighted **A–F grade** across SEO, GEO, Core Web Vitals, accessibility and security, with the fixes ordered by what they are worth.
+A robots.txt line, a page that only exists after JavaScript runs, a missing JSON-LD entity — any of these keeps you out of AI answers while your search ranking looks fine. `findable-audit` runs **139 checks** in one deterministic crawl and returns a weighted **A–F grade** across SEO, GEO, Core Web Vitals, accessibility and security, with the fixes ordered by what they are worth.
 
 No account. No telemetry. Nothing sent to a third party.
 
@@ -63,7 +63,7 @@ Every audit also writes a self-contained **HTML report** and a Markdown one. See
 28 named AI agents, tiered by *intention* — because who you block decides what you lose. A flat "N bots blocked" count treats a deliberate policy choice exactly like an outage.
 
 **Every verdict says what it rests on.**
-101 checks grade against an RFC, WCAG, schema.org or a threshold Google publishes. 37 are heuristics — a ratio, a lexicon, a bar we chose. The reports badge them, so you never mistake our taste for a specification.
+102 checks grade against an RFC, WCAG, schema.org or a threshold Google publishes. 37 are heuristics — a ratio, a lexicon, a bar we chose. The reports badge them, so you never mistake our taste for a specification.
 
 **Five disciplines, one crawl, one grade.**
 SEO, GEO, Core Web Vitals, accessibility and security in a single weighted A–F — not five tools and five dashboards you have to reconcile yourself.
@@ -73,7 +73,7 @@ Three small pure-JS dependencies, no headless browser, no LLM SDK, no key for th
 
 ## What it checks
 
-**138 checks in 8 families.** Each family scores `0–100` over its own non-skipped checks; the eight are then blended with the weights below.
+**139 checks in 8 families.** Each family scores `0–100` over its own non-skipped checks; the eight are then blended with the weights below.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
@@ -300,7 +300,7 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope. Pair findable-audit (input side) with a monitor (output side) if you need it.
 - **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we do not confirm a visit happened.
 - **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API, whose keyless endpoint is aggressively rate-limited.
-- **Raw rule count** — SEOmator advertises 251 rules to our 138 checks.
+- **Raw rule count** — SEOmator advertises 251 rules to our 139 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 

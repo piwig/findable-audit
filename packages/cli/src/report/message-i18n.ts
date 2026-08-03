@@ -151,6 +151,7 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'About/Contact incomplete (missing: {0})': 'À propos/Contact incomplet (manque : {0})',
   'About/Contact pages not found': 'pages À propos/Contact introuvables',
   'active mixed content on: {0}': 'contenu mixte actif sur : {0}',
+  'AI crawler access diverges: {0}': 'l’accès des robots d’IA diverge : {0}',
   'AI crawlers blocked: {0}': 'robots d’IA bloqués : {0}',
   'all {0} form control(s) have an accessible name': 'les {0} champ(s) de formulaire ont un nom accessible',
   'all {0} iframe(s) have a title': 'les {0} iframe(s) ont un titre',
@@ -209,6 +210,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'hero image is eager; no below-fold images to assess':
     'le visuel principal est en chargement immédiat ; aucune image sous la ligne de flottaison à évaluer',
   'homepage not reachable': 'page d’accueil inaccessible',
+  'homepage reachable (HTTP 2xx) for {0} citation-time crawler UA(s)':
+    'page d’accueil accessible (HTTP 2xx) pour {0} user-agent(s) de robot de citation en direct',
   'homepage responds 200': 'la page d’accueil répond 200',
   'homepage returned {0}': 'la page d’accueil a renvoyé {0}',
   'homepage-only sample': 'échantillon limité à la page d’accueil',

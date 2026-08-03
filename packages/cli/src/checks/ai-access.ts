@@ -264,3 +264,69 @@ export const aiServingParity: Check = {
       'Compare what your CDN/WAF/bot-management gives GPTBot/ClaudeBot against a normal browser fetch — AI crawlers must receive the same document, not a blocked or truncated one.');
   },
 };
+
+// ---------------------------------------------------------------------------
+// ai-crawler-reachability (backlog A19: active access proof for the citation-time
+// fetchers ai-serving-parity does NOT probe — PerplexityBot and OAI-SearchBot.
+// WAF/CDN rules often block these silently while robots.txt allows them, so the
+// static checks (robots.txt, llms.txt) cannot see it; this is the empirical test.
+// Google-Extended is deliberately NOT probed: it is a robots.txt token only and
+// never sends requests itself (Googlebot does the fetching), so a synthetic
+// "Google-Extended" UA probe would measure nothing real.)
+// ---------------------------------------------------------------------------
+
+/** Realistic full UA strings (module-local; NOT the crawl default UA). */
+const UA_PERPLEXITYBOT = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)';
+const UA_OAI_SEARCHBOT = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot';
+
+export const aiCrawlerReachability: Check = {
+  id: 'ai-crawler-reachability', family: 'ai-access', evidence: 'measured', maxPoints: 6,
+  async run(ctx) {
+    if (!ctx.fetchWithUA) return makeResult(this, 'skip', 'no per-UA fetch capability (fetchWithUA)');
+    const home = await ctx.fetch('/');
+    if (!home || home.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
+
+    const homePath = pathQueryOf(home);
+    const crawlers = [
+      { label: 'PerplexityBot', ua: UA_PERPLEXITYBOT },
+      { label: 'OAI-SearchBot', ua: UA_OAI_SEARCHBOT },
+    ];
+
+    // Status-only verdicts: reachability is about getting THROUGH the edge, not
+    // about document equality (that is ai-serving-parity's job). Real HTTP bound:
+    // at most 2 probes plus at most ONE retry each for transient-prone failures,
+    // mirroring the parity check's retry discipline.
+    const items: SeverityItem[] = [];
+    for (const c of crawlers) {
+      const probe: ParityProbe = { label: c.label, path: homePath, ua: c.ua, ai: true, baseline: home };
+      const item = `${c.label} on ${homePath}`;
+      let probed = await ctx.fetchWithUA(homePath, c.ua);
+      if (isHardProbeFailure(probe, probed)) {
+        const retry = await ctx.fetchWithUA(homePath, c.ua);
+        if (!isHardProbeFailure(probe, retry)) {
+          items.push(statusClass(retry!.status) === 2
+            ? { path: item, status: 'warn', reason: 'transient failure on first fetch, recovered on retry' }
+            : { path: item, status: 'warn', reason: `HTTP ${retry!.status} for this UA vs HTTP ${home.status} for the default UA` });
+          continue;
+        }
+        probed = retry;
+      }
+      if (!probed) {
+        items.push({ path: item, status: 'fail', reason: 'no response for this UA (network-level block?)' });
+      } else if (probed.status === 403 || probed.status === 451 || statusClass(probed.status) === 5) {
+        // May be deliberate bot management rather than malice — stay descriptive.
+        items.push({ path: item, status: 'fail', reason: `AI crawlers appear blocked at the edge (HTTP ${probed.status})` });
+      } else if (statusClass(probed.status) !== 2) {
+        items.push({ path: item, status: 'warn', reason: `HTTP ${probed.status} for this UA vs HTTP ${home.status} for the default UA` });
+      } else {
+        items.push({ path: item, status: 'pass' });
+      }
+    }
+    const roll = rollupBySeverity(items);
+    if (roll.status === 'pass') {
+      return makeResult(this, 'pass', t`homepage reachable (HTTP 2xx) for ${items.length} citation-time crawler UA(s)`);
+    }
+    return makeResult(this, roll.status, t`AI crawler access diverges: ${roll.detail}`,
+      'Review any CDN/WAF/bot-management rule that blocks PerplexityBot or OAI-SearchBot — these fetch pages at answer time, and an edge block hides the site from live AI answers even when robots.txt allows them.');
+  },
+};

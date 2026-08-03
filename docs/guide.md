@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **138 checks in 8 families**.
+findable-audit scores a site out of 100 across **139 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 138 checks, **101 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 139 checks, **102 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -68,6 +68,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** Refetches the homepage (plus up to two sampled pages) as GPTBot, ClaudeBot and a mobile browser, comparing HTTP status, body size, `<title>` and main content against the default fetch. Fails on a 403/451/5xx or missing main content for an AI user-agent; warns on softer divergence (title mismatch, >30% size delta, mobile-only difference). Skips without the per-UA fetch capability or when the homepage is unreachable.
 **Why:** If a CDN/WAF hands AI crawlers a blocked, redirected or stripped-down document, your content never reaches the assistants that would cite it — even though a browser sees the page fine. A 403 to GPTBot may be deliberate bot management, so the wording stays descriptive, not accusatory.
 **Fix:** Make sure GPTBot and ClaudeBot receive the same document a browser gets; review any bot-management rule that blocks or rewrites AI-crawler requests.
+
+### `ai-crawler-reachability` (6 pts)
+**Verifies:** Refetches the homepage as PerplexityBot and OAI-SearchBot — the citation-time fetchers `ai-serving-parity` does not probe — and checks each gets through the edge (HTTP 2xx), status only. Fails on a 403/451/5xx or no response (after one retry for transient failures); warns on other non-2xx statuses. Skips without the per-UA fetch capability or when the homepage is unreachable. Google-Extended is deliberately not probed: it is a robots.txt token only and never sends requests itself.
+**Why:** WAF/CDN bot-management rules often block AI crawlers silently while robots.txt allows them, so the static checks (robots.txt, llms.txt) cannot see it. This is the empirical access proof: if a citation-time fetcher cannot reach the page at answer time, the site is invisible to that assistant's live answers.
+**Fix:** Review any CDN/WAF/bot-management rule that blocks PerplexityBot or OAI-SearchBot — an edge block hides the site from live AI answers even when robots.txt allows them.
 
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).
