@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
-import { writeFileSync, readFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { buildChecks } from './checks/index.js';
-import { runAudit, UnreachableSiteError, type AuditProgress, type AuditReport } from './runner.js';
+import { runAudit, sampleSite, UnreachableSiteError, type AuditProgress, type AuditReport } from './runner.js';
 import { renderTerminal } from './report/terminal.js';
 import { renderJson } from './report/json.js';
 import { renderMarkdown } from './report/markdown.js';
@@ -15,13 +16,16 @@ import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from 
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { pickAnswersRenderer } from './report/answers.js';
-import { emitFiles } from './generate/index.js';
+import { emitFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/index.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import { parseHistory, appendHistory, type HistoryEntry } from './report/history.js';
 import type { Lang } from './report/i18n.js';
 
-const USAGE = `Usage: findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
+const USAGE = `Usage: findable <url> [options]
+       findable generate llms-txt <url> [--out <dir>] [--lang <en|fr>] [--max-pages <n>] [--timeout <ms>] [--user-agent <ua>] [--quiet]
+
+findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
@@ -113,6 +117,7 @@ const parseCliArgs = () =>
       'check-outbound': { type: 'boolean', default: false },
       summary: { type: 'string' },
       history: { type: 'string' },
+      out: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
       'no-report': { type: 'boolean', default: false },
       quiet: { type: 'boolean', short: 'q', default: false },
@@ -146,10 +151,24 @@ if (values.version) {
   process.exit(0);
 }
 
-const url = positionals[0];
+// `findable generate llms-txt <url>` (#A22): remediation subcommand — crawl +
+// sample only (no checks, no score), then write llms.txt / llms-full.txt built
+// from the REAL crawled pages into --out. Detected here so the shared option
+// validations (--timeout, --max-pages, --lang, --user-agent) below apply to it.
+const isGenerate = positionals[0] === 'generate';
+const url = isGenerate ? positionals[2] : positionals[0];
 if (values.help || !url) {
   console.log(USAGE);
   process.exit(values.help ? 0 : 2);
+}
+if (isGenerate && positionals[1] !== 'llms-txt') {
+  console.error(`findable-audit: unknown generate target "${positionals[1] ?? ''}" (expected "llms-txt")\n\n${USAGE}`);
+  process.exit(2);
+}
+const outDir = values.out ?? '.';
+if (outDir.trim() === '') {
+  console.error(`findable-audit: --out must not be empty\n\n${USAGE}`);
+  process.exit(2);
 }
 
 const minScore = Number(values['min-score']);
@@ -305,6 +324,41 @@ const htmlReportWanted = values.report === undefined
   ? !values['no-report']
   : values.report.some((f) => /\.html?$/i.test(f));
 
+if (isGenerate) {
+  // No process.exit() after the crawl (undici sockets closing → libuv crash on
+  // Windows, same rule as the audit path): set process.exitCode and drain.
+  try {
+    note(`sampling ${targetUrl} (up to ${maxPages} page${maxPages === 1 ? '' : 's'}, timeout ${timeoutMs}ms)…`);
+    const sample = await sampleSite(targetUrl, { timeoutMs, maxPages, userAgent });
+    // A minimal report-shaped source: the llms generators only read url,
+    // sampledPages and pageMeta — score/grade/results are never consulted.
+    const source: AuditReport = {
+      url: sample.url, score: 0, grade: 'F', familyScores: [], results: [],
+      sampledPages: sample.sampledPages, pageMeta: sample.pageMeta,
+    };
+    mkdirSync(outDir, { recursive: true });
+    const files: ReadonlyArray<readonly [string, string]> = [
+      ['llms.txt', generateLlmsTxt(source, { lang: langTyped })],
+      ['llms-full.txt', generateLlmsFullTxt(source, { lang: langTyped })],
+    ];
+    for (const [name, body] of files) {
+      const full = path.join(outDir, name);
+      writeFileSync(full, body, 'utf8');
+      note(`${name} written to ${full}`);
+    }
+    note(langTyped === 'fr'
+      ? '⚠ ébauches construites depuis vos vraies pages — relire et compléter avant de déployer (résumé, contenu complet).'
+      : '⚠ drafts built from your real pages — review and complete before deploying (summary, full content).');
+    process.exitCode = 0;
+  } catch (err) {
+    if (err instanceof UnreachableSiteError) {
+      console.error(`findable-audit: ${err.message}`);
+      process.exitCode = 2;
+    } else {
+      throw err;
+    }
+  }
+} else {
 try {
   const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
   // Live progress (#A10): one rewritten stderr line — "page 3/10", then
@@ -503,4 +557,5 @@ try {
   } else {
     throw err;
   }
+}
 }

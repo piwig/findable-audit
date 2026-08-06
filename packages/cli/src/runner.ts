@@ -8,6 +8,7 @@ import { fetchPsi, type PsiResult } from './perf/psi.js';
 import { buildAnswerMatrix, type AnswerMatrix } from './answers/matrix.js';
 import { buildEntityGraph, type EntityGraph } from './report/entity-graph.js';
 import { mapProbes } from './checks/concurrency.js';
+import { extractPageMeta, type PageMeta } from './page-meta.js';
 
 /**
  * How many checks may be in flight at once. Higher than the request gate on
@@ -49,6 +50,8 @@ export interface AuditReport {
   entityGraph?: EntityGraph;
   /** Answer matrix across sampled pages. Included only when opts.includeAnswerMatrix is set. */
   answerMatrix?: AnswerMatrix;
+  /** Per-page title/description/h1 extracted from the sampled HTML (#A22). Optional so old audit.json still parses. */
+  pageMeta?: PageMeta[];
 }
 
 export interface AuditOptions {
@@ -180,7 +183,42 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   return {
     url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results,
     psi: crawler.psi, generatedAt: new Date().toISOString(),
+    pageMeta: extractPageMeta(crawler.sample.pages),
     ...(opts.includeEntityGraph ? { entityGraph: crawler.entityGraph } : {}),
     ...(opts.includeAnswerMatrix ? { answerMatrix: buildAnswerMatrix(crawler.sample.pages) } : {}),
+  };
+}
+
+/** What `findable generate` needs from a site: the sample and its metadata, no checks (#A22). */
+export interface SiteSample {
+  /** Normalized base URL of the crawled site. */
+  url: string;
+  /** Pathnames of the sampled pages (homepage first), same shape as AuditReport.sampledPages. */
+  sampledPages: string[];
+  pageMeta: PageMeta[];
+}
+
+/**
+ * Crawl + sample a site WITHOUT running any check — the cheap front half of
+ * runAudit, for callers that only need the pages and their metadata (the
+ * `generate llms-txt` subcommand). Same Crawler, same sampler, same
+ * UnreachableSiteError contract.
+ */
+export async function sampleSite(url: string, opts: Pick<AuditOptions, 'timeoutMs' | 'maxPages' | 'userAgent' | 'blockPrivateHosts' | 'signal' | 'onProgress'> = {}): Promise<SiteSample> {
+  const emit = (ev: AuditProgress): void => { try { opts.onProgress?.(ev); } catch { /* best-effort */ } };
+  const crawler = new Crawler(url, opts.timeoutMs, opts.userAgent, {
+    blockPrivateHosts: opts.blockPrivateHosts,
+    signal: opts.signal,
+  });
+  emit({ phase: 'connect', done: 0, total: 1 });
+  const home = await crawler.fetch('/');
+  if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
+  emit({ phase: 'connect', done: 1, total: 1 });
+  crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
+  emit({ phase: 'sample', done: crawler.sample.pages.length, total: opts.maxPages ?? 10 });
+  return {
+    url: crawler.baseUrl.toString(),
+    sampledPages: crawler.sample.pages.map(pathOf),
+    pageMeta: extractPageMeta(crawler.sample.pages),
   };
 }

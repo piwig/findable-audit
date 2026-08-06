@@ -162,3 +162,50 @@ describe('findable CLI binary', () => {
     }
   }, 30_000);
 });
+
+describe('findable generate llms-txt (#A22)', () => {
+  it('crawls the site and writes llms.txt + llms-full.txt into --out, nothing else', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const outDir = path.join(tmpdir(), `findable-generate-${Date.now()}`);
+    try {
+      const { code, stderr } = await runCli(['generate', 'llms-txt', srv.url, '--out', outDir]);
+      expect(code).toBe(0);
+      expect(readdirSync(outDir).sort()).toEqual(['llms-full.txt', 'llms.txt']);
+      const llms = readFileSync(path.join(outDir, 'llms.txt'), 'utf8');
+      expect(llms).toContain('# '); // H1 per the llms.txt spec
+      expect(llms).toContain(srv.url); // built from the real crawled pages
+      expect(readFileSync(path.join(outDir, 'llms-full.txt'), 'utf8').length).toBeGreaterThan(0);
+      expect(stderr).toContain('review and complete'); // the drafts warning
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('writes no audit report files — generate is remediation only', async () => {
+    const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
+    closers.push(srv.close);
+    const workdir = mkdtempSync(path.join(tmpdir(), 'findable-generate-cwd-'));
+    try {
+      const { code } = await runCli(['generate', 'llms-txt', srv.url], workdir);
+      expect(code).toBe(0);
+      // Only the two generated files in cwd (--out defaults to "."), no <host>-<date>.md/.html.
+      expect(readdirSync(workdir).sort()).toEqual(['llms-full.txt', 'llms.txt']);
+    } finally {
+      rmSync(workdir, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('exits 2 on an unknown generate target with a clear message', async () => {
+    const { code, stderr } = await runCli(['generate', 'robots-txt', 'http://127.0.0.1:1']);
+    expect(code).toBe(2);
+    expect(stderr).toContain('unknown generate target');
+    expect(stderr).toContain('Usage:');
+  });
+
+  it('exits 2 when the site is unreachable', async () => {
+    const { code, stderr } = await runCli(['generate', 'llms-txt', 'http://127.0.0.1:1', '--timeout', '500']);
+    expect(code).toBe(2);
+    expect(stderr).toContain('Cannot reach');
+  }, 30_000);
+});

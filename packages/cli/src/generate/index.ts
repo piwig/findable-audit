@@ -14,6 +14,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { AuditReport } from '../runner.js';
 import type { Lang } from '../report/i18n.js';
+import type { PageMeta } from '../page-meta.js';
 import { TRAINING_BOTS, CITATION_BOTS } from '../robots.js';
 
 export interface GenerateOptions {
@@ -174,6 +175,24 @@ function samplePagesOrRoot(report: AuditReport): string[] {
   return report.sampledPages.length > 0 ? report.sampledPages : ['/'];
 }
 
+/** Metadata of one sampled page when the report carries it (#A22), undefined otherwise. */
+function metaFor(report: AuditReport, pathname: string): PageMeta | undefined {
+  return report.pageMeta?.find((m) => m.path === pathname);
+}
+
+/**
+ * Link/section title for a page: the REAL crawled <title> when it is a usable
+ * label (>=2 words after cleanup — the llms-txt check refuses stub labels),
+ * `[`/`]` stripped so the markdown link cannot break; otherwise the
+ * path-derived fallback. Never fabricates: the real title comes verbatim from
+ * the page, the fallback is transparently mechanical.
+ */
+function bestTitle(report: AuditReport, pathname: string, host: string, lang: Lang): string {
+  const real = metaFor(report, pathname)?.title?.replace(/[[\]]/g, '').trim();
+  if (real !== undefined && real.split(/\s+/).length >= 2) return real;
+  return pageTitle(pathname, host, lang);
+}
+
 // ---------------------------------------------------------------------------
 // generateLlmsTxt
 // ---------------------------------------------------------------------------
@@ -197,7 +216,10 @@ export function generateLlmsTxt(report: AuditReport, { lang }: GenerateOptions):
   lines.push('');
   for (const p of samplePagesOrRoot(report)) {
     const abs = new URL(p, report.url).toString();
-    lines.push(`- [${pageTitle(p, host, lang)}](${abs})`);
+    // Real crawled title + meta description when available (#A22): the link
+    // stops being a mechanical placeholder and becomes the page's own label.
+    const desc = metaFor(report, p)?.description;
+    lines.push(`- [${bestTitle(report, p, host, lang)}](${abs})${desc !== undefined ? `: ${desc}` : ''}`);
   }
   lines.push('');
   // Guidance appended AFTER the real sections/links, as an HTML comment, so it
@@ -233,8 +255,19 @@ export function generateLlmsFullTxt(report: AuditReport, { lang }: GenerateOptio
     : 'a structural stub — replace each "TO COMPLETE" comment with the real page content (aim for ≥2000 words total).');
   lines.push('');
   for (const p of samplePagesOrRoot(report)) {
-    lines.push(`## ${pageTitle(p, host, lang)}`);
+    lines.push(`## ${bestTitle(report, p, host, lang)}`);
     lines.push('');
+    // Real crawled description/h1 when available (#A22) — genuine page words,
+    // never fabricated prose. The full body text still has to be pasted in.
+    const meta = metaFor(report, p);
+    if (meta?.h1 !== undefined && meta.h1 !== meta.title) {
+      lines.push(meta.h1);
+      lines.push('');
+    }
+    if (meta?.description !== undefined) {
+      lines.push(meta.description);
+      lines.push('');
+    }
     lines.push(lang === 'fr'
       ? `<!-- À COMPLÉTER : collez ici le texte complet de la page ${p}. -->`
       : `<!-- TO COMPLETE: paste the full text content of ${p} here. -->`);

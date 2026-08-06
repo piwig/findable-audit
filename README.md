@@ -186,6 +186,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default `mobile`). |
 | `--quiet`, `-q` | Silence the informational notes on stderr ("auditing…", "report written to…"). The result on stdout and real errors still print. |
 | `--no-color` | Strip ANSI colors from the terminal output (pagers, logs, CI). The `NO_COLOR` env var is honored too. |
+| `--out <dir>` | Where `findable generate llms-txt` writes its files (default `.`). |
 
 </details>
 
@@ -204,6 +205,14 @@ One PageSpeed Insights call, shared by all CWV checks, returning **field data** 
 ```bash
 npx findable-audit https://your-site.com --emit ./out
 ```
+
+### `findable generate llms-txt`
+
+```bash
+npx findable-audit generate llms-txt https://your-site.com --out ./out
+```
+
+The remediation-only path: crawls your site (same sampler, same SSRF guard, `--max-pages`/`--timeout`/`--user-agent`/`--lang` all apply) and writes `llms.txt` + `llms-full.txt` built from your **real pages** — titles, meta descriptions, headings — with no audit, no score and no report. Drafts, not a finished product: review and complete them before deploying.
 
 ⚠️ **These are generic starting points, not a finished product — review every one before deploying, especially `robots.txt`.** The generated `robots.txt` allows every AI crawler by default with a commented-out `Disallow: /` under each, so opting a bot out is a deliberate, visible edit rather than an accident. `jsonld-stubs.json` only stubs the schema.org types missing from your existing entity graph, and is meant to be merged into your real JSON-LD. `GENERATED-README.md` explains where each file belongs. The same six files are downloadable from the web app's result page, regenerated on demand — nothing is written to disk server-side.
 
