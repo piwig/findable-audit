@@ -280,6 +280,26 @@ describe('2026 roster (LOT 3 — 28 agents, tiering par intention)', () => {
     expect(r.message).toContain('Diffbot');
     expect(r.message).toContain('PanguBot');
   });
+  it('ai-crawlers-allowed calls out Google-Extended specifically when it is blocked (A25)', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: Google-Extended\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('Google-Extended');
+    expect(r.message).toContain('grounding');
+    expect(r.fix).toContain('Gemini');
+  });
+  it('ai-crawlers-allowed keeps the generic training-time warn when Google-Extended is NOT among blocked bots', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: Diffbot\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).not.toContain('Google-Extended');
+  });
 });
 
 describe('cloudflare-ai-defaults', () => {

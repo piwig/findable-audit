@@ -74,6 +74,15 @@ export const aiCrawlersAllowed: Check = {
       return makeResult(this, 'fail', t`AI crawlers blocked: ${blocked.join(', ')}`,
         'Never "Disallow: /" a citation-time fetcher (e.g. OAI-SearchBot, Claude-User, PerplexityBot — any of the 13 in the roster) — it hides the site from live AI answers.');
     }
+    // A25: Google-Extended deserves its own callout — per Google's AI-features
+    // guidance it is the opt-out token for Gemini training AND Gemini/AI-mode
+    // grounding, so an accidental "Disallow: /" costs more than generic
+    // training coverage. (AI Overviews itself crawls via Googlebot, which the
+    // search-crawlers-allowed check covers.)
+    if (blocked.includes('Google-Extended')) {
+      return makeResult(this, 'warn', t`AI crawlers blocked: ${blocked.join(', ')} — includes Google-Extended (Gemini training + grounding opt-out)`,
+        'Confirm the Google-Extended block is intentional: it opts the site out of Gemini training and Gemini grounding (see Google\'s "AI features" search documentation). Other blocked bots are training-time only.');
+    }
     return makeResult(this, 'warn', t`AI crawlers blocked: ${blocked.join(', ')}`,
       'These are training-time crawlers only; blocking them is a valid policy choice, but allow them if you want future model training coverage.');
   },
