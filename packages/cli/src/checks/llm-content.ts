@@ -389,7 +389,7 @@ export const contentAuthorEeat: Check = {
 // outbound-citations (MP: external citation links from main content)
 // ---------------------------------------------------------------------------
 
-const SOCIAL_RE = /(^|\.)(facebook|twitter|x|instagram|linkedin|youtube|youtu\.be|tiktok|pinterest|reddit|t\.me|threads\.net|mastodon\.[a-z]+|fb\.com)\b/i;
+const SOCIAL_RE = /(^|\.)(facebook|twitter|x|instagram|linkedin|youtube|youtu\.be|tiktok|pinterest|reddit|t\.me|threads\.net|mastodon\.[a-z]+|fb\.com|bsky\.app|discord\.(gg|com)|whatsapp\.com|twitch\.tv)\b/i;
 
 function citationDomains(root: HTMLElement, origin: string): Set<string> {
   const out = new Set<string>();

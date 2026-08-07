@@ -411,6 +411,18 @@ describe('outbound-citations', () => {
     const thin = pageRes('/', doc('<h1>Thin</h1><p>A few words only.</p>'));
     expect((await outboundCitations.run(mpCtx([thin]))).status).toBe('skip');
   });
+  it('ignores newer social platforms (bsky/discord/whatsapp/twitch)', async () => {
+    const p = contentPage('/a', 'A', 420,
+      '<p><a href="https://bsky.app/profile/x">b</a> <a href="https://discord.gg/abc">d</a> ' +
+      '<a href="https://discord.com/invite/abc">d2</a> <a href="https://www.whatsapp.com/channel/x">w</a> ' +
+      '<a href="https://twitch.tv/chan">t</a></p>');
+    expect((await outboundCitations.run(mpCtx([p]))).status).toBe('warn');
+  });
+  it('does not treat a real citation domain containing a social-like substring as social', async () => {
+    const p = contentPage('/a', 'A', 420,
+      '<p><a href="https://xkcd.com/927">still a citation</a></p>');
+    expect((await outboundCitations.run(mpCtx([p]))).status).toBe('pass');
+  });
 });
 
 // ---------------------------------------------------------------------------
