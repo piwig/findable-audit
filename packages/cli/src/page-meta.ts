@@ -11,10 +11,14 @@ export interface PageMeta {
   title?: string;
   description?: string;
   h1?: string;
+  /** Real visible text excerpt of the page body (#A27) — verbatim page words, never fabricated. */
+  excerpt?: string;
 }
 
 const MAX_TITLE = 200;
 const MAX_DESCRIPTION = 300;
+const MAX_EXCERPT = 2000;
+const MIN_EXCERPT = 80;
 
 function collapseWs(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
@@ -62,6 +66,30 @@ function extractH1(html: string): string | undefined {
   return m ? clean(m[1], MAX_TITLE) : undefined;
 }
 
+/**
+ * Real visible-text excerpt of the page (#A27). Scope: <main>/<article> when
+ * present, otherwise <body>; boilerplate containers (nav/header/footer/aside)
+ * and non-text elements are dropped first. Verbatim page words only — returns
+ * undefined below MIN_EXCERPT so junk pages keep the manual placeholder.
+ */
+function extractExcerpt(html: string): string | undefined {
+  let scope = html;
+  const bodyM = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(scope);
+  if (bodyM) scope = bodyM[1];
+  const mainM = /<(main|article)\b[^>]*>([\s\S]*?)<\/\1>/i.exec(scope);
+  if (mainM) scope = mainM[2];
+  scope = scope
+    .replace(/<(script|style|noscript|template|svg)\b[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<(nav|header|footer|aside)\b[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ');
+  const text = collapseWs(decodeEntities(stripTags(scope)));
+  if (text.length < MIN_EXCERPT) return undefined;
+  if (text.length <= MAX_EXCERPT) return text;
+  const cut = text.slice(0, MAX_EXCERPT);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > MAX_EXCERPT / 2 ? cut.slice(0, lastSpace) : cut).trimEnd();
+}
+
 /** One PageMeta per sampled page, in sample order, path derived from the page's final URL. */
 export function extractPageMeta(pages: ReadonlyArray<{ finalUrl: string; body: string }>): PageMeta[] {
   return pages.map((p) => {
@@ -74,6 +102,8 @@ export function extractPageMeta(pages: ReadonlyArray<{ finalUrl: string; body: s
     if (title !== undefined) meta.title = title;
     if (description !== undefined) meta.description = description;
     if (h1 !== undefined) meta.h1 = h1;
+    const excerpt = extractExcerpt(p.body);
+    if (excerpt !== undefined) meta.excerpt = excerpt;
     return meta;
   });
 }

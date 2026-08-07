@@ -268,9 +268,19 @@ export function generateLlmsFullTxt(report: AuditReport, { lang }: GenerateOptio
       lines.push(meta.description);
       lines.push('');
     }
-    lines.push(lang === 'fr'
-      ? `<!-- À COMPLÉTER : collez ici le texte complet de la page ${p}. -->`
-      : `<!-- TO COMPLETE: paste the full text content of ${p} here. -->`);
+    // Real crawled body excerpt when available (#A27) — verbatim page text,
+    // so the section ships with actual content instead of an empty placeholder.
+    if (meta?.excerpt !== undefined) {
+      lines.push(meta.excerpt);
+      lines.push('');
+      lines.push(lang === 'fr'
+        ? `<!-- Extrait auto-extrait de ${p} — relisez-le et étendez-le au texte intégral de la page. -->`
+        : `<!-- Excerpt auto-extracted from ${p} — review it and extend to the page's full text. -->`);
+    } else {
+      lines.push(lang === 'fr'
+        ? `<!-- À COMPLÉTER : collez ici le texte complet de la page ${p}. -->`
+        : `<!-- TO COMPLETE: paste the full text content of ${p} here. -->`);
+    }
     lines.push('');
   }
   return lines.join('\n');

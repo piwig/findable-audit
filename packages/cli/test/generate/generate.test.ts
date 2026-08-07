@@ -175,6 +175,24 @@ describe('generateLlmsFullTxt', () => {
     expect(txt).toMatch(/à compléter/i);
     expect(txt).not.toMatch(/to complete/i);
   });
+
+  it('injects the real crawled excerpt (#A27) and drops the paste placeholder for that page', () => {
+    const excerpt = 'Real visible words from the about page, extracted verbatim at crawl time and long enough to matter.';
+    const withMeta = makeReport({ pageMeta: [{ path: '/about', excerpt }] });
+    const txt = generateLlmsFullTxt(withMeta, { lang: 'en' });
+    expect(txt).toContain(excerpt);
+    expect(txt).toContain('auto-extracted from /about');
+    expect(txt).not.toContain('paste the full text content of /about here');
+    // Pages without an excerpt keep the manual placeholder.
+    expect(txt).toContain('paste the full text content of /contact here');
+  });
+
+  it('excerpt guidance is in French when lang is fr', () => {
+    const withMeta = makeReport({ pageMeta: [{ path: '/', excerpt: 'Du vrai texte de page, suffisamment long pour être conservé tel quel dans le document.' }] });
+    const txt = generateLlmsFullTxt(withMeta, { lang: 'fr' });
+    expect(txt).toMatch(/extrait auto-extrait de \//i);
+    expect(txt).not.toMatch(/auto-extracted/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
