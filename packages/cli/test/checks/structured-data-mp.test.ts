@@ -221,4 +221,64 @@ describe('nap-consistency', () => {
     ]);
     expect((await napConsistency.run(ctx)).status).toBe('warn');
   });
+  // A31: name dimension from the footer copyright line.
+  it('passes when the copyright-line name matches the JSON-LD org name (case/noise-insensitive)', async () => {
+    const head = ld({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Acme Bakery', telephone: '+1-555-0100' });
+    const footer = '<footer><p>© 2026 ACME BAKERY. All rights reserved. — <a href="tel:+15550100">+1-555-0100</a></p></footer>';
+    const ctx = ctxFromPages([
+      page('/', html(head, footer)),
+      page('/contact.html', html('', footer)),
+    ]);
+    expect((await napConsistency.run(ctx)).status).toBe('pass');
+  });
+  it('warns when the copyright-line name consistently differs from the JSON-LD org name', async () => {
+    const head = ld({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Acme Holdings LLC', telephone: '+1-555-0100' });
+    const footer = '<footer><p>© 2026 Acme Bakery — <a href="tel:+15550100">+1-555-0100</a></p></footer>';
+    const ctx = ctxFromPages([
+      page('/', html(head, footer)),
+      page('/a.html', html('', footer)),
+    ]);
+    const result = await napConsistency.run(ctx);
+    expect(result.status).toBe('warn');
+    expect(result.message).toContain('name');
+  });
+  it('ignores a copyright line with no name ("© 2026" alone)', async () => {
+    const head = ld({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz', telephone: '+1-555-0100' });
+    const footer = '<footer><p>© 2026 — <a href="tel:+15550100">+1-555-0100</a></p></footer>';
+    const ctx = ctxFromPages([page('/', html(head, footer))]);
+    expect((await napConsistency.run(ctx)).status).toBe('pass');
+  });
+  // A31: semantic <address> element extraction (contact pages without a footer NAP string).
+  it('passes when a contact-page <address> matches the JSON-LD address', async () => {
+    const head = ld({
+      '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz',
+      address: { '@type': 'PostalAddress', streetAddress: '1 Main St', addressLocality: 'Springfield' },
+    });
+    const contact = '<main><address>1 Main St, Springfield<br>+1-555-0100</address></main>';
+    const ctx = ctxFromPages([
+      page('/', html(head)),
+      page('/contact.html', html('', contact)),
+    ]);
+    expect((await napConsistency.run(ctx)).status).toBe('pass');
+  });
+  it('fails when the <address> element conflicts with the footer address on other pages', async () => {
+    const head = ld({
+      '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz',
+      address: { '@type': 'PostalAddress', streetAddress: '1 Main St', addressLocality: 'Springfield' },
+    });
+    const footerGood = '<footer><p>Biz — 1 Main St, Springfield</p></footer>';
+    const contactBad = '<main><address>99 Other Ave, Shelbyville</address></main>';
+    const ctx = ctxFromPages([
+      page('/', html(head, footerGood)),
+      page('/contact.html', html('', contactBad)),
+    ]);
+    expect((await napConsistency.run(ctx)).status).toBe('fail');
+  });
+  it('does not treat a phone-only <address> as a postal address', async () => {
+    const head = ld({ '@context': 'https://schema.org', '@type': 'LocalBusiness', name: 'Biz', telephone: '+1-555-0100' });
+    const contact = '<main><address><a href="tel:+15550100">+1-555-0100</a></address></main>';
+    const ctx = ctxFromPages([page('/', html(head, contact))]);
+    // Address dimension stays inactive: status driven by phone only.
+    expect((await napConsistency.run(ctx)).status).toBe('pass');
+  });
 });

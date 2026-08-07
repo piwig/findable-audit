@@ -324,6 +324,57 @@ function addressesInFooter(page: FetchedResource): string[] {
   return [...new Set(out)];
 }
 
+/**
+ * Candidate address strings from semantic <address> elements anywhere on the
+ * page (A31). Contact pages typically mark the postal address up with the
+ * element rather than repeating the footer NAP string, so footer-only
+ * extraction misses exactly the page a local business points customers at.
+ * Same digit+letters filter as addressesInFooter, so a phone-only or
+ * name-only <address> never counts as a postal address.
+ */
+function addressesInAddressElements(page: FetchedResource): string[] {
+  const out: string[] = [];
+  for (const el of parse(page.body).querySelectorAll('address')) {
+    // One element = one address: newlines and NAP separators inside it are
+    // formatting, not alternatives. Strip phone numbers first so "1 Main St,
+    // +1-555-0100" reduces to the postal part only.
+    const text = el.textContent.replace(PHONE_RE, ' ').replace(/[—–|·\n]/g, ' ').trim();
+    const hasDigit = /\d/.test(text);
+    const letterCount = (text.match(/[a-z]/gi) ?? []).length;
+    if (hasDigit && letterCount >= 6) out.push(addressString(text.replace(/\s*,\s*/g, ', ')));
+  }
+  return [...new Set(out)];
+}
+
+/** Trailing/leading noise around the business name on a copyright line: years, "all rights reserved" in EN/FR, stray punctuation. */
+const COPYRIGHT_NOISE_RE = /\b(?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)\d{2})?\b|all rights reserved|tous droits r[ée]serv[ée]s|\(c\)/gi;
+
+/**
+ * Business name from the footer copyright line (A31). "© 2026 Acme" is the one
+ * place a site states its own canonical name on every page, which makes it the
+ * only name source safe to compare against JSON-LD without drowning in nav
+ * links and taglines. No © line, no name dimension — deliberately conservative.
+ */
+function nameFromFooterCopyright(page: FetchedResource): string[] {
+  const footer = parse(page.body).querySelector('footer');
+  if (!footer) return [];
+  const line = footer.textContent.split('\n').map((s) => s.trim()).find((s) => /©|&copy;/.test(s));
+  if (!line) return [];
+  const segment = line.split(NAP_SEGMENT_RE).find((s) => /©|&copy;/.test(s)) ?? line;
+  const name = normalizeName(segment.replace(/©|&copy;/g, ' ').replace(COPYRIGHT_NOISE_RE, ' '));
+  // Two letters minimum: "© 2026" alone names nobody.
+  return (name.match(/[a-z]/gi) ?? []).length >= 2 ? [name] : [];
+}
+
+/**
+ * Shared name normalizer for the copyright line and the JSON-LD org name:
+ * lowercase, punctuation dropped ("Acme, Inc." vs "Acme Inc"), whitespace
+ * collapsed. Comparing names is about the words, not the typography.
+ */
+function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
 /** Reduces a JSON-LD PostalAddress to street+locality — the part footers reliably echo (postal code/country are often omitted on the page). */
 function addressCoreFromEntity(address: unknown): string {
   if (typeof address === 'string') return addressString(address);
@@ -381,19 +432,27 @@ export const napConsistency: Check = {
     const home = pages.find((p) => pathOf(p) === '/') ?? pages[0];
     let jsonLdPhone = '';
     let jsonLdAddress = '';
+    let jsonLdName = '';
     if (home) {
       const nodes = nodesOf(home);
       const org = nodes.find((n) => typesOf(n).some((t) => NAP_REQUIRED_TYPES.has(t) || isOrganizationType(t))
-        && (str(n.telephone) || n.address));
+        && (str(n.telephone) || n.address || str(n.name)));
       if (org) {
         if (str(org.telephone)) jsonLdPhone = normalizePhone(str(org.telephone));
         if (org.address) jsonLdAddress = addressCoreFromEntity(org.address);
+        if (str(org.name)) jsonLdName = normalizeName(str(org.name));
       }
     }
     const perPagePhones: PerPageValues[] = pages.map((p) => ({ path: pathOf(p), values: phonesInFooter(p) }));
-    const perPageAddresses: PerPageValues[] = pages.map((p) => ({ path: pathOf(p), values: addressesInFooter(p) }));
+    // A31: footer NAP string + semantic <address> elements (contact pages).
+    const perPageAddresses: PerPageValues[] = pages.map((p) => ({
+      path: pathOf(p),
+      values: [...new Set([...addressesInFooter(p), ...addressesInAddressElements(p)])],
+    }));
+    const perPageNames: PerPageValues[] = pages.map((p) => ({ path: pathOf(p), values: nameFromFooterCopyright(p) }));
 
     const dims = [
+      { label: 'name', ...evaluateDimension(jsonLdName, perPageNames) },
       { label: 'phone', ...evaluateDimension(jsonLdPhone, perPagePhones) },
       { label: 'address', ...evaluateDimension(jsonLdAddress, perPageAddresses) },
     ].filter((d) => d.active);
