@@ -71,10 +71,11 @@ const EFFORT_COST: Record<Effort, number> = { quick: 1, moderate: 2, involved: 4
  * The N best-payoff fixes: recoverable weighted points ÷ estimated effort,
  * descending. Ties break on weighted impact, then fails before warns, so a
  * big quick win always outranks a small one and effort never hides a fail
- * behind an equal-ratio warn. This is the "top 3 corrections" strip shown
- * before anything else in the terminal and HTML reports (backlog A3).
+ * behind an equal-ratio warn. This is the "top 5 quick wins" strip shown
+ * before anything else in the terminal and HTML reports (backlog A3, widened
+ * to five by A32 — commercial GEO audits sell this prioritisation first).
  */
-export function topFixes(recs: Recommendation[], n = 3): Recommendation[] {
+export function topFixes(recs: Recommendation[], n = 5): Recommendation[] {
   const ratio = (r: Recommendation): number => r.weighted / EFFORT_COST[r.effort];
   return [...recs]
     .sort((a, b) =>

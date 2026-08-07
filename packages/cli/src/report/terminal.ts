@@ -1,8 +1,9 @@
 import pc from 'picocolors';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
-import { FAMILY_LABELS_I18N, FAMILY_SHORT_I18N } from './i18n.js';
+import { FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, messages } from './i18n.js';
 import { collectRecommendations, topFixes } from './recommendations.js';
+import { axisScores, verdictSentence } from './axes.js';
 
 /** Terminal output stays English: labels & short chips derive from the EN catalog. */
 export const FAMILY_LABELS: Record<Family, string> = FAMILY_LABELS_I18N.en;
@@ -14,6 +15,18 @@ const ICONS: Record<CheckResult['status'], string> = {
 
 export function renderTerminal(report: AuditReport): string {
   const lines: string[] = [pc.bold(`findable-audit report for ${report.url}`), ''];
+  // Backlog A32: executive summary first — the same verdict sentence the HTML
+  // report opens with, plus the pass/to-fix counts, so a reader who stops at
+  // the first screen still leaves with the decision, not just a score.
+  const blocked = report.results.some((r) => r.id === 'ai-crawlers-allowed' && r.status === 'fail');
+  const verdict = verdictSentence(axisScores(report.familyScores), report.score, blocked, 'en');
+  lines.push(verdict);
+  lines.push(pc.dim(messages('en').stats(
+    report.results.filter((r) => r.status === 'pass').length,
+    report.results.filter((r) => r.status === 'fail' || r.status === 'warn').length,
+    report.sampledPages.length,
+  )));
+  lines.push('');
   // Backlog A3: best payoff first — recoverable points ÷ estimated effort —
   // so the reader knows where to start before scrolling the flat list.
   const top = topFixes(collectRecommendations(report.results));
