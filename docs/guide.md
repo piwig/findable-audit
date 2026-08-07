@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **139 checks in 8 families**.
+findable-audit scores a site out of 100 across **140 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 139 checks, **102 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 140 checks, **103 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -73,6 +73,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** Refetches the homepage as PerplexityBot and OAI-SearchBot — the citation-time fetchers `ai-serving-parity` does not probe — and checks each gets through the edge (HTTP 2xx), status only. Fails on a 403/451/5xx or no response (after one retry for transient failures); warns on other non-2xx statuses. Skips without the per-UA fetch capability or when the homepage is unreachable. Google-Extended is deliberately not probed: it is a robots.txt token only and never sends requests itself.
 **Why:** WAF/CDN bot-management rules often block AI crawlers silently while robots.txt allows them, so the static checks (robots.txt, llms.txt) cannot see it. This is the empirical access proof: if a citation-time fetcher cannot reach the page at answer time, the site is invisible to that assistant's live answers.
 **Fix:** Review any CDN/WAF/bot-management rule that blocks PerplexityBot or OAI-SearchBot — an edge block hides the site from live AI answers even when robots.txt allows them.
+
+### `cloudflare-ai-defaults` (3 pts)
+**Verifies:** Whether the site is served through Cloudflare, from the response headers of the homepage (`cf-ray`, or `server: cloudflare`). If it is, the check emits a dated warning: Cloudflare blocks AI crawlers **by default from 2026-09-15**, so a proxied site that never opened AI Crawl Control can drop out of AI answers on that date with no config change of its own. Not behind Cloudflare → pass; homepage unreachable → skip.
+**Why:** The default policy is an account-side switch this crawl cannot read, so the only honest verdict behind Cloudflare is a dated reminder — before the switch date as preparation, after it as urgency. The empirical probes (`ai-serving-parity`, `ai-crawler-reachability`) tell you what happens today; this check tells you what changes on the announced date.
+**Fix:** In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, then re-run the audit.
 
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).

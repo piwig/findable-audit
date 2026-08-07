@@ -403,6 +403,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'non-descriptive alt text ({0}% descriptive)': 'textes alternatifs peu descriptifs ({0} % descriptifs)',
   'not enough main text to assess readability': 'pas assez de texte principal pour évaluer la lisibilité',
   'not served over HTTPS': 'non servi en HTTPS',
+  'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply':
+    'non servi via Cloudflare — son blocage des crawlers IA par défaut au 15/09/2026 ne s’applique pas',
   'only 1 sameAs profile URL': 'une seule URL de profil sameAs',
   'Open Graph complete (core set + site_name + locale)': 'Open Graph complet (jeu de base + site_name + locale)',
   'Open Graph incomplete (missing: {0})': 'Open Graph incomplet (manque : {0})',
@@ -453,6 +455,10 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'contenu principal rendu par le serveur sur {0} page(s) échantillonnée(s), aucune racine de montage client vide',
   'serving diverges by User-Agent: {0}': 'le service diverge selon le User-Agent : {0}',
   'single-language site (no hreflang annotations)': 'site monolingue (aucune annotation hreflang)',
+  'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15':
+    'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026',
+  'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15':
+    'site servi via Cloudflare — les crawlers IA sont bloqués par défaut depuis le 15/09/2026',
   'sitemap <lastmod> weak ({0})': '<lastmod> du sitemap peu fiable ({0})',
   'sitemap and internal links agree on {0} URL(s)': 'le sitemap et les liens internes concordent sur {0} URL',
   'sitemap has no <url> entries (index or empty)': 'le sitemap n’a aucune entrée <url> (index ou vide)',

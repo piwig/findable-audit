@@ -11,7 +11,7 @@ import {
 import type { FetchedResource } from '../../src/types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives,
+  homepageOk, robotsDirectives, cloudflareAiDefaults, cloudflareClock,
 } from '../../src/checks/ai-access.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -279,5 +279,41 @@ describe('2026 roster (LOT 3 — 28 agents, tiering par intention)', () => {
     expect(r.status).toBe('warn');
     expect(r.message).toContain('Diffbot');
     expect(r.message).toContain('PanguBot');
+  });
+});
+
+describe('cloudflare-ai-defaults', () => {
+  const realNow = cloudflareClock.now;
+  const BEFORE = Date.UTC(2026, 7, 7);   // 2026-08-07, before the switch
+  const AFTER = Date.UTC(2026, 8, 16);   // 2026-09-16, after the switch
+  afterAll(() => { cloudflareClock.now = realNow; });
+
+  it('passes when the site is not behind Cloudflare', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { server: 'nginx' } } });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('not served via Cloudflare');
+  });
+  it('skips when the homepage is unreachable', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({});
+    const bare: typeof c = { ...c, fetch: async () => null };
+    expect((await cloudflareAiDefaults.run(bare)).status).toBe('skip');
+  });
+  it('warns with the future-dated message before 2026-09-15 behind cf-ray', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { 'cf-ray': '8f1a2b3c4d5e6f70-CDG' } } });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('become blocked by default on 2026-09-15');
+    expect(r.fix).toContain('AI Crawl Control');
+  });
+  it('warns with the past-dated message after the switch, detected via server header', async () => {
+    cloudflareClock.now = () => AFTER;
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { server: 'Cloudflare' } } });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('blocked by default since 2026-09-15');
   });
 });

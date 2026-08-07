@@ -330,3 +330,43 @@ export const aiCrawlerReachability: Check = {
       'Review any CDN/WAF/bot-management rule that blocks PerplexityBot or OAI-SearchBot — these fetch pages at answer time, and an edge block hides the site from live AI answers even when robots.txt allows them.');
   },
 };
+
+// ---------------------------------------------------------------------------
+// cloudflare-ai-defaults (backlog A30): Cloudflare announced that AI crawlers
+// are blocked BY DEFAULT for its zones starting 2026-09-15 (blog.cloudflare.com).
+// A site served via Cloudflare that never opened AI Crawl Control can therefore
+// vanish from AI answers on that date without any config change of its own.
+// Detection is measured, not guessed: the `cf-ray` response header (present on
+// every Cloudflare-proxied response) or `server: cloudflare`.
+// ---------------------------------------------------------------------------
+
+/** Cloudflare's announced switch date for default AI-crawler blocking (15 September 2026, UTC). */
+const CF_AI_BLOCK_SWITCH_UTC = Date.UTC(2026, 8, 15);
+
+/** Injectable clock so tests stay deterministic on both sides of the switch date. */
+export const cloudflareClock = { now: () => Date.now() };
+
+export const cloudflareAiDefaults: Check = {
+  id: 'cloudflare-ai-defaults', family: 'ai-access', evidence: 'measured', maxPoints: 3,
+  async run(ctx) {
+    const home = await ctx.fetch('/');
+    if (!home) return makeResult(this, 'skip', 'homepage not reachable');
+    const server = (home.headers['server'] ?? '').toLowerCase();
+    const viaCloudflare = home.headers['cf-ray'] !== undefined || server.includes('cloudflare');
+    if (!viaCloudflare) {
+      return makeResult(this, 'pass', 'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply');
+    }
+    // Behind Cloudflare this stays a dated warn either way: the default policy is
+    // an account-side switch this crawl cannot read, so the only honest verdict is
+    // "go check AI Crawl Control" — before the date as preparation, after it as urgency.
+    const fix = 'In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want '
+      + '(GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, '
+      + 'then re-run this audit to confirm ai-serving-parity and ai-crawler-reachability still pass.';
+    if (cloudflareClock.now() < CF_AI_BLOCK_SWITCH_UTC) {
+      return makeResult(this, 'warn',
+        'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15', fix);
+    }
+    return makeResult(this, 'warn',
+      'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15', fix);
+  },
+};

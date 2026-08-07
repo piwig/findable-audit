@@ -6,7 +6,7 @@ import { indexingConflicts } from './indexing-conflicts.js';
 import type { Check } from '../types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability,
+  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults,
 } from './ai-access.js';
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
@@ -61,7 +61,7 @@ import { topicalFocus, keywordCannibalization } from './semantic.js';
 export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
   return [
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, snippetPreviewDirectives,
+    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, snippetPreviewDirectives,
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, imagesAlt,
