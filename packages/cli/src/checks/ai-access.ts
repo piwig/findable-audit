@@ -362,7 +362,19 @@ export const cloudflareAiDefaults: Check = {
     if (!home) return makeResult(this, 'skip', 'homepage not reachable');
     const server = (home.headers['server'] ?? '').toLowerCase();
     const viaCloudflare = home.headers['cf-ray'] !== undefined || server.includes('cloudflare');
+    // A33: Content Signals directives in robots.txt (Cloudflare's Content Signals
+    // Policy) are a stated preference, not an enforcement mechanism — Google has
+    // said it ignores them. Never present them as effective protection.
+    const robots = await ctx.fetch('/robots.txt');
+    const hasContentSignal = robots?.status === 200 && isPlainText(robots)
+      && /^\s*content-signal\s*:/im.test(robots.body);
     if (!viaCloudflare) {
+      if (hasContentSignal) {
+        return makeResult(this, 'warn',
+          'not served via Cloudflare, but robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection',
+          'Treat Content Signals as documentation only; enforce crawler policy with robots.txt rules, '
+          + 'WAF/bot-management, or (behind Cloudflare) AI Crawl Control.');
+      }
       return makeResult(this, 'pass', 'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply');
     }
     // Behind Cloudflare this stays a dated warn either way: the default policy is
@@ -371,11 +383,18 @@ export const cloudflareAiDefaults: Check = {
     const fix = 'In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want '
       + '(GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, '
       + 'then re-run this audit to confirm ai-serving-parity and ai-crawler-reachability still pass.';
-    if (cloudflareClock.now() < CF_AI_BLOCK_SWITCH_UTC) {
-      return makeResult(this, 'warn',
-        'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15', fix);
+    const beforeSwitch = cloudflareClock.now() < CF_AI_BLOCK_SWITCH_UTC;
+    if (hasContentSignal) {
+      return beforeSwitch
+        ? makeResult(this, 'warn',
+          'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection',
+          fix)
+        : makeResult(this, 'warn',
+          'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection',
+          fix);
     }
-    return makeResult(this, 'warn',
-      'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15', fix);
+    return beforeSwitch
+      ? makeResult(this, 'warn', 'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15', fix)
+      : makeResult(this, 'warn', 'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15', fix);
   },
 };

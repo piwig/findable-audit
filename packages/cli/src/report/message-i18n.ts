@@ -153,6 +153,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'active mixed content on: {0}': 'contenu mixte actif sur : {0}',
   'AI crawler access diverges: {0}': 'l’accès des robots d’IA diverge : {0}',
   'AI crawlers blocked: {0}': 'robots d’IA bloqués : {0}',
+  'AI crawlers blocked: {0} — includes Google-Extended (Gemini training + grounding opt-out)':
+    'robots d’IA bloqués : {0} — dont Google-Extended (opt-out de l’entraînement et du grounding Gemini)',
   'all {0} form control(s) have an accessible name': 'les {0} champ(s) de formulaire ont un nom accessible',
   'all {0} iframe(s) have a title': 'les {0} iframe(s) ont un titre',
   'all {0} link(s) have an accessible name': 'les {0} lien(s) ont un nom accessible',
@@ -405,6 +407,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'not served over HTTPS': 'non servi en HTTPS',
   'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply':
     'non servi via Cloudflare — son blocage des crawlers IA par défaut au 15/09/2026 ne s’applique pas',
+  'not served via Cloudflare, but robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
+    'non servi via Cloudflare, mais robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
   'only 1 sameAs profile URL': 'une seule URL de profil sameAs',
   'Open Graph complete (core set + site_name + locale)': 'Open Graph complet (jeu de base + site_name + locale)',
   'Open Graph incomplete (missing: {0})': 'Open Graph incomplet (manque : {0})',
@@ -459,6 +463,10 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026',
   'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15':
     'site servi via Cloudflare — les crawlers IA sont bloqués par défaut depuis le 15/09/2026',
+  'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
+    'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026 ; robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
+  'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
+    'site servi via Cloudflare — les crawlers IA sont bloqués par défaut depuis le 15/09/2026 ; robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
   'sitemap <lastmod> weak ({0})': '<lastmod> du sitemap peu fiable ({0})',
   'sitemap and internal links agree on {0} URL(s)': 'le sitemap et les liens internes concordent sur {0} URL',
   'sitemap has no <url> entries (index or empty)': 'le sitemap n’a aucune entrée <url> (index ou vide)',

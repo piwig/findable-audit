@@ -336,4 +336,35 @@ describe('cloudflare-ai-defaults', () => {
     expect(r.status).toBe('warn');
     expect(r.message).toContain('blocked by default since 2026-09-15');
   });
+  it('flags Content Signals in robots.txt behind Cloudflare as non-binding (A33)', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>', headers: { 'cf-ray': '8f1a2b3c4d5e6f70-CDG' } },
+      '/robots.txt': { body: '# Content Signals Policy\nContent-Signal: search=yes, ai-train=no\nUser-agent: *\nDisallow:\n' },
+    });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('Content Signals');
+    expect(r.message).toContain('non-binding');
+    expect(r.fix).toContain('AI Crawl Control');
+  });
+  it('flags Content Signals as non-binding even when the site is not behind Cloudflare', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>', headers: { server: 'nginx' } },
+      '/robots.txt': { body: 'Content-Signal: ai-train=no\nUser-agent: *\nDisallow:\n' },
+    });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('non-binding');
+  });
+  it('still passes off-Cloudflare when robots.txt has no Content Signals', async () => {
+    cloudflareClock.now = () => BEFORE;
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>', headers: { server: 'nginx' } },
+      '/robots.txt': { body: 'User-agent: *\nDisallow:\n' },
+    });
+    const r = await cloudflareAiDefaults.run(c);
+    expect(r.status).toBe('pass');
+  });
 });
