@@ -398,3 +398,38 @@ export const cloudflareAiDefaults: Check = {
       : makeResult(this, 'warn', 'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15', fix);
   },
 };
+
+// ---------------------------------------------------------------------------
+// pay-per-crawl (backlog A40): emerging bot-monetisation schemes (Cloudflare
+// Pay Per Crawl and similar) answer HTTP 402 Payment Required — optionally
+// with crawler-* pricing offer headers — to crawlers that have not agreed to
+// pay. A charge that is on by default silently removes the site from AI
+// answers: citation-time bots that do not pay get 402 instead of content.
+// Detection is measured: the homepage status/headers this crawl received.
+// ---------------------------------------------------------------------------
+
+export const payPerCrawl: Check = {
+  id: 'pay-per-crawl', family: 'ai-access', evidence: 'measured', maxPoints: 2,
+  async run(ctx) {
+    const home = await ctx.fetch('/');
+    if (!home) return makeResult(this, 'skip', 'homepage not reachable');
+    const priceHeaders = Object.keys(home.headers)
+      .filter((h) => /^crawler-(?:price|exact-price|max-price|charged)$/i.test(h)).sort();
+    const fix = 'Review the pay-per-crawl configuration (e.g. Cloudflare Pay Per Crawl): crawlers that do not pay '
+      + 'receive HTTP 402 instead of content, so a default-on charge silently removes the site from AI answers. '
+      + 'Explicitly exempt (price 0) the citation-time crawlers whose answers you want to appear in.';
+    if (home.status === 402) {
+      return makeResult(this, 'fail',
+        priceHeaders.length > 0
+          ? t`homepage returns HTTP 402 Payment Required with pricing header(s) ${priceHeaders.join(', ')} — pay-per-crawl blocks this client, and non-paying AI crawlers lose access (and citations)`
+          : 'homepage returns HTTP 402 Payment Required — pay-per-crawl (or a paywall) blocks this client, and non-paying AI crawlers lose access (and citations)',
+        fix);
+    }
+    if (priceHeaders.length > 0) {
+      return makeResult(this, 'warn',
+        t`pay-per-crawl pricing header(s) present (${priceHeaders.join(', ')}) — content was served, but verify which AI crawlers are charged or refused`,
+        fix);
+    }
+    return makeResult(this, 'pass', 'no pay-per-crawl signals (HTTP 402 or crawler-* pricing headers) on the homepage');
+  },
+};

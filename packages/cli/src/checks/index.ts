@@ -6,7 +6,7 @@ import { indexingConflicts } from './indexing-conflicts.js';
 import type { Check } from '../types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults,
+  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl,
 } from './ai-access.js';
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,

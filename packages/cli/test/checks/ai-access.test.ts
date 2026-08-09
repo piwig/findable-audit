@@ -11,7 +11,7 @@ import {
 import type { FetchedResource } from '../../src/types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives, cloudflareAiDefaults, cloudflareClock,
+  homepageOk, robotsDirectives, cloudflareAiDefaults, cloudflareClock, payPerCrawl,
 } from '../../src/checks/ai-access.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -366,5 +366,43 @@ describe('cloudflare-ai-defaults', () => {
     });
     const r = await cloudflareAiDefaults.run(c);
     expect(r.status).toBe('pass');
+  });
+});
+
+describe('pay-per-crawl (A40)', () => {
+  it('passes when the homepage is served normally without pricing headers', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>' } });
+    const r = await payPerCrawl.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('no pay-per-crawl signals');
+  });
+  it('skips when the homepage is unreachable', async () => {
+    const c = stubCtx({});
+    const bare: typeof c = { ...c, fetch: async () => null };
+    expect((await payPerCrawl.run(bare)).status).toBe('skip');
+  });
+  it('fails on HTTP 402 without pricing headers', async () => {
+    const c = stubCtx({ '/': { status: 402, ok: false, body: 'Payment Required' } });
+    const r = await payPerCrawl.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('HTTP 402 Payment Required');
+    expect(r.fix).toContain('pay-per-crawl');
+  });
+  it('fails on HTTP 402 and names the crawler-* pricing headers', async () => {
+    const c = stubCtx({ '/': { status: 402, ok: false, body: '', headers: { 'crawler-price': 'USD 0.01', 'crawler-charged': 'false' } } });
+    const r = await payPerCrawl.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('crawler-charged');
+    expect(r.message).toContain('crawler-price');
+  });
+  it('warns when content is served but pricing headers are present', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { 'crawler-max-price': 'USD 0.05' } } });
+    const r = await payPerCrawl.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('crawler-max-price');
+  });
+  it('ignores unrelated crawler-ish headers', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { 'crawler-hint': 'x' } } });
+    expect((await payPerCrawl.run(c)).status).toBe('pass');
   });
 });
