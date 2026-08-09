@@ -95,6 +95,9 @@ export interface ReportMessages {
   axisLabel: Record<AxisKey, string>;
   axisQuestion: Record<AxisKey, string>;
   axisNotApplicable: string;      // shown instead of a score when every family in the axis skipped
+  /** A37 — cross-family trust/authority (E-E-A-T) reading lens: label + question. */
+  trustLabel: string;
+  trustQuestion: string;
   /** Layer-2 effort lanes: heading + the time each implies. */
   laneTitle: Record<EffortKey, string>;
   laneHint: Record<EffortKey, string>;
@@ -205,6 +208,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       usable: 'does the page hold up, for a human and for an agent?',
     },
     axisNotApplicable: 'n/a',
+    trustLabel: 'Trusted',
+    trustQuestion: 'would an assistant treat this page as a source worth citing?',
     laneTitle: { quick: 'Quick wins', moderate: 'Moderate', involved: 'Bigger projects' },
     laneHint: { quick: 'under an hour each', moderate: 'half a day each', involved: 'a project of its own' },
     laneProjection: (count, from, to, grade) =>
@@ -309,6 +314,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       usable: 'la page tient-elle la route, pour un humain et pour un agent ?',
     },
     axisNotApplicable: 'n/a',
+    trustLabel: 'Digne de confiance',
+    trustQuestion: 'un assistant vous traiterait-il comme une source à citer ?',
     laneTitle: { quick: 'Rapide', moderate: 'Modéré', involved: 'Chantier' },
     laneHint: { quick: 'moins d’une heure chacun', moderate: 'une demi-journée chacun', involved: 'un projet à part entière' },
     laneProjection: (count, from, to, grade) =>

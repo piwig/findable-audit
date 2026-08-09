@@ -5,7 +5,7 @@
 // The eight families remain the scoring model — nothing here feeds `computeScore`.
 // This module only decides what is shown FIRST.
 
-import type { Family } from '../types.js';
+import type { CheckResult, Family } from '../types.js';
 import type { FamilyScore } from '../scoring.js';
 import type { Lang } from './i18n.js';
 import type { Recommendation } from './recommendations.js';
@@ -48,6 +48,49 @@ export function axisScores(familyScores: FamilyScore[]): AxisScore[] {
     }
     return { key, score: Math.round((100 * weighted) / total), families: present };
   });
+}
+
+// ---------------------------------------------------------------------------
+// A37 — the trust/authority reading lens (E-E-A-T).
+//
+// Not a fourth axis: the three axes above partition the eight families exactly,
+// and this deliberately does not touch that. It is a cross-family lens over
+// checks the audit already runs — identifiable author, date freshness, verified
+// sameAs profiles, outbound citations — regrouped so a reader sees "how much
+// would an assistant trust this source" in one number. Nothing here feeds
+// `computeScore` either; like the axes, it only decides what is SHOWN.
+
+/** The already-measured checks that carry trust/authority signals. */
+export const TRUST_CHECK_IDS: readonly string[] = [
+  'content-author-eeat',   // llm-content: identifiable author / byline
+  'content-freshness',     // llm-content: dates present and recent
+  'freshness-coherence',   // llm-content: claimed vs served dates agree
+  'sameas-verified',       // structured-data: sameAs profiles that resolve
+  'outbound-citations',    // llm-content: the page cites its sources
+];
+
+export interface TrustLens {
+  /** 0-100 over the trust checks that ran, or null when none of them did. */
+  score: number | null;
+  /** Trust checks that actually contributed (skips are absent). */
+  ids: string[];
+}
+
+/**
+ * Points-weighted ratio over the trust checks that ran, same arithmetic family
+ * scores use. All-skipped scores null rather than 0 — "not measured" is not
+ * "untrustworthy".
+ */
+export function trustLens(results: CheckResult[]): TrustLens {
+  const ran = results.filter((r) => TRUST_CHECK_IDS.includes(r.id) && r.status !== 'skip');
+  let earned = 0;
+  let max = 0;
+  for (const r of ran) {
+    earned += r.points;
+    max += r.maxPoints;
+  }
+  if (max === 0) return { score: null, ids: [] };
+  return { score: Math.round((100 * earned) / max), ids: ran.map((r) => r.id) };
 }
 
 /**
