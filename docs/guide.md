@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **140 checks in 8 families**.
+findable-audit scores a site out of 100 across **141 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 140 checks, **103 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 141 checks, **104 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -83,6 +83,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).
 **Why:** Preview-starving directives suppress the very snippets and thumbnails answer engines surface.
 **Fix:** Set `max-image-preview:large, max-snippet:-1, max-video-preview:-1`; remove stray `nosnippet`.
+
+### `agent-standards-signals` (0 pts)
+**Verifies:** Only behind `--experimental-agent-standards`: probes `/agents.json` and `/.well-known/agents.json` (agents.json / UCP discovery) and reports whether an agent-actionability manifest is present. Informational only — `maxPoints: 0`, never scored; skipped entirely without the flag.
+**Why:** agents.json and UCP are emerging agent-actionability standards with no answer-engine commitment today. Surfacing the signal without grading it keeps the audit honest about unproven value while letting early adopters see what agents would find.
+**Fix:** Nothing required — publish `/.well-known/agents.json` only if you deliberately track these drafts; this check never changes your grade.
 
 ---
 

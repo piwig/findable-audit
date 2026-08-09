@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **140 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **141 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 140 checks, **103 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 141 checks, **104 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -91,6 +91,11 @@ Nuance utile (d'après la doc Perplexity) : PerplexityBot est le crawler *d'inde
 **Vérifie :** Aucune page ne pose `nosnippet`, `max-snippet:0`, `max-image-preview:none` ou `max-video-preview:0` (avertissement si simplement absent ; `max-image-preview:large` compte positivement).
 **Pourquoi :** Ces directives affament les aperçus (snippets et vignettes) que les moteurs de réponse affichent.
 **Corriger :** Posez `max-image-preview:large, max-snippet:-1, max-video-preview:-1` ; retirez tout `nosnippet` égaré.
+
+### `agent-standards-signals` (0 pts)
+**Vérifie :** Uniquement derrière `--experimental-agent-standards` : sonde `/agents.json` et `/.well-known/agents.json` (découverte agents.json / UCP) et signale la présence d'un manifeste d'actionnabilité agent. Purement informatif — `maxPoints: 0`, jamais noté ; entièrement sauté sans le drapeau.
+**Pourquoi :** agents.json et UCP sont des standards émergents d'actionnabilité agent sans aucun engagement des moteurs de réponse à ce jour. Remonter le signal sans le noter garde l'audit honnête sur cette valeur non prouvée, tout en montrant aux précurseurs ce que les agents trouveraient.
+**Correction :** Rien d'obligatoire — ne publiez `/.well-known/agents.json` que si vous suivez délibérément ces brouillons ; ce check ne change jamais votre note.
 
 ---
 
