@@ -52,6 +52,9 @@ findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-r
   as broken, so a network hiccup never fails your audit.
 --verify-profiles and --check-outbound are the ONLY options that fetch anything off your own origin, and
   neither implies the other; without them the audit touches nothing but the audited site.
+--experimental-agent-standards probes the emerging agent-actionability manifests (/.well-known/agents.json,
+  /agents.json, /.well-known/ucp.json) on the audited origin. Experimental: no engine or agent vendor has
+  committed to these standards, so the result is informational only and NEVER counts in the score (0 points).
 --history <file.json> appends this run (date + overall and per-family scores, never full results) to a
   small JSON series and reads it back: with 2+ runs the HTML report opens with sparklines — the score's
   direction over time, overall and per family. The file is safe to commit; oldest entries are dropped
@@ -115,6 +118,8 @@ const parseCliArgs = () =>
       submit: { type: 'boolean', default: false },
       'verify-profiles': { type: 'boolean', default: false },
       'check-outbound': { type: 'boolean', default: false },
+      // A38 — opt-in probe of emerging agents.json / UCP manifests (never scored).
+      'experimental-agent-standards': { type: 'boolean', default: false },
       summary: { type: 'string' },
       history: { type: 'string' },
       out: { type: 'string' },
@@ -360,7 +365,10 @@ if (isGenerate) {
   }
 } else {
 try {
-  const checks = buildChecks({ indexnowKey: values['indexnow-key'] });
+  const checks = buildChecks({
+    indexnowKey: values['indexnow-key'],
+    agentStandards: values['experimental-agent-standards'],
+  });
   // Live progress (#A10): one rewritten stderr line — "page 3/10", then
   // "checks 87/138" — cleared before the result prints. TTY only: a CI log
   // keeps the single "auditing…" note instead of 150 rewrites, and --quiet

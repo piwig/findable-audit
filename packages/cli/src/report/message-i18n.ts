@@ -18,6 +18,8 @@ import type { Lang } from './i18n.js';
 export const CHECK_MESSAGES_FR: Record<string, string> = {
   // #22 — transport et livraison modernes (http-protocol, tls-version, cdn-edge-cache).
   // Les cinq premiers gabarits sont partages par les deux checks qui lisent la sonde.
+  "experimental: agent manifest detected ({0}) — emerging standard, informational only, not scored": "expérimental : manifeste d'agent détecté ({0}) — standard émergent, purement informatif, non noté",
+  "experimental: no agent manifest found (agents.json / UCP) — emerging standards with no engine commitment; informational only, not scored": "expérimental : aucun manifeste d'agent trouvé (agents.json / UCP) — standards émergents sans engagement des moteurs ; purement informatif, non noté",
   "origin is not served over HTTPS — no TLS transport to negotiate on": "l'origine n'est pas servie en HTTPS — aucun transport TLS sur lequel négocier",
   "origin answers on a non-standard HTTPS port — transport probe skipped": "l'origine répond sur un port HTTPS non standard — sonde de transport ignorée",
   "origin resolves to a private or reserved address — transport probe skipped": "l'origine résout vers une adresse privée ou réservée — sonde de transport ignorée",

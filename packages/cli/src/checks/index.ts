@@ -55,11 +55,15 @@ import { entityGraphConnectivity } from './entity-graph.js';
 import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
 import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 import { agentUsability } from './agentic.js';
+import { agentStandardsSignals } from './agent-standards.js';
 import { llmsTxtLint } from './llms-lint.js';
 import { topicalFocus, keywordCannibalization } from './semantic.js';
 
-export function buildChecks(opts: { indexnowKey?: string } = {}): Check[] {
+export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boolean } = {}): Check[] {
   return [
+    // A38 — opt-in (--experimental-agent-standards), maxPoints 0: emerging
+    // agents.json / UCP manifests, informational only, never scored.
+    ...(opts.agentStandards ? [agentStandardsSignals] : []),
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
     homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, snippetPreviewDirectives,
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
