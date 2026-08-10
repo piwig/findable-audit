@@ -1,9 +1,13 @@
 {
   "name": "findable-audit-monorepo",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run build --workspaces --if-present && npm test --workspaces"
+    "test": "node scripts/build-if-missing.mjs && npm test --workspaces",
+    "test:fast": "npm test --workspaces"
   }
 }

@@ -16,6 +16,9 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // A40 — pay-per-crawl (ai-access).
+  "pay-per-crawl pricing header(s) present ({0}) — content was served, but verify which AI crawlers are charged or refused": "en-tête(s) de tarification pay-per-crawl présent(s) ({0}) — le contenu a été servi, mais vérifiez quels robots IA sont facturés ou refusés",
+  "no pay-per-crawl signals (HTTP 402 or crawler-* pricing headers) on the homepage": "aucun signal pay-per-crawl (HTTP 402 ou en-têtes de tarification crawler-*) sur la page d'accueil",
   // #22 — transport et livraison modernes (http-protocol, tls-version, cdn-edge-cache).
   // Les cinq premiers gabarits sont partages par les deux checks qui lisent la sonde.
   "experimental: agent manifest detected ({0}) — emerging standard, informational only, not scored": "expérimental : manifeste d'agent détecté ({0}) — standard émergent, purement informatif, non noté",

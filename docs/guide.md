@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **141 checks in 8 families**.
+findable-audit scores a site out of 100 across **142 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 141 checks, **104 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 142 checks, **105 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -78,6 +78,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** Whether the site is served through Cloudflare, from the response headers of the homepage (`cf-ray`, or `server: cloudflare`). If it is, the check emits a dated warning: Cloudflare blocks AI crawlers **by default from 2026-09-15**, so a proxied site that never opened AI Crawl Control can drop out of AI answers on that date with no config change of its own. Not behind Cloudflare → pass; homepage unreachable → skip.
 **Why:** The default policy is an account-side switch this crawl cannot read, so the only honest verdict behind Cloudflare is a dated reminder — before the switch date as preparation, after it as urgency. The empirical probes (`ai-serving-parity`, `ai-crawler-reachability`) tell you what happens today; this check tells you what changes on the announced date.
 **Fix:** In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, then re-run the audit.
+
+### `pay-per-crawl` (2 pts)
+**Verifies:** The homepage status and headers for pay-per-crawl signals: an HTTP 402 Payment Required response, or `crawler-price` / `crawler-exact-price` / `crawler-max-price` / `crawler-charged` pricing headers (Cloudflare Pay Per Crawl and similar schemes). A 402 fails; pricing headers on served content warn; no signals pass. Homepage unreachable → skip.
+**Why:** Pay-per-crawl schemes answer HTTP 402 to crawlers that have not agreed to pay — including citation-time bots that do not pay get 402 instead of content. A default-on charge silently removes the site from AI answers even though robots.txt and the WAF look permissive.
+**Fix:** Review the pay-per-crawl configuration (e.g. Cloudflare Pay Per Crawl): explicitly exempt (price 0) the citation-time crawlers whose answers you want to appear in.
 
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).
