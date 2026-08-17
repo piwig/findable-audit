@@ -8,7 +8,7 @@ import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
 import { localizeMessage } from './message-i18n.js';
 import { checkSnippet } from './snippets.js';
 import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
-import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg } from './charts.js';
+import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg, renderImpactEffortScatter, type ScatterPoint } from './charts.js';
 import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
 import type { Effort } from './effort.js';
 import { renderSparklineSvg, type HistoryEntry } from './history.js';
@@ -140,6 +140,9 @@ const STYLE = `
   .top-fixes ol { margin: 0; padding-left: 1.2rem; }
   .top-fixes li { font-size: .92rem; padding: .2rem 0; }
   .top-fixes .ap-sev { display: inline-block; margin-right: .35rem; top: 0; }
+  .viz-scatter { margin: .9rem 0 0; }
+  .viz-scatter h3 { margin: 0 0 .3rem; font-size: .85rem; color: var(--muted); }
+  .viz-scatter svg { width: 100%; height: auto; display: block; }
   .lane { margin: 1.1rem 0 0; }
   .lane-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
     border-bottom: 1px solid var(--line); padding-bottom: .3rem; }
@@ -536,9 +539,23 @@ ${top.map((r) => `<li><span class="ap-sev ${r.status}"></span><strong>${escapeHt
 </ol>
 </div>`;
 
+  // A48: the quick-wins ranking as a scatter — impact vs effort at a glance,
+  // for a reader who won't parse a ranked list. Same recs as the lanes below.
+  const scatterPoints: ScatterPoint[] = recs.map((r) => ({
+    id: r.id,
+    label: checkTitle(r.id, lang),
+    impact: r.impact,
+    effort: r.effort,
+    status: r.status,
+  }));
+  const scatterSection = scatterPoints.length === 0 ? '' : `<div class="viz-scatter">
+<h3>${escapeHtml(m.impactEffortTitle)}</h3>
+${renderImpactEffortScatter(scatterPoints, lang)}
+</div>`;
+
   const actionPlan = `<section class="action-plan" id="plan">
 <h2>${m.actionPlan}</h2>
-${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `${topStrip}\n${LANES.map(renderLane).join('\n')}`}
+${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `${topStrip}\n${scatterSection}\n${LANES.map(renderLane).join('\n')}`}
 </section>`;
 
   return `<!doctype html>

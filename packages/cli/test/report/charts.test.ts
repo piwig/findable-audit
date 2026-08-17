@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderScoreGauge, renderPriorityBars, renderCompareChart, COMPARE_SERIES } from '../../src/report/charts.js';
+import { renderScoreGauge, renderPriorityBars, renderCompareChart, renderImpactEffortScatter, COMPARE_SERIES, type ScatterPoint } from '../../src/report/charts.js';
 import { renderHtml } from '../../src/report/html.js';
 import { renderMarkdown } from '../../src/report/markdown.js';
 import { renderCompareHtml } from '../../src/report/compare.js';
@@ -122,6 +122,55 @@ describe('renderPriorityBars', () => {
     const fr = renderPriorityBars(familyScores, 'fr');
     expect(fr).toContain('Contenu moteur de réponse');
     expect(fr).toContain('aria-label="Où regagner des points"');
+  });
+});
+
+describe('renderImpactEffortScatter', () => {
+  const points: ScatterPoint[] = [
+    { id: 'ai-crawlers-allowed', label: 'AI crawlers allowed', impact: 10, effort: 'quick', status: 'fail' },
+    { id: 'content-depth', label: 'Content depth', impact: 6, effort: 'moderate', status: 'warn' },
+    { id: 'content-without-js', label: 'Content without JS', impact: 4, effort: 'involved', status: 'fail' },
+  ];
+
+  it('returns an empty string when there is nothing to plot', () => {
+    expect(renderImpactEffortScatter([], 'en')).toBe('');
+  });
+
+  it('plots one dot per point, colored by status', () => {
+    const svg = renderImpactEffortScatter(points, 'en');
+    expect((svg.match(/<circle/g) ?? []).length).toBe(3);
+    expect(svg).toContain('fill="#b42318"'); // fail
+    expect(svg).toContain('fill="#9a6700"'); // warn
+  });
+
+  it('gives every dot a native tooltip <title> naming the check, points and effort', () => {
+    const svg = renderImpactEffortScatter(points, 'en');
+    expect(svg).toContain('<title>AI crawlers allowed — +10 pts (Quick win)</title>');
+  });
+
+  it('labels the three fixed effort lanes on the X axis', () => {
+    const svg = renderImpactEffortScatter(points, 'en');
+    expect(svg).toContain('>Quick win<');
+    expect(svg).toContain('>Moderate<');
+    expect(svg).toContain('>Involved<');
+  });
+
+  it('dodges two points sharing the same lane and a close impact so neither hides the other', () => {
+    const overlapping: ScatterPoint[] = [
+      { id: 'a', label: 'A', impact: 5, effort: 'quick', status: 'fail' },
+      { id: 'b', label: 'B', impact: 5, effort: 'quick', status: 'warn' },
+    ];
+    const svg = renderImpactEffortScatter(overlapping, 'en');
+    const xs = [...svg.matchAll(/cx="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(xs.length).toBe(2);
+    expect(xs[0]).not.toBe(xs[1]);
+  });
+
+  it('is deterministic and localized', () => {
+    const svg = renderImpactEffortScatter(points, 'en');
+    expect(renderImpactEffortScatter(points, 'en')).toBe(svg);
+    const fr = renderImpactEffortScatter(points, 'fr');
+    expect(fr).toContain('aria-label="Impact vs effort : 3 contrôles à corriger, positionnés selon les points récupérables et l&#39;effort estimé"');
   });
 });
 

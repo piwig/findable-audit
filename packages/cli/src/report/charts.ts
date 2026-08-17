@@ -16,6 +16,7 @@
 import type { AuditReport } from '../runner.js';
 import type { Family } from '../types.js';
 import type { FamilyScore } from '../scoring.js';
+import type { Effort } from './effort.js';
 import { componentIndex, type EntityGraph, type EntityNode, type EntityEdge } from './entity-graph.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 
@@ -124,6 +125,85 @@ ${lostText}
   return `<svg class="viz-bars-svg" viewBox="0 0 560 ${height}" role="img" aria-label="${esc(m.vizTitle)}" xmlns="http://www.w3.org/2000/svg">
 <title>${esc(m.vizTitle)}</title>
 ${body}
+</svg>`;
+}
+
+/** One failing/warning check plotted on the impact/effort scatter (A48). */
+export interface ScatterPoint {
+  id: string;
+  /** Human check title (already localized) — the point's <title> tooltip. */
+  label: string;
+  /** Recoverable points on this check (maxPoints - points), the Y axis. */
+  impact: number;
+  /** Effort tier, the X axis (3 fixed lanes, cf. effort.ts). */
+  effort: Effort;
+  status: 'fail' | 'warn';
+}
+
+const SCATTER_EFFORTS: Effort[] = ['quick', 'moderate', 'involved'];
+
+/**
+ * Impact/effort scatter: one dot per fail/warn check, X = effort tier (3 fixed
+ * lanes, categorical — effort.ts only estimates a tier, never a continuous
+ * cost), Y = recoverable points (higher = nearer the top). Pattern echoed by
+ * every 2026 GEO-tooling comparator (Sitebulb-style urgency/impact quadrant);
+ * turns the existing quick-wins ranking (recommendations.ts) into a picture a
+ * non-technical reader scans in one glance instead of reading a list.
+ *
+ * Dots sharing a lane land in the same Y neighbourhood; a deterministic
+ * beeswarm spreads them sideways (alternating +/-step, widening) so no two
+ * overlap — no randomness, so identical input yields identical markup.
+ */
+export function renderImpactEffortScatter(points: ScatterPoint[], lang: Lang): string {
+  if (points.length === 0) return '';
+  const m = messages(lang);
+  const width = 560;
+  const height = 260;
+  const padL = 34;
+  const padR = 16;
+  const padT = 14;
+  const padB = 34;
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+  const laneW = plotW / SCATTER_EFFORTS.length;
+  const maxImpact = Math.max(1, ...points.map((p) => p.impact));
+  const yOf = (impact: number) => padT + plotH - (impact / maxImpact) * plotH;
+  const laneCenterX = (effort: Effort) => padL + SCATTER_EFFORTS.indexOf(effort) * laneW + laneW / 2;
+
+  // Bin by lane + a coarse Y bucket (18px) so near-equal-impact dots in the
+  // same lane dodge each other instead of stacking exactly on top.
+  const step = 11;
+  const radius = 5;
+  const seen = new Map<string, number>(); // "lane:bin" -> dots placed so far
+  const dots = [...points]
+    .sort((a, b) => b.impact - a.impact || a.id.localeCompare(b.id))
+    .map((p) => {
+      const y = yOf(p.impact);
+      const bin = `${p.effort}:${Math.round(y / 18)}`;
+      const i = seen.get(bin) ?? 0;
+      seen.set(bin, i + 1);
+      const offset = i === 0 ? 0 : Math.ceil(i / 2) * step * (i % 2 === 0 ? 1 : -1);
+      const maxOffset = laneW / 2 - radius - 2;
+      const x = laneCenterX(p.effort) + Math.max(-maxOffset, Math.min(maxOffset, offset));
+      const fill = p.status === 'fail' ? '#b42318' : '#9a6700';
+      const title = `${p.label} — +${p.impact} ${m.pts} (${m.effortLabel[p.effort]})`;
+      return `<g><title>${esc(title)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius}" fill="${fill}" fill-opacity=".82" stroke="${fill}" stroke-width="1"/></g>`;
+    }).join('\n');
+
+  const laneLines = SCATTER_EFFORTS.map((effort, i) => {
+    const x = padL + i * laneW;
+    const rule = i > 0 ? `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>` : '';
+    const cx = laneCenterX(effort);
+    return `${rule}<text x="${cx}" y="${height - 10}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="${MUTED}">${esc(m.effortLabel[effort])}</text>`;
+  }).join('\n');
+
+  const label = m.impactEffortLabel(points.length);
+  return `<svg class="viz-scatter-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label)}" xmlns="http://www.w3.org/2000/svg">
+<title>${esc(label)}</title>
+<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>
+<line x1="${padL}" y1="${padT + plotH}" x2="${width - padR}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>
+${laneLines}
+${dots}
 </svg>`;
 }
 

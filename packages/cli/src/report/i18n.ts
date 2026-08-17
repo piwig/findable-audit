@@ -74,6 +74,9 @@ export interface ReportMessages {
   vizScoreLabel: (score: number, grade: string) => string; // gauge aria-label/<title>
   vizTitle: string;          // priority-bars panel heading + aria-label
   compareChartLabel: string; // compare grouped-bars aria-label/<title>
+  // A48: impact/effort scatter (heading, + svg aria-label/<title> counting plotted checks)
+  impactEffortTitle: string;
+  impactEffortLabel: (n: number) => string;
   // JSON-LD entity graph drawn inline in the report (#58)
   // #64 — one-screen executive summary
   summaryTitle: string;
@@ -189,6 +192,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Overall score: ${score} out of 100 — grade ${grade}`,
     vizTitle: 'Where to regain points',
     compareChartLabel: 'Family scores by site',
+    impactEffortTitle: 'Impact vs. effort',
+    impactEffortLabel: (n) => `Impact vs. effort: ${n} check${n > 1 ? 's' : ''} to fix, plotted by recoverable points and estimated effort`,
     summaryTitle: 'Findability summary',
     summaryActions: 'What to do first',
     summaryProjection: (from, to) => `Doing these three: ${from} → ${to}/100.`,
@@ -295,6 +300,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     vizScoreLabel: (score, grade) => `Score global : ${score} sur 100 — note ${grade}`,
     vizTitle: 'Où regagner des points',
     compareChartLabel: 'Scores par famille et par site',
+    impactEffortTitle: 'Impact vs effort',
+    impactEffortLabel: (n) => `Impact vs effort : ${n} contrôle${n > 1 ? 's' : ''} à corriger, positionnés selon les points récupérables et l'effort estimé`,
     summaryTitle: 'Synthèse de findabilité',
     summaryActions: 'Par quoi commencer',
     summaryProjection: (from, to) => `Ces trois actions : ${from} → ${to}/100.`,
