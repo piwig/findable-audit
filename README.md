@@ -303,7 +303,9 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 | seo-geo-audit (lireking) | ✅ core signals | ✅ (Playwright) | ❌ | ❌ | ❌ | PSI/GSC need key/OAuth |
 | sitespeed.io / Lighthouse / Unlighthouse | ❌ no GEO layer | ✅ (real browser) | ✅ | ⚠️/✅ | — | ✅ |
 | axe-core / pa11y | ❌ | ❌ | ✅ | ❌ | — | ✅ |
-| Monitoring SaaS (Profound, Peec, Otterly, Semrush AI Visibility…) | tracks how AI answers cite you — the *opposite*, output-side job | — | — | — | — | ❌ paid |
+| Monitoring SaaS (Profound, Peec, Otterly, Semrush One — folded its AI Visibility Toolkit in mid-2026) | tracks how AI answers cite you — the *opposite*, output-side job | — | — | — | — | ❌ paid |
+
+**Technical audit vs. visibility monitoring — not the same job.** findable-audit answers "is this site *readable and citable* by AI crawlers right now" from a single deterministic crawl of your own code and config — no account, nothing tracked over time. A monitoring tool answers "*is* this site actually being cited" by repeatedly polling live AI answers for brand mentions — that requires an account, a schedule, and a query list, and it says nothing about *why* a site is or isn't cited. Run the audit first to fix the input side; add a monitor once you want to track the output side over time.
 
 **Where alternatives beat us today:**
 
