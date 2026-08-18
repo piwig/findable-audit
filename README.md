@@ -96,7 +96,7 @@ The two axes are independent: `security-txt` only ever warns and is measured; `c
 
 ### The exact bot roster
 
-The AI-access checks test robots.txt (and serving parity) against a **named roster of 28 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The tier drives the severity of a finding:
+The AI-access checks test robots.txt (and serving parity) against a **named roster of 29 AI agents plus the mainstream search crawlers**, defined in [`packages/cli/src/robots.ts`](packages/cli/src/robots.ts). The tier drives the severity of a finding:
 
 | Tier | Agents | Blocking one means | Severity |
 |---|---|---|---|

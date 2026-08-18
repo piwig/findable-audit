@@ -71,8 +71,15 @@ export const aiCrawlersAllowed: Check = {
     if (blocked.length === 0) return makeResult(this, 'pass', 'all AI crawlers (training + citation-time) allowed');
     const citationBlocked = blocked.filter((b) => CITATION_BOTS.includes(b));
     if (citationBlocked.length > 0) {
+      // A53: Google-Agent ignores robots.txt (it acts on a user's behalf), so a
+      // "Disallow" here is a false sense of protection rather than a policy that
+      // actually works — call that out instead of the generic citation-fetcher advice.
+      if (citationBlocked.includes('Google-Agent')) {
+        return makeResult(this, 'fail', t`AI crawlers blocked: ${blocked.join(', ')} — includes Google-Agent (ignores robots.txt)`,
+          'Disallowing Google-Agent in robots.txt has no effect: it is a user-triggered agentic fetcher that ignores robots.txt, unlike Googlebot. Only a server-side control (authentication, application rate-limiting) actually blocks it.');
+      }
       return makeResult(this, 'fail', t`AI crawlers blocked: ${blocked.join(', ')}`,
-        'Never "Disallow: /" a citation-time fetcher (e.g. OAI-SearchBot, Claude-User, PerplexityBot — any of the 13 in the roster) — it hides the site from live AI answers.');
+        'Never "Disallow: /" a citation-time fetcher (e.g. OAI-SearchBot, Claude-User, PerplexityBot — any of the 14 in the roster) — it hides the site from live AI answers.');
     }
     // A25: Google-Extended deserves its own callout — per Google's AI-features
     // guidance it is the opt-out token for Gemini training AND Gemini/AI-mode

@@ -291,6 +291,26 @@ describe('2026 roster (LOT 3 — 28 agents, tiering par intention)', () => {
     expect(r.message).toContain('grounding');
     expect(r.fix).toContain('Gemini');
   });
+  it('ai-crawlers-allowed calls out Google-Agent specifically when it is blocked (A53)', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: Google-Agent\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).toContain('Google-Agent');
+    expect(r.message).toContain('ignores robots.txt');
+    expect(r.fix).toContain('server-side control');
+  });
+  it('ai-crawlers-allowed keeps the generic citation-fetcher fail when Google-Agent is NOT among blocked bots', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/robots.txt': { body: 'User-agent: OAI-SearchBot\nDisallow: /\n' },
+    });
+    const r = await aiCrawlersAllowed.run(c);
+    expect(r.status).toBe('fail');
+    expect(r.message).not.toContain('Google-Agent');
+  });
   it('ai-crawlers-allowed keeps the generic training-time warn when Google-Extended is NOT among blocked bots', async () => {
     const c = stubCtx({
       '/': { contentType: 'text/html', body: '<html></html>' },

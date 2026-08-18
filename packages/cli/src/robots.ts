@@ -104,7 +104,7 @@ export const TRAINING_BOTS = [
 /**
  * Agents an assistant dispatches live, at answer/citation time (or the index a
  * live answer engine reads) — blocking these hides the site from live AI
- * answers (13 agents, LOT 3 spec §A).
+ * answers (14 agents, LOT 3 spec §A + A53 Google-Agent).
  *
  * Index-time vs query-time (per docs.perplexity.ai): PerplexityBot is the
  * *index-time* crawler — it respects robots.txt and does not feed model
@@ -127,6 +127,10 @@ export const CITATION_BOTS = [
   'iAskBot',               // iAsk.ai answer engine
   'LinerBot',              // Liner AI research assistant (sourced citations)
   'Google-CloudVertexBot', // Vertex AI Search grounding / customer agents
+  'Google-Agent',          // Google's user-triggered agentic fetcher (added 2026-03-20) — acts on a
+                           // user's behalf and, unlike Googlebot, IGNORES robots.txt; a "Disallow"
+                           // here is purely declarative, only a server-side control (auth,
+                           // application rate-limiting) actually blocks it.
 ];
 
 /** Full 2026 roster: training-time crawlers + citation-time fetchers. */

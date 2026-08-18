@@ -29,7 +29,7 @@ Les rapports HTML et Markdown s'ouvrent sur un verdict en une ligne et incluent 
 
 Le verrou : si les crawlers sont bloqués ou la page en `noindex`, rien d'autre ne compte.
 
-Le jeu de bots exact (28 agents IA + les crawlers de recherche, défini dans `packages/cli/src/robots.ts`) est hiérarchisé par *intention*, et le tier détermine la sévérité du constat :
+Le jeu de bots exact (29 agents IA + les crawlers de recherche, défini dans `packages/cli/src/robots.ts`) est hiérarchisé par *intention*, et le tier détermine la sévérité du constat :
 
 - **Fetchers de citation (13)** — OAI-SearchBot, ChatGPT-User, Perplexity-User, Claude-User, Claude-SearchBot, PerplexityBot, DuckAssistBot, MistralAI-User, Meta-ExternalFetcher, YouBot, iAskBot, LinerBot, Google-CloudVertexBot : les bloquer vous fait disparaître des réponses IA en direct → **échec**.
 - **Crawlers d'entraînement (15)** — GPTBot, Google-Extended, ClaudeBot, anthropic-ai, CCBot, Applebot-Extended, Amazonbot, Bytespider, PanguBot, cohere-ai, cohere-training-data-crawler, meta-externalagent, Diffbot, Timpibot, omgilibot : les bloquer est un choix de politique légitime, pas une rupture d'accès → **avertissement**.

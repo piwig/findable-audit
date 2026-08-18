@@ -160,6 +160,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'AI crawlers blocked: {0}': 'robots d’IA bloqués : {0}',
   'AI crawlers blocked: {0} — includes Google-Extended (Gemini training + grounding opt-out)':
     'robots d’IA bloqués : {0} — dont Google-Extended (opt-out de l’entraînement et du grounding Gemini)',
+  'AI crawlers blocked: {0} — includes Google-Agent (ignores robots.txt)':
+    'robots d’IA bloqués : {0} — dont Google-Agent (ignore le robots.txt)',
   'all {0} form control(s) have an accessible name': 'les {0} champ(s) de formulaire ont un nom accessible',
   'all {0} iframe(s) have a title': 'les {0} iframe(s) ont un titre',
   'all {0} link(s) have an accessible name': 'les {0} lien(s) ont un nom accessible',
