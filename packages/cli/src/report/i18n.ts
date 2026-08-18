@@ -124,6 +124,8 @@ export interface ReportMessages {
   noIssues: string;               // family whose checks all pass
   /** A52: accessibility section note when performance/CWV also has open issues. */
   a11yPerfLink: (n: number) => string;
+  /** A54: static, informational (not scored) crawl/referral ratio reference in the ai-access section. */
+  crawlRatioNote: string;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -236,6 +238,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     noIssues: 'Everything passes in this family.',
     a11yPerfLink: (n) =>
       `${n} performance/Core Web Vitals issue${n > 1 ? 's' : ''} below overlap with accessibility — slow devices and networks hit disabled users first, so fixing one chantier moves both.`,
+    crawlRatioNote: 'For scale (Cloudflare Radar, informational only — not scored): major AI crawlers fetch far more than they ever send back as traffic — roughly 20,600 pages crawled per referral for ClaudeBot, about 1,300:1 for OpenAI’s bots. Worth weighing against the access choices below.',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -346,6 +349,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     noIssues: 'Tout passe dans cette famille.',
     a11yPerfLink: (n) =>
       `${n} problème${n > 1 ? 's' : ''} de performance/Core Web Vitals ci-dessous recoupe${n > 1 ? 'nt' : ''} l'accessibilité — les appareils et réseaux lents pénalisent d'abord les utilisateurs en situation de handicap, corriger l'un fait avancer l'autre.`,
+    crawlRatioNote: 'Pour donner un ordre de grandeur (Cloudflare Radar, à titre informatif uniquement — non noté) : les principaux robots IA explorent bien plus qu\'ils ne renvoient de trafic réel — environ 20 600 pages explorées par visite renvoyée pour ClaudeBot, environ 1 300:1 pour les robots d\'OpenAI. À mettre en balance avec les choix d\'accès ci-dessous.',
   },
 };
 

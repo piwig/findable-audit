@@ -196,6 +196,7 @@ const STYLE = `
   details.pass-list > summary { cursor: pointer; color: var(--good); font-size: .85rem; width: fit-content; }
   .fam-none { color: var(--good); font-size: .88rem; margin: .35rem 0 .5rem; }
   .fam-cross-link { color: var(--muted); font-size: .85rem; margin: 0 0 .5rem; font-style: italic; }
+  .fam-info { color: var(--muted); font-size: .85rem; margin: 0 0 .5rem; font-style: italic; }
   .subscores { margin: .75rem 0 0; }
   .subscore-table td { border-bottom: none; padding: .3rem .5rem; vertical-align: middle; }
   .fam-label { font-size: .9rem; width: 34%; }
@@ -372,9 +373,16 @@ export function renderHtml(
     const a11yPerfNote = family === 'accessibility' && issues.length > 0 && perfIssueCount > 0
       ? `<p class="fam-cross-link">${escapeHtml(m.a11yPerfLink(perfIssueCount))}</p>`
       : '';
+    // A54: static, informational reference (not scored) next to the ai-access
+    // family's own allow/block list — a rough sense of the real cost of
+    // opening the site to AI crawlers. Static data, no new probing.
+    const crawlRatioNote = family === 'ai-access'
+      ? `<p class="fam-info">${escapeHtml(m.crawlRatioNote)}</p>`
+      : '';
+    const familyNote = a11yPerfNote + crawlRatioNote;
     const issuesTable = issues.length > 0
-      ? `${a11yPerfNote}<table>${issues.map(renderRow).join('\n')}</table>`
-      : `<p class="fam-none">${m.noIssues}</p>`;
+      ? `${familyNote}<table>${issues.map(renderRow).join('\n')}</table>`
+      : `${familyNote}<p class="fam-none">${m.noIssues}</p>`;
     const passTable = passes.length > 0
       ? `<details class="pass-list"><summary>${escapeHtml(m.showPassed(passes.length))}</summary>
       <table>${passes.map(renderRow).join('\n')}</table></details>`

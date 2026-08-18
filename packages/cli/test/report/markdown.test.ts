@@ -148,3 +148,18 @@ describe('renderMarkdown — A52 accessibility/performance cross-link', () => {
     expect(md).not.toContain('overlap with accessibility');
   });
 });
+
+describe('renderMarkdown — A54 crawl/referral ratio reference (ai-access)', () => {
+  it('adds a static, informational crawl/referral ratio note under the ai-access heading', () => {
+    const md = renderMarkdown(report, new Date('2026-07-20T12:00:00Z'));
+    expect(md).toMatch(/## AI crawler access \(4\/16\)\n\n_[^\n]*_\n/);
+    expect(md).toContain('ClaudeBot');
+    expect(md).toContain('not scored');
+  });
+
+  it('translates the note in French', () => {
+    const md = renderMarkdown(report, new Date('2026-07-20T12:00:00Z'), 'fr');
+    expect(md).toContain('ClaudeBot');
+    expect(md).toContain('non noté');
+  });
+});

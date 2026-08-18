@@ -360,3 +360,34 @@ describe('renderHtml — A52 accessibility/performance cross-link', () => {
     expect(fr).toContain('recoupe');
   });
 });
+
+describe('renderHtml — A54 crawl/referral ratio reference (ai-access)', () => {
+  const withAiAccess: AuditReport = {
+    ...report,
+    results: [
+      ...report.results,
+      { id: 'ai-crawlers-allowed', family: 'ai-access', status: 'fail', points: 0, maxPoints: 12,
+        message: 'AI crawlers blocked: GPTBot', messageTemplate: 'AI crawlers blocked: {0}', messageParams: ['GPTBot'],
+        fix: 'Remove the Disallow rules.' },
+    ],
+  };
+
+  it('adds a static, informational crawl/referral ratio note in the ai-access section', () => {
+    const html = renderHtml(withAiAccess, new Date('2026-07-20T00:00:00Z'));
+    expect(html).toContain('<p class="fam-info">');
+    expect(html).toContain('ClaudeBot');
+    expect(html).toContain('not scored');
+  });
+
+  it('does not add the note to other families', () => {
+    const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
+    expect(html).not.toContain('ClaudeBot');
+  });
+
+  it('translates the note in French', () => {
+    const fr = renderHtml(withAiAccess, new Date('2026-07-20T00:00:00Z'), 'fr');
+    expect(fr).toContain('fam-info');
+    expect(fr).toContain('ClaudeBot');
+    expect(fr).toContain('non noté');
+  });
+});

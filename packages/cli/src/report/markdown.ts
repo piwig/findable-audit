@@ -58,6 +58,10 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     if (family === 'accessibility' && issueCount > 0 && perfIssueCount > 0) {
       lines.push(`_${m.a11yPerfLink(perfIssueCount)}_`, '');
     }
+    // A54: static, informational reference (not scored) — see html.ts.
+    if (family === 'ai-access') {
+      lines.push(`_${m.crawlRatioNote}_`, '');
+    }
     lines.push(m.mdCheckHeader);
     lines.push('|---|---|---|---|');
     for (const r of results) {
