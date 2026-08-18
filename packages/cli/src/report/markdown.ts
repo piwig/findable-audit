@@ -45,12 +45,19 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(renderCwvMarkdown(report.psi, lang), '');
   }
 
+  // A52: same cross-link as the HTML report — no new probing, reuses scored results.
+  const perfIssueCount = report.results.filter((r) => r.family === 'performance' && r.status !== 'pass' && r.status !== 'skip').length;
+
   for (const family of Object.keys(familyLabels) as Family[]) {
     const results = report.results.filter((r) => r.family === family);
     if (results.length === 0) continue;
     const earned = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.points), 0);
     const max = results.reduce((s, r) => (r.status === 'skip' ? s : s + r.maxPoints), 0);
     lines.push(`## ${familyLabels[family]} (${earned}/${max})`, '');
+    const issueCount = results.filter((r) => r.status !== 'pass' && r.status !== 'skip').length;
+    if (family === 'accessibility' && issueCount > 0 && perfIssueCount > 0) {
+      lines.push(`_${m.a11yPerfLink(perfIssueCount)}_`, '');
+    }
     lines.push(m.mdCheckHeader);
     lines.push('|---|---|---|---|');
     for (const r of results) {

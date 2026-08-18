@@ -120,3 +120,31 @@ describe('renderMarkdown in French', () => {
     expect(md).toMatch(/Vérifie que le robots\.txt ne bloque pas/);
   });
 });
+
+describe('renderMarkdown — A52 accessibility/performance cross-link', () => {
+  const withBoth: AuditReport = {
+    ...report,
+    results: [
+      ...report.results,
+      r({ id: 'contrast', family: 'accessibility', status: 'fail', points: 0, maxPoints: 4, message: 'low contrast text', fix: 'Raise the contrast ratio.' }),
+      r({ id: 'page-weight', family: 'performance', status: 'warn', points: 1, maxPoints: 4, message: 'heavy page', fix: 'Trim page weight.' }),
+    ],
+  };
+
+  it('adds a note under the accessibility heading when performance also has open issues', () => {
+    const md = renderMarkdown(withBoth, new Date('2026-07-20T12:00:00Z'));
+    expect(md).toMatch(/## Accessibility \(0\/4\)\n\n_\d+ performance\/Core Web Vitals issue/);
+  });
+
+  it('omits the note when performance has no open issues', () => {
+    const onlyA11y: AuditReport = {
+      ...report,
+      results: [
+        ...report.results,
+        r({ id: 'contrast', family: 'accessibility', status: 'fail', points: 0, maxPoints: 4, message: 'low contrast text', fix: 'Raise the contrast ratio.' }),
+      ],
+    };
+    const md = renderMarkdown(onlyA11y, new Date('2026-07-20T12:00:00Z'));
+    expect(md).not.toContain('overlap with accessibility');
+  });
+});

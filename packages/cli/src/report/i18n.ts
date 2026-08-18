@@ -122,6 +122,8 @@ export interface ReportMessages {
   trendsRuns: (n: number) => string; // caption: how many runs the series holds
   showPassed: (n: number) => string; // <summary> of the folded passing checks
   noIssues: string;               // family whose checks all pass
+  /** A52: accessibility section note when performance/CWV also has open issues. */
+  a11yPerfLink: (n: number) => string;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -232,6 +234,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} in this series`,
     showPassed: (n) => `Show the ${n} passing check${n > 1 ? 's' : ''}`,
     noIssues: 'Everything passes in this family.',
+    a11yPerfLink: (n) =>
+      `${n} performance/Core Web Vitals issue${n > 1 ? 's' : ''} below overlap with accessibility — slow devices and networks hit disabled users first, so fixing one chantier moves both.`,
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -340,6 +344,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} dans cette série`,
     showPassed: (n) => `Afficher ${n === 1 ? 'le contrôle réussi' : `les ${n} contrôles réussis`}`,
     noIssues: 'Tout passe dans cette famille.',
+    a11yPerfLink: (n) =>
+      `${n} problème${n > 1 ? 's' : ''} de performance/Core Web Vitals ci-dessous recoupe${n > 1 ? 'nt' : ''} l'accessibilité — les appareils et réseaux lents pénalisent d'abord les utilisateurs en situation de handicap, corriger l'un fait avancer l'autre.`,
   },
 };
 

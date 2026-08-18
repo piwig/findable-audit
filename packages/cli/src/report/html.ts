@@ -195,6 +195,7 @@ const STYLE = `
   details.pass-list { margin: .3rem 0 .5rem; }
   details.pass-list > summary { cursor: pointer; color: var(--good); font-size: .85rem; width: fit-content; }
   .fam-none { color: var(--good); font-size: .88rem; margin: .35rem 0 .5rem; }
+  .fam-cross-link { color: var(--muted); font-size: .85rem; margin: 0 0 .5rem; font-style: italic; }
   .subscores { margin: .75rem 0 0; }
   .subscore-table td { border-bottom: none; padding: .3rem .5rem; vertical-align: middle; }
   .fam-label { font-size: .9rem; width: 34%; }
@@ -353,6 +354,12 @@ export function renderHtml(
       </tr>`;
   };
 
+  // A52: the accessibility section links to performance/CWV when both carry
+  // open issues — both point at the same underlying "slow device, slow
+  // network" reality, so the reader should tackle them as one chantier rather
+  // than two disjoint sections. No new probing: reuses results already scored.
+  const perfIssueCount = report.results.filter((r) => r.family === 'performance' && r.status !== 'pass' && r.status !== 'skip').length;
+
   const sections: string[] = [];
   for (const family of families) {
     const results = report.results.filter((r) => r.family === family);
@@ -362,8 +369,11 @@ export function renderHtml(
     // Issues (fail/warn/skip) stay visible; passes go behind a disclosure.
     const issues = results.filter((r) => r.status !== 'pass');
     const passes = results.filter((r) => r.status === 'pass');
+    const a11yPerfNote = family === 'accessibility' && issues.length > 0 && perfIssueCount > 0
+      ? `<p class="fam-cross-link">${escapeHtml(m.a11yPerfLink(perfIssueCount))}</p>`
+      : '';
     const issuesTable = issues.length > 0
-      ? `<table>${issues.map(renderRow).join('\n')}</table>`
+      ? `${a11yPerfNote}<table>${issues.map(renderRow).join('\n')}</table>`
       : `<p class="fam-none">${m.noIssues}</p>`;
     const passTable = passes.length > 0
       ? `<details class="pass-list"><summary>${escapeHtml(m.showPassed(passes.length))}</summary>

@@ -320,3 +320,43 @@ describe('renderHtml — entity graph section (#58)', () => {
     expect(fr).toContain("Graphe d&#39;entités");
   });
 });
+
+describe('renderHtml — A52 accessibility/performance cross-link', () => {
+  const withBoth: AuditReport = {
+    ...report,
+    results: [
+      ...report.results,
+      { id: 'contrast', family: 'accessibility', status: 'fail', points: 0, maxPoints: 4,
+        message: 'low contrast text', messageTemplate: 'low contrast text', messageParams: [],
+        fix: 'Raise the contrast ratio.' },
+      { id: 'page-weight', family: 'performance', status: 'warn', points: 1, maxPoints: 4,
+        message: 'heavy page', messageTemplate: 'heavy page', messageParams: [],
+        fix: 'Trim page weight.' },
+    ],
+  };
+
+  it('adds a note in the accessibility section when performance also has open issues', () => {
+    const html = renderHtml(withBoth, new Date('2026-07-20T00:00:00Z'));
+    expect(html).toContain('<p class="fam-cross-link">');
+    expect(html).toContain('overlap with accessibility');
+  });
+
+  it('omits the note when performance has no open issues', () => {
+    const onlyA11y: AuditReport = {
+      ...report,
+      results: [
+        ...report.results,
+        { id: 'contrast', family: 'accessibility', status: 'fail', points: 0, maxPoints: 4,
+          message: 'low contrast text', messageTemplate: 'low contrast text', messageParams: [],
+          fix: 'Raise the contrast ratio.' },
+      ],
+    };
+    expect(renderHtml(onlyA11y, new Date('2026-07-20T00:00:00Z'))).not.toContain('overlap with accessibility');
+  });
+
+  it('translates the note in French', () => {
+    const fr = renderHtml(withBoth, new Date('2026-07-20T00:00:00Z'), 'fr');
+    expect(fr).toContain('fam-cross-link');
+    expect(fr).toContain('recoupe');
+  });
+});
