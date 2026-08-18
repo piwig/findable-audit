@@ -250,3 +250,34 @@ export const iframeTitle: Check = {
       'Add a descriptive title="…" to every <iframe>.');
   },
 };
+
+// ---------------------------------------------------------------------------
+// rgaa-eaa-deadline (backlog A50): since 2025-06-28 the European Accessibility
+// Act made RGAA v4.1 mandatory in France for private companies with more than
+// 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable
+// every 6 months. A low score on basic, automatically-testable accessibility
+// signals (language, landmarks, alt text) is therefore a live legal exposure
+// today, not an abstract quality nit — this check turns that into a dated
+// warning, the same pattern as cloudflareAiDefaults (A30) for a fixed deadline.
+// ---------------------------------------------------------------------------
+
+export const rgaaEaaDeadline: Check = {
+  id: 'rgaa-eaa-deadline', family: 'accessibility', evidence: 'measured', maxPoints: 2,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length === 0) return makeResult(this, 'skip', 'no page reachable');
+    let deficient = 0;
+    for (const p of pages) {
+      const root = parsePage(p);
+      const lang = (root.querySelector('html')?.getAttribute('lang') ?? '').trim();
+      const hasAlt = [...root.querySelectorAll('img')].every((img) => img.hasAttribute('alt'));
+      if (!lang || !isValidBcp47(lang) || landmarkVerdict(root) === 'fail' || !hasAlt) deficient += 1;
+    }
+    if (deficient === 0) {
+      return makeResult(this, 'pass', t`no basic accessibility deficiency (language, landmarks, alt text) on ${pages.length} sampled page(s)`);
+    }
+    return makeResult(this, 'warn',
+      t`basic accessibility deficiencies (language, landmarks or alt text) on ${deficient}/${pages.length} sampled page(s) — since 2025-06-28 the European Accessibility Act makes RGAA v4.1 mandatory for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months`,
+      'Fix the accessibility checks flagged fail/warn in this family (html-lang, landmarks, alt-descriptive…) — RGAA v4.1 compliance is now a legal requirement for companies above 10 employees, not just an SEO/UX nicety.');
+  },
+};

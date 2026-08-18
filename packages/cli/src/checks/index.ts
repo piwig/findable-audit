@@ -38,7 +38,7 @@ import {
   charset, favicon, contentReadability, figureCaption,
 } from './on-page.js';
 import {
-  htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
+  htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle, rgaaEaaDeadline,
 } from './accessibility.js';
 import {
   mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
@@ -84,7 +84,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
     internalLinkContext, internalEquityLeaks, outboundLinkHealth,
     sitemapLastmod, sitemapUrlsValid, sitemapIndexLimits, sitemapOrphans,
-    htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
+    htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle, rgaaEaaDeadline,
     brokenSubresources, jsOnlyDestinations, softErrorPages, indexingConflicts, sameAsVerified,
     mixedContent, hsts, xContentTypeOptions, csp, clickjacking, referrerPolicy, permissionsPolicy, securityTxt,
     tlsVersion,

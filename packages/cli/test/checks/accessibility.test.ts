@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { CrawlContext, FetchedResource } from '../../src/types.js';
 import {
-  htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle,
+  htmlLang, altDescriptive, landmarks, formLabels, linkText, viewportZoom, iframeTitle, rgaaEaaDeadline,
 } from '../../src/checks/accessibility.js';
 
 const BASE = 'http://stub.example/';
@@ -173,5 +173,30 @@ describe('iframe-title', () => {
   it('fails on multiple untitled iframes', async () => {
     const ctx = ctxFromPages([page('/', '<html><body><iframe src="/a"></iframe><iframe src="/b"></iframe></body></html>')]);
     expect((await iframeTitle.run(ctx)).status).toBe('fail');
+  });
+});
+
+describe('rgaa-eaa-deadline', () => {
+  it('passes when language, landmarks and alt text are all present', async () => {
+    const ctx = ctxFromPages([page('/', '<!doctype html><html lang="en"><body>'
+      + '<header>H</header><main><img src="a.png" alt="A cat"></main><footer>F</footer></body></html>')]);
+    const res = await rgaaEaaDeadline.run(ctx);
+    expect(res.status).toBe('pass');
+  });
+  it('warns with the dated RGAA/EAA message when a page has a basic deficiency', async () => {
+    const ctx = ctxFromPages([page('/', '<!doctype html><html><body><p>no lang, no landmarks</p></body></html>')]);
+    const res = await rgaaEaaDeadline.run(ctx);
+    expect(res.status).toBe('warn');
+    expect(res.message).toMatch(/2025-06-28/);
+    expect(res.message).toMatch(/RGAA v4\.1/);
+  });
+  it('warns when an image is missing its alt attribute', async () => {
+    const ctx = ctxFromPages([page('/', '<!doctype html><html lang="en"><body>'
+      + '<header>H</header><main><img src="a.png"></main><footer>F</footer></body></html>')]);
+    expect((await rgaaEaaDeadline.run(ctx)).status).toBe('warn');
+  });
+  it('skips when no page is reachable', async () => {
+    const ctx = ctxFromPages([]);
+    expect((await rgaaEaaDeadline.run(ctx)).status).toBe('skip');
   });
 });

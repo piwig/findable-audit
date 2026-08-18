@@ -540,6 +540,11 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'zoom disabled (user-scalable=no) — fails WCAG 1.4.4':
     'zoom désactivé (user-scalable=no) — non conforme à WCAG 1.4.4',
   'zoom limited (maximum-scale={0})': 'zoom limité (maximum-scale={0})',
+  // A50 — rgaa-eaa-deadline (accessibility).
+  'no basic accessibility deficiency (language, landmarks, alt text) on {0} sampled page(s)':
+    'aucune défaillance d’accessibilité de base (langue, repères, texte alternatif) sur {0} page(s) échantillonnée(s)',
+  'basic accessibility deficiencies (language, landmarks or alt text) on {0}/{1} sampled page(s) — since 2025-06-28 the European Accessibility Act makes RGAA v4.1 mandatory for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months':
+    'défaillances d’accessibilité de base (langue, repères ou texte alternatif) sur {0}/{1} page(s) échantillonnée(s) — depuis le 28/06/2025, l’European Accessibility Act rend le RGAA v4.1 obligatoire pour les entreprises privées de plus de 10 salariés, avec des amendes jusqu’à 50 000 EUR par service non conforme, renouvelables tous les 6 mois',
 };
 
 /** Refill a template's `{0}`, `{1}`, … slots with the values the check captured. */
