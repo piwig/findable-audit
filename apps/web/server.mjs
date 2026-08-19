@@ -387,6 +387,24 @@ function sitemapXml() {
     + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${body}\n</urlset>\n`;
 }
 
+// Backlog A56/A57 dogfooding: our own `content-feed` check wants a syndication
+// feed. Same hand-maintained SITE_PAGES/lastmod already used by the sitemap —
+// one source of truth, no synthetic build date.
+function feedXml() {
+  const items = SITE_PAGES.filter((p) => p.path.startsWith('/en/')).map((u) =>
+    `  <item>\n    <title>findable-audit — ${escapeHtml(u.path)}</title>\n`
+    + `    <link>${PUBLIC_ORIGIN}${u.path}</link>\n`
+    + `    <guid>${PUBLIC_ORIGIN}${u.path}</guid>\n`
+    + `    <pubDate>${new Date(u.lastmod).toUTCString()}</pubDate>\n`
+    + '  </item>').join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n`
+    + `<rss version="2.0"><channel>\n`
+    + `  <title>findable-audit</title>\n`
+    + `  <link>${PUBLIC_ORIGIN}/en/</link>\n`
+    + `  <description>SEO + GEO audit — recent page updates</description>\n`
+    + `${items}\n</channel></rss>\n`;
+}
+
 function llmsTxt() {
   return [
     '# findable-audit',
@@ -567,6 +585,7 @@ function shell(title, bodyHtml, { lang = 'en', alternates, meta, wide = false } 
 ${seo}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="alternate" type="application/rss+xml" title="findable-audit" href="/feed.xml">
 <title>${escapeHtml(title)}</title>${hreflangLinks}
 <style>${PAGE_STYLE}</style>
 </head>
@@ -1947,6 +1966,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/sitemap.xml') {
     send(res, 200, 'application/xml; charset=utf-8', sitemapXml(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (pathname === '/feed.xml') {
+    send(res, 200, 'application/rss+xml; charset=utf-8', feedXml(), { 'cache-control': 'public, max-age=86400' });
     return;
   }
   if (pathname === '/llms.txt') {
