@@ -8,7 +8,7 @@ import type { CrawlContext, FetchedResource } from '../../src/types.js';
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, contentDepth, contentLeadAnswer, answerHeadings,
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-  aboutContact, wellKnownAiJson,
+  aboutContact, wellKnownAiJson, contentFeed,
 } from '../../src/checks/llm-content.js';
 import { isQuestionHeading, opensWithoutBackreference, isSelfSufficientStart } from '../../src/checks/content.js';
 
@@ -89,6 +89,47 @@ describe('well-known-ai-json', () => {
   it('passes on the perfect-site fixture', async () => {
     const ctx = await crawler('perfect-site');
     expect((await wellKnownAiJson.run(ctx)).status).toBe('pass');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// content-feed (A56: RSS/Atom/JSON feed presence)
+// ---------------------------------------------------------------------------
+
+describe('content-feed', () => {
+  it('warns (never fails) when no feed is declared or found at fallback paths', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: doc('<h1>Hi</h1>') } });
+    const r = await contentFeed.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toMatch(/feed/i);
+  });
+  it('passes when <link rel="alternate" type="application/rss+xml"> resolves to a real feed', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: doc('<h1>Hi</h1>', '<link rel="alternate" type="application/rss+xml" href="/feed.xml">') },
+      '/feed.xml': { contentType: 'application/xml', body: '<rss version="2.0"><channel><title>X</title></channel></rss>' },
+    });
+    const r = await contentFeed.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('/feed.xml');
+  });
+  it('passes on a conventional fallback path (/feed.json) when nothing is declared', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: doc('<h1>Hi</h1>') },
+      '/feed.json': { contentType: 'application/json', body: '{"version":"https://jsonfeed.org/version/1.1","items":[]}' },
+    });
+    const r = await contentFeed.run(c);
+    expect(r.status).toBe('pass');
+  });
+  it('ignores a declared feed link that points cross-origin', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: doc('<h1>Hi</h1>', '<link rel="alternate" type="application/rss+xml" href="https://other.example/feed.xml">') },
+    });
+    const r = await contentFeed.run(c);
+    expect(r.status).toBe('warn');
+  });
+  it('passes on the perfect-site fixture', async () => {
+    const ctx = await crawler('perfect-site');
+    expect((await contentFeed.run(ctx)).status).toBe('pass');
   });
 });
 

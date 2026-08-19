@@ -11,7 +11,7 @@ import {
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
   extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-  aboutContact, wellKnownAiJson,
+  aboutContact, wellKnownAiJson, contentFeed,
 } from './llm-content.js';
 import {
   jsonLd, jsonLdEntity, twitterCard, jsonLdValid, sdOrganization, sdEntityGrounding,
@@ -68,7 +68,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, snippetPreviewDirectives,
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
-    aboutContact, wellKnownAiJson, imagesAlt,
+    aboutContact, wellKnownAiJson, contentFeed, imagesAlt,
     freshnessCoherence, hedgingRate, answerUnits, chunkBoundary,
     chunkRetrievalSim, injectionHygiene, agentUsability,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),

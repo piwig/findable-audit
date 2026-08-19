@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Example Bakery</title>
+    <link>{{ORIGIN}}/</link>
+    <description>Fresh bakes and shop news from Example Bakery.</description>
+    <item>
+      <title>Sourdough Bread, Croissants and Custom Cakes in Springfield</title>
+      <link>{{ORIGIN}}/</link>
+      <description>Family bakery in Springfield: sourdough bread, croissants and custom cakes, baked fresh every morning.</description>
+    </item>
+  </channel>
+</rss>

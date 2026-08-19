@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **143 checks in 8 families**.
+findable-audit scores a site out of 100 across **144 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 143 checks, **106 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 144 checks, **107 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -174,6 +174,11 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** `/.well-known/ai.json` answers 200 with a JSON **object** manifest. Missing file, invalid JSON (typically a SPA fallback shell answering 200), or a non-object root all produce a warn — never a fail, because the convention is still emerging.
 **Why:** `/.well-known/ai.json` is an emerging AI-discovery convention: a small manifest telling agents what the site is and how to interact with it (name, description, contact, policies). It is advisory-weighted (1 pt) since it is not yet standardized.
 **Fix:** Publish a small JSON object at `/.well-known/ai.json` (name, description, contact, policies) — and make sure your SPA fallback doesn't answer that path with 200 HTML.
+
+### `content-feed` (2 pts)
+**Verifies:** Looks for a syndication feed — a `<link rel="alternate" type="application/rss+xml|atom+xml|feed+json">` declared in `<head>`, or (when none is declared) one of the conventional paths `/feed`, `/feed.xml`, `/rss.xml`, `/atom.xml`, `/index.xml`, `/feed.json`. Warns (never fails) when none resolves to a real feed.
+**Why:** A feed lists new or changed content in one machine-readable place — a cheaper freshness signal for an AI crawler to poll than re-crawling a sitemap or the homepage. No feed format is mandated by any spec, so absence only ever warns.
+**Fix:** Publish a feed (RSS, Atom, or JSON Feed) listing recent content, and declare it with `<link rel="alternate" type="application/rss+xml" href="...">` in `<head>`.
 
 ### `freshness-coherence` (4 pts)
 **Verifies:** Cross-checks the three freshness signals a page can emit — the HTTP `Last-Modified` header, the JSON-LD `dateModified` (or `article:modified_time`), and the sitemap `<lastmod>`. Warns when they contradict each other by more than 24h; fails only on a *future* claimed date. Skips a page with fewer than two of the three sources.

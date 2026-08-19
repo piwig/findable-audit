@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **143 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **144 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 143 checks, **106 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 144 checks, **107 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -182,6 +182,11 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** `/.well-known/ai.json` répond 200 avec un manifeste JSON de type **objet**. Fichier absent, JSON invalide (typiquement une coquille SPA qui répond 200), ou racine non-objet produisent un avertissement — jamais un échec, car la convention est encore émergente.
 **Pourquoi :** `/.well-known/ai.json` est une convention émergente de découverte IA : un petit manifeste indiquant aux agents ce qu'est le site et comment interagir avec lui (nom, description, contact, politiques). Pondération consultative (1 pt) car non encore standardisée.
 **Corriger :** Publiez un petit objet JSON à `/.well-known/ai.json` (nom, description, contact, politiques) — et vérifiez que le fallback SPA ne répond pas 200 HTML sur ce chemin.
+
+### `content-feed` (2 pts)
+**Vérifie :** Recherche un flux de syndication — un `<link rel="alternate" type="application/rss+xml|atom+xml|feed+json">` déclaré dans `<head>`, ou (à défaut) l'un des chemins conventionnels `/feed`, `/feed.xml`, `/rss.xml`, `/atom.xml`, `/index.xml`, `/feed.json`. Avertit (n'échoue jamais) si aucun ne résout vers un vrai flux.
+**Pourquoi :** Un flux liste en un seul endroit lisible par machine le contenu nouveau ou modifié — un signal de fraîcheur moins coûteux à interroger pour un robot IA que de re-parcourir un sitemap ou la page d'accueil. Aucune spécification n'impose de format de flux, donc son absence ne donne toujours qu'un avertissement.
+**Corriger :** Publiez un flux (RSS, Atom ou JSON Feed) listant le contenu récent, et déclarez-le avec `<link rel="alternate" type="application/rss+xml" href="...">` dans `<head>`.
 
 ### `freshness-coherence` (4 pts)
 **Vérifie :** Recoupe les trois signaux de fraîcheur qu'une page peut émettre — l'en-tête HTTP `Last-Modified`, le `dateModified` JSON-LD (ou `article:modified_time`) et le `<lastmod>` du sitemap. Avertit lorsqu'ils se contredisent de plus de 24 h ; échoue uniquement sur une date *future*. Ignore une page comptant moins de deux des trois sources.

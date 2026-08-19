@@ -1,7 +1,7 @@
 import { parse, type HTMLElement } from 'node-html-parser';
 import type { Check, CrawlContext, FetchedResource } from '../types.js';
 import { makeResult, isPlainText, t } from '../types.js';
-import { parsePage } from './dom.js';
+import { parsePage, headOf } from './dom.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
 import { extractJsonLd, flatten, typesOf, str, rollupBySeverity, type SeverityItem } from './jsonld.js';
 import { mainContent, isArticlePage, depthThreshold, shingles, jaccard, isQuestionHeading } from './content.js';
@@ -613,5 +613,58 @@ export const wellKnownAiJson: Check = {
         'The manifest root must be a JSON object describing the site (name, description, contact).');
     }
     return makeResult(this, 'pass', '/.well-known/ai.json serves a JSON object manifest');
+  },
+};
+
+/** Common feed paths tried when no <link rel="alternate"> is declared in <head>. */
+const FEED_FALLBACK_PATHS = ['/feed', '/feed.xml', '/rss.xml', '/atom.xml', '/index.xml', '/feed.json'];
+
+/** MIME types that mark a <link rel="alternate"> as a syndication feed. */
+const FEED_LINK_TYPE_RE = /rss\+xml|atom\+xml|feed\+json/i;
+
+/** true when a response's content-type is a plausible feed format (XML feed or JSON feed). */
+function looksLikeFeed(res: FetchedResource): boolean {
+  const ct = res.contentType.split(';')[0].trim().toLowerCase();
+  if (ct.includes('rss') || ct.includes('atom') || ct === 'application/feed+json') return true;
+  if (ct === 'application/xml' || ct === 'text/xml') return /<rss[\s>]|<feed[\s>]/i.test(res.body);
+  if (ct === 'application/json') { try { const j = JSON.parse(res.body); return typeof j === 'object' && j !== null && 'items' in j; } catch { return false; } }
+  return false;
+}
+
+/**
+ * Backlog A56 — presence of an up-to-date RSS/Atom/JSON feed. AI crawlers lean
+ * on feeds as a cheap freshness signal (new/changed content) distinct from a
+ * sitemap (which lists URLs, not change history). Advisory: no feed spec is
+ * mandatory, so absence is a `warn`, never a `fail` — same posture as
+ * `well-known-ai-json`.
+ */
+export const contentFeed: Check = {
+  id: 'content-feed', family: 'llm-content', evidence: 'measured', maxPoints: 2,
+  async run(ctx: CrawlContext) {
+    const home = await ctx.fetch('/');
+    const declared: string[] = [];
+    if (home?.status === 200 && !isPlainText(home)) {
+      const head = headOf(parsePage(home));
+      for (const link of head?.querySelectorAll('link[rel="alternate"]') ?? []) {
+        const type = link.getAttribute('type') ?? '';
+        const href = link.getAttribute('href');
+        if (href && FEED_LINK_TYPE_RE.test(type)) declared.push(href);
+      }
+    }
+    const candidates = declared.length > 0 ? declared : FEED_FALLBACK_PATHS;
+    for (const candidate of candidates) {
+      let pathAndQuery = candidate;
+      try {
+        const u = new URL(candidate, ctx.baseUrl);
+        if (u.origin !== ctx.baseUrl.origin) continue;
+        pathAndQuery = u.pathname + u.search;
+      } catch { continue; }
+      const res = await ctx.fetch(pathAndQuery);
+      if (res && res.status === 200 && looksLikeFeed(res)) {
+        return makeResult(this, 'pass', t`feed found at ${pathAndQuery} (RSS/Atom/JSON Feed)`);
+      }
+    }
+    return makeResult(this, 'warn', 'no RSS/Atom/JSON feed found',
+      'Publish a feed (RSS, Atom, or JSON Feed) listing recent content, and declare it with <link rel="alternate" type="application/rss+xml" href="..."> in <head> — it gives AI crawlers a cheap, reliable freshness signal.');
   },
 };
