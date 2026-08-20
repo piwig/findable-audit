@@ -163,3 +163,26 @@ describe('renderMarkdown — A54 crawl/referral ratio reference (ai-access)', ()
     expect(md).toContain('non noté');
   });
 });
+
+describe('renderMarkdown — A61 training-bots-blocked / citation-bots-allowed note (ai-access)', () => {
+  const withTrainingOnlyBlock: AuditReport = {
+    ...report,
+    results: report.results.map((res) => res.id === 'ai-crawlers-allowed'
+      ? { ...res, status: 'warn', points: 6 }
+      : res),
+  };
+
+  it('adds the note when only training-time bots are blocked (warn, not fail)', () => {
+    const md = renderMarkdown(withTrainingOnlyBlock, new Date('2026-07-20T12:00:00Z'));
+    expect(md).toContain('training-time AI crawler');
+  });
+
+  it('does not add the note for the shared fixture (fail: a citation bot is blocked)', () => {
+    expect(renderMarkdown(report, new Date('2026-07-20T12:00:00Z'))).not.toContain('training-time AI crawler');
+  });
+
+  it('translates the note in French', () => {
+    const md = renderMarkdown(withTrainingOnlyBlock, new Date('2026-07-20T12:00:00Z'), 'fr');
+    expect(md).toContain("robot IA d'entraînement");
+  });
+});

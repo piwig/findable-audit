@@ -379,7 +379,17 @@ export function renderHtml(
     const crawlRatioNote = family === 'ai-access'
       ? `<p class="fam-info">${escapeHtml(m.crawlRatioNote)}</p>`
       : '';
-    const familyNote = a11yPerfNote + crawlRatioNote;
+    // A61: surface a training-bots-blocked/citation-bots-allowed configuration
+    // that ai-crawlers-allowed already detects (its warn branch for a training-only
+    // block) but never valorizes positively in the report. Purely informational,
+    // no new probing, no score impact.
+    const aiCrawlersResult = results.find((r) => r.id === 'ai-crawlers-allowed');
+    const trainingBotsBlockedNote = family === 'ai-access'
+      && aiCrawlersResult?.status === 'warn'
+      && aiCrawlersResult.messageTemplate?.startsWith('AI crawlers blocked:')
+      ? `<p class="fam-info">${escapeHtml(m.trainingBotsBlockedNote)}</p>`
+      : '';
+    const familyNote = a11yPerfNote + crawlRatioNote + trainingBotsBlockedNote;
     const issuesTable = issues.length > 0
       ? `${familyNote}<table>${issues.map(renderRow).join('\n')}</table>`
       : `${familyNote}<p class="fam-none">${m.noIssues}</p>`;

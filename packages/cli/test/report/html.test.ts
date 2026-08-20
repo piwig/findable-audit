@@ -391,3 +391,53 @@ describe('renderHtml — A54 crawl/referral ratio reference (ai-access)', () => 
     expect(fr).toContain('non noté');
   });
 });
+
+describe('renderHtml — A61 training-bots-blocked / citation-bots-allowed note (ai-access)', () => {
+  const withTrainingOnlyBlock: AuditReport = {
+    ...report,
+    results: [
+      ...report.results,
+      { id: 'ai-crawlers-allowed', family: 'ai-access', status: 'warn', points: 6, maxPoints: 12,
+        message: 'AI crawlers blocked: GPTBot', messageTemplate: 'AI crawlers blocked: {0}', messageParams: ['GPTBot'],
+        fix: 'Allow them if you want future model training coverage.' },
+    ],
+  };
+
+  it('adds the note when only training-time bots are blocked (warn, not fail)', () => {
+    const html = renderHtml(withTrainingOnlyBlock, new Date('2026-07-20T00:00:00Z'));
+    expect(html).toContain('training-time AI crawler');
+  });
+
+  it('does not add the note when a citation bot is blocked (fail, not warn)', () => {
+    const withCitationBlock: AuditReport = {
+      ...report,
+      results: [
+        ...report.results,
+        { id: 'ai-crawlers-allowed', family: 'ai-access', status: 'fail', points: 0, maxPoints: 12,
+          message: 'AI crawlers blocked: GPTBot', messageTemplate: 'AI crawlers blocked: {0}', messageParams: ['GPTBot'],
+          fix: 'Remove the Disallow rules.' },
+      ],
+    };
+    const html = renderHtml(withCitationBlock, new Date('2026-07-20T00:00:00Z'));
+    expect(html).not.toContain('training-time AI crawler');
+  });
+
+  it('does not add the note when no bots are blocked at all', () => {
+    const allAllowed: AuditReport = {
+      ...report,
+      results: [
+        ...report.results,
+        { id: 'ai-crawlers-allowed', family: 'ai-access', status: 'pass', points: 12, maxPoints: 12,
+          message: 'all AI crawlers (training + citation-time) allowed', messageTemplate: undefined, messageParams: undefined },
+      ],
+    };
+    expect(renderHtml(allAllowed, new Date('2026-07-20T00:00:00Z'))).not.toContain('training-time AI crawler');
+  });
+
+  it('translates the note in French', () => {
+    const fr = renderHtml(withTrainingOnlyBlock, new Date('2026-07-20T00:00:00Z'), 'fr');
+    // apostrophe is HTML-escaped by escapeHtml (' -> &#39;), so match around it.
+    expect(fr).toContain('entraînement');
+    expect(fr).toContain('&#39;entraînement');
+  });
+});

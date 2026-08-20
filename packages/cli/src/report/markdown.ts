@@ -62,6 +62,12 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     if (family === 'ai-access') {
       lines.push(`_${m.crawlRatioNote}_`, '');
     }
+    // A61: same training-bots-blocked/citation-bots-allowed note as html.ts.
+    const aiCrawlersResult = results.find((r) => r.id === 'ai-crawlers-allowed');
+    if (family === 'ai-access' && aiCrawlersResult?.status === 'warn'
+      && aiCrawlersResult.messageTemplate?.startsWith('AI crawlers blocked:')) {
+      lines.push(`_${m.trainingBotsBlockedNote}_`, '');
+    }
     lines.push(m.mdCheckHeader);
     lines.push('|---|---|---|---|');
     for (const r of results) {

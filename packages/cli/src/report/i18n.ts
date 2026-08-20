@@ -128,6 +128,8 @@ export interface ReportMessages {
   crawlRatioNote: string;
   /** A59: static, informational (not scored) recommended re-audit cadence, shown once near the footer. */
   auditFrequencyNote: string;
+  /** A61: informational (not scored) note shown in ai-access when robots.txt blocks a training bot while still allowing citation-time bots — a deliberate, sophisticated policy worth surfacing rather than leaving invisible. */
+  trainingBotsBlockedNote: string;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -242,6 +244,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       `${n} performance/Core Web Vitals issue${n > 1 ? 's' : ''} below overlap with accessibility — slow devices and networks hit disabled users first, so fixing one chantier moves both.`,
     crawlRatioNote: 'For scale (Cloudflare Radar, informational only — not scored): major AI crawlers fetch far more than they ever send back as traffic — roughly 20,600 pages crawled per referral for ClaudeBot, about 1,300:1 for OpenAI’s bots. Worth weighing against the access choices below.',
     auditFrequencyNote: 'AI findability shifts as crawler policies, structured data and page content evolve — a quarterly re-audit is a reasonable cadence to catch drift early.',
+    trainingBotsBlockedNote: 'Note: robots.txt here blocks at least one training-time AI crawler (e.g. GPTBot) while still allowing citation-time crawlers through — a deliberate, more advanced policy than an all-or-nothing block, already applied on this site.',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -354,6 +357,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
       `${n} problème${n > 1 ? 's' : ''} de performance/Core Web Vitals ci-dessous recoupe${n > 1 ? 'nt' : ''} l'accessibilité — les appareils et réseaux lents pénalisent d'abord les utilisateurs en situation de handicap, corriger l'un fait avancer l'autre.`,
     crawlRatioNote: 'Pour donner un ordre de grandeur (Cloudflare Radar, à titre informatif uniquement — non noté) : les principaux robots IA explorent bien plus qu\'ils ne renvoient de trafic réel — environ 20 600 pages explorées par visite renvoyée pour ClaudeBot, environ 1 300:1 pour les robots d\'OpenAI. À mettre en balance avec les choix d\'accès ci-dessous.',
     auditFrequencyNote: 'La findabilité IA évolue avec les politiques des robots, les données structurées et le contenu des pages — un ré-audit trimestriel est une cadence raisonnable pour repérer une dérive tôt.',
+    trainingBotsBlockedNote: 'Note : le robots.txt bloque ici au moins un robot IA d\'entraînement (par ex. GPTBot) tout en laissant passer les robots de citation — une politique délibérée et plus fine qu\'un blocage tout-ou-rien, déjà appliquée sur ce site.',
   },
 };
 
