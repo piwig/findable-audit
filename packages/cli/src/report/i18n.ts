@@ -126,6 +126,8 @@ export interface ReportMessages {
   a11yPerfLink: (n: number) => string;
   /** A54: static, informational (not scored) crawl/referral ratio reference in the ai-access section. */
   crawlRatioNote: string;
+  /** A59: static, informational (not scored) recommended re-audit cadence, shown once near the footer. */
+  auditFrequencyNote: string;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -239,6 +241,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     a11yPerfLink: (n) =>
       `${n} performance/Core Web Vitals issue${n > 1 ? 's' : ''} below overlap with accessibility — slow devices and networks hit disabled users first, so fixing one chantier moves both.`,
     crawlRatioNote: 'For scale (Cloudflare Radar, informational only — not scored): major AI crawlers fetch far more than they ever send back as traffic — roughly 20,600 pages crawled per referral for ClaudeBot, about 1,300:1 for OpenAI’s bots. Worth weighing against the access choices below.',
+    auditFrequencyNote: 'AI findability shifts as crawler policies, structured data and page content evolve — a quarterly re-audit is a reasonable cadence to catch drift early.',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -350,6 +353,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     a11yPerfLink: (n) =>
       `${n} problème${n > 1 ? 's' : ''} de performance/Core Web Vitals ci-dessous recoupe${n > 1 ? 'nt' : ''} l'accessibilité — les appareils et réseaux lents pénalisent d'abord les utilisateurs en situation de handicap, corriger l'un fait avancer l'autre.`,
     crawlRatioNote: 'Pour donner un ordre de grandeur (Cloudflare Radar, à titre informatif uniquement — non noté) : les principaux robots IA explorent bien plus qu\'ils ne renvoient de trafic réel — environ 20 600 pages explorées par visite renvoyée pour ClaudeBot, environ 1 300:1 pour les robots d\'OpenAI. À mettre en balance avec les choix d\'accès ci-dessous.',
+    auditFrequencyNote: 'La findabilité IA évolue avec les politiques des robots, les données structurées et le contenu des pages — un ré-audit trimestriel est une cadence raisonnable pour repérer une dérive tôt.',
   },
 };
 

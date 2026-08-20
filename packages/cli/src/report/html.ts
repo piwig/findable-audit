@@ -619,7 +619,7 @@ ${entityGraphSection}
 ${breakdown}
 ${sections.join('\n')}
 </section>
-<footer>${m.footer}</footer>
+<footer><p class="fam-info">${escapeHtml(m.auditFrequencyNote)}</p>${m.footer}</footer>
 </body>
 </html>
 `;
