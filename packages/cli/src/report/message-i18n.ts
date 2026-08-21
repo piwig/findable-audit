@@ -550,6 +550,15 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'aucune défaillance d’accessibilité de base (langue, repères, texte alternatif) sur {0} page(s) échantillonnée(s)',
   'basic accessibility deficiencies (language, landmarks or alt text) on {0}/{1} sampled page(s) — since 2025-06-28 the European Accessibility Act makes RGAA v4.1 mandatory for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months':
     'défaillances d’accessibilité de base (langue, repères ou texte alternatif) sur {0}/{1} page(s) échantillonnée(s) — depuis le 28/06/2025, l’European Accessibility Act rend le RGAA v4.1 obligatoire pour les entreprises privées de plus de 10 salariés, avec des amendes jusqu’à 50 000 EUR par service non conforme, renouvelables tous les 6 mois',
+  // A63 — consistent-help (accessibility).
+  'fewer than 2 sampled pages: nothing to compare':
+    'moins de 2 pages échantillonnées : rien à comparer',
+  'no help mechanism (contact, mailto/tel, support/FAQ link) detected on any sampled page':
+    'aucun moyen d’aide (contact, mailto/tel, lien support/FAQ) détecté sur les pages échantillonnées',
+  'help mechanism (contact/support) present on all {0} sampled page(s)':
+    'moyen d’aide (contact/support) présent sur les {0} page(s) échantillonnée(s)',
+  'help mechanism present on {0}/{1} sampled pages but missing on: {2}':
+    'moyen d’aide présent sur {0}/{1} pages échantillonnées mais absent sur : {2}',
 };
 
 /** Refill a template's `{0}`, `{1}`, … slots with the values the check captured. */

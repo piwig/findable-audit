@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **144 checks in 8 families**.
+findable-audit scores a site out of 100 across **145 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 144 checks, **107 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 145 checks, **108 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -704,6 +704,11 @@ Semantics that double as extraction signals.
 **Verifies:** Basic accessibility signals already measured elsewhere in this family (declared `<html lang>`, semantic landmarks, non-empty image `alt`) are free of deficiency on the sampled pages (warn if any page is missing one).
 **Why:** Since 2025-06-28 the European Accessibility Act has made RGAA v4.1 mandatory in France for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months. A low accessibility score is a live legal exposure for those companies, not just an SEO/UX nicety.
 **Fix:** Fix the accessibility checks flagged fail/warn in this family (`html-lang`, `landmarks`, `alt-descriptive`…).
+
+### `consistent-help` (2 pts)
+**Verifies:** *(skip if fewer than 2 sampled pages)* A help mechanism (`mailto:`/`tel:` link, or a contact/support/FAQ link) is present on all sampled pages or on none (warn if present on some and missing on others).
+**Why:** WCAG 2.2 §3.2.6 "Consistent Help" requires that a help mechanism, when it exists, stays reachable the same way everywhere — its silent disappearance on some pages penalizes visitors who need it.
+**Fix:** Expose the same help mechanism (contact link, mailto/tel, support/FAQ) consistently across every page.
 
 ---
 

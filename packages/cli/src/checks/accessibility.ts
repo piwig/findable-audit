@@ -1,3 +1,4 @@
+import type { HTMLElement } from 'node-html-parser';
 import type { Check } from '../types.js';
 import { makeResult, t } from '../types.js';
 import { pagesOf, pathOf, aggregate } from './aggregate.js';
@@ -260,6 +261,51 @@ export const iframeTitle: Check = {
 // today, not an abstract quality nit — this check turns that into a dated
 // warning, the same pattern as cloudflareAiDefaults (A30) for a fixed deadline.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// consistent-help (backlog A63, WCAG 2.2 §3.2.6 Consistent Help): when a help
+// mechanism (contact link, mailto:/tel:, support/FAQ page) exists on the site,
+// it must be reachable the same way on every page a visitor might land on.
+// Full relative-order verification (the letter of 3.2.6) risks false positives
+// on static markup alone, so this stays conservative: only flag the case the
+// backlog explicitly calls a real defect — present on some sampled pages and
+// silently absent on others — not full order-in-DOM equivalence.
+// ---------------------------------------------------------------------------
+
+const HELP_TEXT = /\b(contact|aide|assistance|support|help|faq)\b/i;
+
+/** true when a page exposes a help mechanism: a mailto:/tel: link, or a link/text matching help keywords. */
+function hasHelpMechanism(root: HTMLElement): boolean {
+  for (const a of root.querySelectorAll('a[href]')) {
+    const href = (a.getAttribute('href') ?? '').trim();
+    if (/^(mailto|tel):/i.test(href)) return true;
+    if (HELP_TEXT.test(href) || HELP_TEXT.test(a.textContent)) return true;
+  }
+  return false;
+}
+
+export const consistentHelp: Check = {
+  id: 'consistent-help', family: 'accessibility', evidence: 'measured', maxPoints: 2,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    if (pages.length < 2) return makeResult(this, 'skip', 'fewer than 2 sampled pages: nothing to compare');
+    const withHelp: string[] = [];
+    const without: string[] = [];
+    for (const p of pages) {
+      if (hasHelpMechanism(parsePage(p))) withHelp.push(pathOf(p));
+      else without.push(pathOf(p));
+    }
+    if (withHelp.length === 0) {
+      return makeResult(this, 'skip', 'no help mechanism (contact, mailto/tel, support/FAQ link) detected on any sampled page');
+    }
+    if (without.length === 0) {
+      return makeResult(this, 'pass', t`help mechanism (contact/support) present on all ${pages.length} sampled page(s)`);
+    }
+    return makeResult(this, 'warn',
+      t`help mechanism present on ${withHelp.length}/${pages.length} sampled pages but missing on: ${offenderList(without)}`,
+      'Expose the same help mechanism (contact link, mailto/tel, support/FAQ) consistently across every page — WCAG 2.2 §3.2.6 Consistent Help.');
+  },
+};
 
 export const rgaaEaaDeadline: Check = {
   id: 'rgaa-eaa-deadline', family: 'accessibility', evidence: 'measured', maxPoints: 2,

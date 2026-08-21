@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(142);
+    expect(report.results).toHaveLength(143);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -40,9 +40,10 @@ describe('runAudit', () => {
     // llm-good ships no JSON-LD at all, so the two structured-data overlays have nothing
     // to grade: rich-result-eligibility (no Google-documented type) and sd-page-entity
     // (no WebPage/CreativeWork node to carry `about`).
+    // consistent-help skips too: llm-good only samples the homepage (< 2 pages to compare).
     expect(skipped.map((r) => r.id).sort()).toEqual([
       'alt-descriptive', 'anchor-target-profile', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links',
-      'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'content-author-eeat',
+      'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'consistent-help', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp',
       'cwv-ttfb', 'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate',
       'hreflang', 'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title',

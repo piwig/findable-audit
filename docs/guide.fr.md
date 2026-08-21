@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **144 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **145 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 144 checks, **107 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 145 checks, **108 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -712,6 +712,11 @@ Une sémantique qui sert aussi de signal d'extraction.
 **Vérifie :** Les signaux d'accessibilité de base déjà mesurés ailleurs dans cette famille (`<html lang>` déclaré, repères sémantiques, `alt` non vide sur les images) sont sans défaillance sur les pages échantillonnées (avertissement si une page en manque un).
 **Pourquoi :** Depuis le 28/06/2025, l'European Accessibility Act rend le RGAA v4.1 obligatoire en France pour les entreprises privées de plus de 10 salariés, avec des amendes jusqu'à 50 000 EUR par service non conforme, renouvelables tous les 6 mois. Pour ces entreprises, un score d'accessibilité faible est une exposition légale bien réelle, pas seulement un confort SEO/UX.
 **Corriger :** Corrigez les checks d'accessibilité en échec/avertissement de cette famille (`html-lang`, `landmarks`, `alt-descriptive`…).
+
+### `consistent-help` (2 pts)
+**Vérifie :** *(ignoré si moins de 2 pages échantillonnées)* Un moyen d'aide (lien `mailto:`/`tel:`, ou lien contact/support/FAQ) est présent sur toutes les pages échantillonnées ou sur aucune (avertissement s'il est présent sur certaines et absent sur d'autres).
+**Pourquoi :** Le critère WCAG 2.2 §3.2.6 « Consistent Help » exige qu'un moyen d'aide, quand il existe, reste accessible de la même façon partout — sa disparition silencieuse sur certaines pages pénalise les visiteurs qui en ont besoin.
+**Corriger :** Exposez le même moyen d'aide (lien de contact, mailto/tel, support/FAQ) de façon cohérente sur toutes les pages.
 
 ---
 
