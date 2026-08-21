@@ -99,6 +99,6 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(renderDiffMarkdown(opts.diff, lang), '');
   }
 
-  lines.push('---', '', `_${m.auditFrequencyNote}_`, '', m.mdFooter, '');
+  lines.push('---', '', `_${m.auditFrequencyNote}_`, '', `_${m.gscAiPerformanceNote}_`, '', m.mdFooter, '');
   return lines.join('\n');
 }

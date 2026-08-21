@@ -130,6 +130,8 @@ export interface ReportMessages {
   auditFrequencyNote: string;
   /** A61: informational (not scored) note shown in ai-access when robots.txt blocks a training bot while still allowing citation-time bots — a deliberate, sophisticated policy worth surfacing rather than leaving invisible. */
   trainingBotsBlockedNote: string;
+  /** A65: static, informational (not scored) pointer to Google Search Console's "AI generative performance" report, shown once near the footer alongside auditFrequencyNote. */
+  gscAiPerformanceNote: string;
 }
 
 export const MESSAGES: Record<Lang, ReportMessages> = {
@@ -245,6 +247,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     crawlRatioNote: 'For scale (Cloudflare Radar, informational only — not scored): major AI crawlers fetch far more than they ever send back as traffic — roughly 20,600 pages crawled per referral for ClaudeBot, about 1,300:1 for OpenAI’s bots. Worth weighing against the access choices below.',
     auditFrequencyNote: 'AI findability shifts as crawler policies, structured data and page content evolve — a quarterly re-audit is a reasonable cadence to catch drift early.',
     trainingBotsBlockedNote: 'Note: robots.txt here blocks at least one training-time AI crawler (e.g. GPTBot) while still allowing citation-time crawlers through — a deliberate, more advanced policy than an all-or-nothing block, already applied on this site.',
+    gscAiPerformanceNote: 'Free complement worth checking: Google Search Console added an "AI generative performance" report in mid-2026 (impressions in AI Overviews, AI Mode and Discover, by page/country/device). Known limits: no click data, and a logging bug Google confirmed on 2026-08-13 can understate impressions — don\'t read a dip there as a real visibility loss on its own.',
   },
   fr: {
     reportTitle: 'Rapport findable-audit',
@@ -358,6 +361,7 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     crawlRatioNote: 'Pour donner un ordre de grandeur (Cloudflare Radar, à titre informatif uniquement — non noté) : les principaux robots IA explorent bien plus qu\'ils ne renvoient de trafic réel — environ 20 600 pages explorées par visite renvoyée pour ClaudeBot, environ 1 300:1 pour les robots d\'OpenAI. À mettre en balance avec les choix d\'accès ci-dessous.',
     auditFrequencyNote: 'La findabilité IA évolue avec les politiques des robots, les données structurées et le contenu des pages — un ré-audit trimestriel est une cadence raisonnable pour repérer une dérive tôt.',
     trainingBotsBlockedNote: 'Note : le robots.txt bloque ici au moins un robot IA d\'entraînement (par ex. GPTBot) tout en laissant passer les robots de citation — une politique délibérée et plus fine qu\'un blocage tout-ou-rien, déjà appliquée sur ce site.',
+    gscAiPerformanceNote: 'Complément gratuit à surveiller : Google Search Console propose depuis mi-2026 un rapport « Performance IA générative » (impressions dans AI Overviews, AI Mode et Discover, par page/pays/appareil). Limites connues : pas de donnée de clics, et un bug de journalisation confirmé par Google le 13/08/2026 peut sous-estimer les impressions — ne pas interpréter seul un creux comme une vraie perte de visibilité.',
   },
 };
 

@@ -307,6 +307,8 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 
 **Technical audit vs. visibility monitoring — not the same job.** findable-audit answers "is this site *readable and citable* by AI crawlers right now" from a single deterministic crawl of your own code and config — no account, nothing tracked over time. A monitoring tool answers "*is* this site actually being cited" by repeatedly polling live AI answers for brand mentions — that requires an account, a schedule, and a query list, and it says nothing about *why* a site is or isn't cited. Run the audit first to fix the input side; add a monitor once you want to track the output side over time.
 
+**Structured-data coverage, in numbers.** Comparator sites in this space (e.g. score-geo.fr) list Schema.org type coverage as a decision criterion — 12 types for the best-rated tool there, 4–6 for others (Semrush, Ahrefs, Sistrix, Ubersuggest). The `structured-data` family here recognizes **~29 distinct types** (Article/BlogPosting/NewsArticle/TechArticle, FAQPage/QAPage, HowTo/Recipe/Event, Product/Offer, LocalBusiness and its retail/food subtypes, Organization and its subtypes, Person, WebSite/SearchAction, BreadcrumbList/ListItem, VideoObject).
+
 **Where alternatives beat us today:**
 
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope. Pair findable-audit (input side) with a monitor (output side) if you need it.
