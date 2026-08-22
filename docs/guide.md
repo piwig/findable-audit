@@ -221,6 +221,8 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 
 Machine-readable identity and rich-result eligibility.
 
+**Verifying a fix yourself.** After correcting JSON-LD, two free tools from the sources that actually consume it let you check the fix without re-running a full audit: [Google's Rich Results Test](https://search.google.com/test/rich-results) (does this markup make the page eligible for a rich result) and the [Schema.org Validator](https://validator.schema.org/) (does this JSON-LD parse and match the vocabulary).
+
 ### `json-ld` (10 pts)
 **Verifies:** The homepage has ≥1 `application/ld+json` block (fail if none).
 **Why:** JSON-LD is the machine-readable description answer engines lean on to extract facts without guessing from prose.

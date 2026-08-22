@@ -309,6 +309,8 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 
 **Structured-data coverage, in numbers.** Comparator sites in this space (e.g. score-geo.fr) list Schema.org type coverage as a decision criterion — 12 types for the best-rated tool there, 4–6 for others (Semrush, Ahrefs, Sistrix, Ubersuggest). The `structured-data` family here recognizes **~29 distinct types** (Article/BlogPosting/NewsArticle/TechArticle, FAQPage/QAPage, HowTo/Recipe/Event, Product/Offer, LocalBusiness and its retail/food subtypes, Organization and its subtypes, Person, WebSite/SearchAction, BreadcrumbList/ListItem, VideoObject).
 
+**How deep, compared to a general SEO audit.** Public SEO audit checklists show how the industry weighs the GEO/AI topic today: the Yvarn audit grid (47 criteria, CC-BY-NC, 2026 Q2) added "AI and LLM visibility" as a 7th category in 2026 — 4 criteria out of 47, roughly 5–10% of the score. findable-audit dedicates a whole family to it: `llm-content`, 21 checks, 18% of the weighted score. General SEO checklists are starting to notice AI visibility; here it's a first-class axis, not an addendum.
+
 **Where alternatives beat us today:**
 
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope. Pair findable-audit (input side) with a monitor (output side) if you need it.

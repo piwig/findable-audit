@@ -229,6 +229,8 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 
 Identité lisible par machine et éligibilité aux résultats enrichis.
 
+**Vérifier une correction soi-même.** Après avoir corrigé du JSON-LD, deux outils gratuits publiés par les sources qui l'exploitent réellement permettent de verifier la correction sans relancer un audit complet : le [Rich Results Test de Google](https://search.google.com/test/rich-results) (ce balisage rend-il la page éligible à un résultat enrichi) et le [validateur Schema.org](https://validator.schema.org/) (ce JSON-LD est-il syntaxiquement correct et conforme au vocabulaire).
+
 ### `json-ld` (10 pts)
 **Vérifie :** L'accueil comporte ≥1 bloc `application/ld+json` (échec si aucun).
 **Pourquoi :** JSON-LD est la description lisible par machine sur laquelle les moteurs de réponse s'appuient pour extraire des faits sans deviner depuis la prose.
