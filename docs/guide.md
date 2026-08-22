@@ -66,7 +66,7 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 
 ### `ai-serving-parity` (8 pts)
 **Verifies:** Refetches the homepage (plus up to two sampled pages) as GPTBot, ClaudeBot and a mobile browser, comparing HTTP status, body size, `<title>` and main content against the default fetch. Fails on a 403/451/5xx or missing main content for an AI user-agent; warns on softer divergence (title mismatch, >30% size delta, mobile-only difference). Skips without the per-UA fetch capability or when the homepage is unreachable.
-**Why:** If a CDN/WAF hands AI crawlers a blocked, redirected or stripped-down document, your content never reaches the assistants that would cite it — even though a browser sees the page fine. A 403 to GPTBot may be deliberate bot management, so the wording stays descriptive, not accusatory.
+**Why:** If a CDN/WAF hands AI crawlers a blocked, redirected or stripped-down document, your content never reaches the assistants that would cite it — even though a browser sees the page fine. A 403 to GPTBot may be deliberate bot management, so the wording stays descriptive, not accusatory. This is not a hypothetical risk: a 2026 comparison of GEO monitoring tools (Writesonic, "Best GEO Tools 2026") flagged a competing platform's own per-user-agent content-serving layer as carrying "cloaking-shaped risk" — the exact pattern this check probes for.
 **Fix:** Make sure GPTBot and ClaudeBot receive the same document a browser gets; review any bot-management rule that blocks or rewrites AI-crawler requests.
 
 ### `ai-crawler-reachability` (6 pts)
