@@ -66,7 +66,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     // agents.json / UCP manifests, informational only, never scored.
     ...(opts.agentStandards ? [agentStandardsSignals] : []),
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, snippetPreviewDirectives,
+    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl, snippetPreviewDirectives,
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, contentFeed, imagesAlt,
