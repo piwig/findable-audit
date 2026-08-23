@@ -6,7 +6,7 @@ import { indexingConflicts } from './indexing-conflicts.js';
 import type { Check } from '../types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl,
+  homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl, rslLicense,
 } from './ai-access.js';
 import {
   llmsTxt, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
@@ -66,7 +66,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     // agents.json / UCP manifests, informational only, never scored.
     ...(opts.agentStandards ? [agentStandardsSignals] : []),
     robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl, snippetPreviewDirectives,
+    homepageOk, robotsDirectives, aiServingParity, aiCrawlerReachability, cloudflareAiDefaults, payPerCrawl, rslLicense, snippetPreviewDirectives,
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, contentFeed, imagesAlt,

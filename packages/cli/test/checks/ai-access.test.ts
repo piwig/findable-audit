@@ -11,7 +11,7 @@ import {
 import type { FetchedResource } from '../../src/types.js';
 import {
   robotsExists, robotsWellformedCheck, searchCrawlersAllowed, aiCrawlersAllowed,
-  homepageOk, robotsDirectives, cloudflareAiDefaults, cloudflareClock, payPerCrawl,
+  homepageOk, robotsDirectives, cloudflareAiDefaults, cloudflareClock, payPerCrawl, rslLicense,
 } from '../../src/checks/ai-access.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -424,5 +424,47 @@ describe('pay-per-crawl (A40)', () => {
   it('ignores unrelated crawler-ish headers', async () => {
     const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { 'crawler-hint': 'x' } } });
     expect((await payPerCrawl.run(c)).status).toBe('pass');
+  });
+});
+
+describe('rsl-license (A71)', () => {
+  it('warns when no RSL declaration is found', async () => {
+    const c = stubCtx({ '/': { contentType: 'text/html', body: '<html><head></head></html>' } });
+    const r = await rslLicense.run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('no RSL');
+    expect(r.fix).toContain('rsl.xml');
+  });
+  it('skips when the homepage is unreachable', async () => {
+    const c = stubCtx({});
+    const bare: typeof c = { ...c, fetch: async () => null };
+    expect((await rslLicense.run(bare)).status).toBe('skip');
+  });
+  it('passes when a <link rel="license"> is present in the homepage head', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html><head><link rel="license" href="https://example.com/rsl.xml"></head></html>' },
+    });
+    const r = await rslLicense.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('https://example.com/rsl.xml');
+  });
+  it('passes when robots.txt has a License: directive', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html><head></head></html>' },
+      '/robots.txt': { contentType: 'text/plain', body: 'User-agent: *\nDisallow:\nLicense: https://example.com/rsl.xml\n' },
+    });
+    const r = await rslLicense.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('https://example.com/rsl.xml');
+  });
+  it('passes and names both sources when the link and the robots.txt directive agree', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html><head><link rel="license" href="https://example.com/rsl.xml"></head></html>' },
+      '/robots.txt': { contentType: 'text/plain', body: 'User-agent: *\nDisallow:\nLicense: https://example.com/rsl.xml\n' },
+    });
+    const r = await rslLicense.run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('<link rel="license">');
+    expect(r.message).toContain('robots.txt "License:"');
   });
 });

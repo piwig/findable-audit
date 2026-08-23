@@ -5,7 +5,7 @@ import {
   robotsDirectiveSet, hasDirectiveToken,
   AI_BOTS, CITATION_BOTS, SEARCH_BOTS,
 } from '../robots.js';
-import { parsePage } from './dom.js';
+import { parsePage, headOf } from './dom.js';
 import { mainContent } from './content.js';
 import { rollupBySeverity, type SeverityItem } from './jsonld.js';
 
@@ -438,5 +438,51 @@ export const payPerCrawl: Check = {
         fix);
     }
     return makeResult(this, 'pass', 'no pay-per-crawl signals (HTTP 402 or crawler-* pricing headers) on the homepage');
+  },
+};
+
+// ---------------------------------------------------------------------------
+// rsl-license (backlog A71): Really Simple Licensing (RSL) 1.0 — an AI-licensing
+// web standard finalized December 2025, declared via <link rel="license"
+// href=".../rsl.xml"> on the homepage and/or a "License:" directive in
+// robots.txt (same shape as the existing Sitemap: directive). Distinct from
+// TDMRep, which the project deliberately excludes for near-zero adoption.
+// This is an emerging/optional standard: absence is a warn (an opportunity to
+// state AI licensing terms), never a fail — mirrors contentFeed's tone (A56).
+// ---------------------------------------------------------------------------
+
+const RSL_LICENSE_HEADER_RE = /^\s*license\s*:\s*(\S+)/im;
+
+export const rslLicense: Check = {
+  id: 'rsl-license', family: 'ai-access', evidence: 'measured', maxPoints: 2,
+  async run(ctx) {
+    const home = await ctx.fetch('/');
+    if (!home || home.status !== 200) return makeResult(this, 'skip', 'homepage not reachable');
+    const head = headOf(parsePage(home));
+    const linkHref = head?.querySelector('link[rel="license"]')?.getAttribute('href');
+
+    const robots = await ctx.fetch('/robots.txt');
+    const robotsMatch = robots?.status === 200 && isPlainText(robots)
+      ? RSL_LICENSE_HEADER_RE.exec(robots.body)
+      : null;
+    const robotsHref = robotsMatch?.[1];
+
+    const fix = 'Declare AI licensing terms with RSL (Really Simple Licensing): add <link rel="license" '
+      + 'href="https://example.com/rsl.xml"> to the homepage <head>, and/or a "License: https://example.com/rsl.xml" '
+      + 'directive in robots.txt, pointing to an RSL document that states your crawling/training/inference terms.';
+
+    if (linkHref && robotsHref) {
+      return makeResult(this, 'pass',
+        t`RSL license declared via <link rel="license"> (${linkHref}) and robots.txt "License:" (${robotsHref})`);
+    }
+    if (linkHref) {
+      return makeResult(this, 'pass', t`RSL license declared via <link rel="license" href="${linkHref}">`);
+    }
+    if (robotsHref) {
+      return makeResult(this, 'pass', t`RSL license declared via robots.txt "License: ${robotsHref}"`);
+    }
+    return makeResult(this, 'warn',
+      'no RSL (Really Simple Licensing) declaration found — no <link rel="license"> on the homepage, no "License:" directive in robots.txt',
+      fix);
   },
 };

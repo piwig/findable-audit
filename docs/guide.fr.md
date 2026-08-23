@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **145 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **146 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 145 checks, **108 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 146 checks, **109 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -91,6 +91,11 @@ Nuance utile (d'après la doc Perplexity) : PerplexityBot est le crawler *d'inde
 **Vérifie :** Le statut et les en-têtes de la page d'accueil à la recherche de signaux pay-per-crawl : une réponse HTTP 402 Payment Required, ou des en-têtes de tarification `crawler-price` / `crawler-exact-price` / `crawler-max-price` / `crawler-charged` (Cloudflare Pay Per Crawl et dispositifs similaires). Un 402 fait échouer ; des en-têtes de tarification sur un contenu servi déclenchent un avertissement ; aucun signal → réussite. Accueil injoignable → ignoré.
 **Pourquoi :** Les dispositifs pay-per-crawl répondent HTTP 402 aux crawlers qui n'ont pas accepté de payer — y compris les robots de citation en temps réel, qui reçoivent alors un 402 au lieu du contenu. Une facturation activée par défaut retire silencieusement le site des réponses IA alors même que le robots.txt et le WAF semblent permissifs.
 **Corriger :** Passez en revue la configuration pay-per-crawl (p. ex. Cloudflare Pay Per Crawl) : exemptez explicitement (prix 0) les crawlers de citation dont vous voulez apparaître dans les réponses.
+
+### `rsl-license` (2 pts)
+**Vérifie :** La présence d'une déclaration RSL (Really Simple Licensing) : un `<link rel="license" href="...">` dans le `<head>` de la page d'accueil, et/ou une directive `License:` dans le robots.txt (même forme que `Sitemap:`). Une des deux sources trouvée → réussite ; aucune → avertissement. Accueil injoignable → ignoré.
+**Pourquoi :** RSL est un standard web de licensing IA finalisé en décembre 2025, permettant à un site d'énoncer ses conditions de crawl/entraînement/inférence de façon lisible par machine. C'est un standard émergent et facultatif : son absence ne donne toujours qu'un avertissement.
+**Corriger :** Ajoutez `<link rel="license" href="https://example.com/rsl.xml">` dans le `<head>` de la page d'accueil, et/ou une directive `License: https://example.com/rsl.xml` dans le robots.txt, pointant vers un document RSL.
 
 ### `snippet-preview-directives` (4 pts)
 **Vérifie :** Aucune page ne pose `nosnippet`, `max-snippet:0`, `max-image-preview:none` ou `max-video-preview:0` (avertissement si simplement absent ; `max-image-preview:large` compte positivement).

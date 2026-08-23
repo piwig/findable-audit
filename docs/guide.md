@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **145 checks in 8 families**.
+findable-audit scores a site out of 100 across **146 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 145 checks, **108 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 146 checks, **109 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -83,6 +83,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** The homepage status and headers for pay-per-crawl signals: an HTTP 402 Payment Required response, or `crawler-price` / `crawler-exact-price` / `crawler-max-price` / `crawler-charged` pricing headers (Cloudflare Pay Per Crawl and similar schemes). A 402 fails; pricing headers on served content warn; no signals pass. Homepage unreachable → skip.
 **Why:** Pay-per-crawl schemes answer HTTP 402 to crawlers that have not agreed to pay — including citation-time bots that do not pay get 402 instead of content. A default-on charge silently removes the site from AI answers even though robots.txt and the WAF look permissive.
 **Fix:** Review the pay-per-crawl configuration (e.g. Cloudflare Pay Per Crawl): explicitly exempt (price 0) the citation-time crawlers whose answers you want to appear in.
+
+### `rsl-license` (2 pts)
+**Verifies:** Presence of an RSL (Really Simple Licensing) declaration: a `<link rel="license" href="...">` in the homepage `<head>`, and/or a `License:` directive in robots.txt (same shape as `Sitemap:`). Either source passing → pass; neither found → warn. Homepage unreachable → skip.
+**Why:** RSL is an AI-licensing web standard finalized December 2025, letting a site state its crawling/training/inference terms machine-readably. It is emerging and optional, so absence is only ever a warning.
+**Fix:** Add `<link rel="license" href="https://example.com/rsl.xml">` to the homepage `<head>`, and/or a `License: https://example.com/rsl.xml` directive in robots.txt, pointing to an RSL document.
 
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).
