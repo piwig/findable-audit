@@ -291,6 +291,8 @@ This repository is its own plugin marketplace, so installing takes two commands:
 - **`geo-implement`** — implements the GEO artifacts on a static site (Astro, Next, Hugo), then verifies the result.
 - **`fix-technical-seo`** — fixes the technical-SEO and on-page findings: canonical, `noindex`, redirect hygiene, broken links, duplicate titles, heading outline, Open Graph, viewport, hreflang.
 
+**Why this matters, in numbers.** 68% of Google searches now end with no click (SparkToro, 2026 clickstream data, Jan–Apr sample) — the answer is consumed where it's generated, not on the linked page. The answer engines behind that shift already run at a scale that makes "invisible to AI crawlers" a real cost, not a hypothetical one: ChatGPT ~900M weekly active users, Gemini 750M+ monthly active users, AI Overviews serving 2B+ answers/month (2026 figures). This is the audience `findable-audit` measures readability and citability for.
+
 ## How it compares (honestly)
 
 Almost every individual check here exists somewhere else. What no free, OSS, self-hostable tool offered as of mid-2026 is the *combination*: one deterministic crawl producing one weighted A–F across SEO + GEO + Core Web Vitals + accessibility + security, with no account and no data sent to a third party.
@@ -308,6 +310,8 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 **Technical audit vs. visibility monitoring — not the same job.** findable-audit answers "is this site *readable and citable* by AI crawlers right now" from a single deterministic crawl of your own code and config — no account, nothing tracked over time. A monitoring tool answers "*is* this site actually being cited" by repeatedly polling live AI answers for brand mentions — that requires an account, a schedule, and a query list, and it says nothing about *why* a site is or isn't cited. Run the audit first to fix the input side; add a monitor once you want to track the output side over time.
 
 **Structured-data coverage, in numbers.** Comparator sites in this space (e.g. score-geo.fr) list Schema.org type coverage as a decision criterion — 12 types for the best-rated tool there, 4–6 for others (Semrush, Ahrefs, Sistrix, Ubersuggest). The `structured-data` family here recognizes **~29 distinct types** (Article/BlogPosting/NewsArticle/TechArticle, FAQPage/QAPage, HowTo/Recipe/Event, Product/Offer, LocalBusiness and its retail/food subtypes, Organization and its subtypes, Person, WebSite/SearchAction, BreadcrumbList/ListItem, VideoObject).
+
+**Verified, not just declared, E-E-A-T signals.** Most 2026 GEO/E-E-A-T checklists (e.g. unfoldmart.com, which names LinkedIn as "the strongest author-authority signal in 2026") stop at confirming a `Person` schema and `sameAs` links exist. The `sameas-verified` check here goes further: it fetches the linked profile and confirms the link is **reciprocal** (the external profile actually points back to the site), not just declaratively present — the same rigor `content-author-eeat` applies to author bylines.
 
 **How deep, compared to a general SEO audit.** Public SEO audit checklists show how the industry weighs the GEO/AI topic today: the Yvarn audit grid (47 criteria, CC-BY-NC, 2026 Q2) added "AI and LLM visibility" as a 7th category in 2026 — 4 criteria out of 47, roughly 5–10% of the score. findable-audit dedicates a whole family to it: `llm-content`, 21 checks, 18% of the weighted score. General SEO checklists are starting to notice AI visibility; here it's a first-class axis, not an addendum.
 
