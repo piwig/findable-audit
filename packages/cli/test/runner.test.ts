@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(145);
+    expect(report.results).toHaveLength(146);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -37,9 +37,10 @@ describe('runAudit', () => {
     // HTTP, so there is no handshake to read, and it emits no CDN/edge headers.
     // The semantic pair skips too: keyword-cannibalization needs 2 pages, and this
     // homepage carries neither 3 title/H1 topic words nor 100 words of prose.
-    // llm-good ships no JSON-LD at all, so the two structured-data overlays have nothing
-    // to grade: rich-result-eligibility (no Google-documented type) and sd-page-entity
-    // (no WebPage/CreativeWork node to carry `about`).
+    // llm-good ships no JSON-LD at all, so the structured-data overlays have nothing
+    // to grade: rich-result-eligibility (no Google-documented type), sd-page-entity
+    // (no WebPage/CreativeWork node to carry `about`), and sd-speakable (no eligible
+    // Article/FAQPage/HowTo content type).
     // consistent-help skips too: llm-good only samples the homepage (< 2 pages to compare).
     expect(skipped.map((r) => r.id).sort()).toEqual([
       'alt-descriptive', 'anchor-target-profile', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links',
@@ -52,7 +53,7 @@ describe('runAudit', () => {
       'mixed-content', 'nap-consistency', 'outbound-citations', 'outbound-link-health', 'pagination-canonical', 'redirect-chains',
       'redirect-hygiene', 'rich-result-eligibility', 'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article',
       'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-organization', 'sd-page-entity',
-      'sd-product', 'sd-special-types', 'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod',
+      'sd-product', 'sd-speakable', 'sd-special-types', 'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod',
       'sitemap-orphans', 'sitemap-urls-valid', 'tls-version', 'topical-focus', 'trailing-slash', 'unique-titles',
       'www-consolidation',
     ]);

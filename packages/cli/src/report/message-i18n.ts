@@ -311,6 +311,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'no <title>': 'aucun <title>',
   'no article-type pages to attribute': 'aucune page de type article à attribuer',
   'no article-type pages to date': 'aucune page de type article à dater',
+  'no Article/FAQPage/HowTo content on the homepage':
+    'aucun contenu Article/FAQPage/HowTo sur la page d’accueil',
   'no Article/NewsArticle/BlogPosting page in the sample':
     'aucune page Article/NewsArticle/BlogPosting dans l’échantillon',
   'no author (E-E-A-T) on: {0}': 'aucun auteur (E-E-A-T) sur : {0}',
@@ -393,6 +395,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'no sampled pages to build an entity graph from':
     'aucune page échantillonnée pour construire un graphe d’entités',
   'no semantic landmarks on: {0}': 'aucun repère sémantique sur : {0}',
+  'no SpeakableSpecification on the eligible content type':
+    'aucune SpeakableSpecification sur le contenu éligible',
   'no sitemap discovered': 'aucun sitemap découvert',
   'no sitemap found (robots.txt Sitemap lines, /sitemap.xml, /sitemap-index.xml, /sitemap_index.xml)':
     'aucun sitemap trouvé (lignes Sitemap du robots.txt, /sitemap.xml, /sitemap-index.xml, /sitemap_index.xml)',
@@ -474,6 +478,10 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'contenu principal rendu par le serveur sur {0} page(s) échantillonnée(s), aucune racine de montage client vide',
   'serving diverges by User-Agent: {0}': 'le service diverge selon le User-Agent : {0}',
   'single-language site (no hreflang annotations)': 'site monolingue (aucune annotation hreflang)',
+  'SpeakableSpecification declared with cssSelector/xpath':
+    'SpeakableSpecification déclarée avec cssSelector/xpath',
+  'SpeakableSpecification present without cssSelector or xpath':
+    'SpeakableSpecification présente sans cssSelector ni xpath',
   'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15':
     'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026',
   'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15':

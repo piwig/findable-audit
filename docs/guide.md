@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **146 checks in 8 families**.
+findable-audit scores a site out of 100 across **147 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 146 checks, **109 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 147 checks, **110 are measured and 37 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -292,6 +292,11 @@ Machine-readable identity and rich-result eligibility.
 **Verifies:** *(skip unless a `<video>`/YouTube embed or VideoObject is present)* VideoObject with name + description + absolute thumbnailUrl + ISO uploadDate; bonus contentUrl/embedUrl/duration (fail if video present but no/incomplete VideoObject).
 **Why:** VideoObject markup makes video eligible for video rich results and assistant surfaces.
 **Fix:** Add VideoObject(name/description/thumbnailUrl/uploadDate).
+
+### `sd-speakable` (1 pt)
+**Verifies:** *(skip unless the homepage carries Article/NewsArticle/BlogPosting/TechArticle/FAQPage/HowTo content)* A `speakable` (`SpeakableSpecification`) node naming the summary/answer text via `cssSelector` or `xpath` (warn if missing or without selectors).
+**Why:** Voice assistants and smart speakers need a declared region of text to read aloud; without it they can only guess.
+**Fix:** Add `"speakable": {"@type": "SpeakableSpecification", "cssSelector": [...]}` pointing at the summary or answer text.
 
 ### `sd-special-types` (3 pts)
 **Verifies:** *(skip unless present)* HowTo / Event / Recipe required fields are well-formed (e.g. Event needs name + ISO startDate + location); fail on any missing required field.

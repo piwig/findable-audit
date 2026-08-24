@@ -383,6 +383,40 @@ export const sdVideo: Check = {
 };
 
 // ---------------------------------------------------------------------------
+// sd-speakable
+// ---------------------------------------------------------------------------
+
+const SPEAKABLE_ELIGIBLE_TYPES = new Set(['Article', 'NewsArticle', 'BlogPosting', 'TechArticle', 'FAQPage', 'HowTo']);
+
+function hasSelectorValue(v: unknown): boolean {
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (Array.isArray(v)) return v.some((item) => typeof item === 'string' && item.trim().length > 0);
+  return false;
+}
+
+export const sdSpeakable: Check = {
+  id: 'sd-speakable', family: 'structured-data', evidence: 'measured', maxPoints: 1,
+  async run(ctx) {
+    const res = await ctx.fetch('/');
+    if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
+    const nodes = flatten(extractJsonLd(res.body));
+    const candidate = nodes.find((n) => typesOf(n).some((type) => SPEAKABLE_ELIGIBLE_TYPES.has(type)));
+    if (!candidate) return makeResult(this, 'skip', 'no Article/FAQPage/HowTo content on the homepage');
+    const speakable = candidate.speakable;
+    if (!speakable || typeof speakable !== 'object') {
+      return makeResult(this, 'warn', 'no SpeakableSpecification on the eligible content type',
+        'Add a "speakable": {"@type": "SpeakableSpecification", "cssSelector": [...] } node pointing at the summary or answer text.');
+    }
+    const spec = speakable as Record<string, unknown>;
+    if (!hasSelectorValue(spec.cssSelector) && !hasSelectorValue(spec.xpath)) {
+      return makeResult(this, 'warn', 'SpeakableSpecification present without cssSelector or xpath',
+        'Add a cssSelector or xpath pointing at the summary or answer text.');
+    }
+    return makeResult(this, 'pass', 'SpeakableSpecification declared with cssSelector/xpath');
+  },
+};
+
+// ---------------------------------------------------------------------------
 // sd-special-types
 // ---------------------------------------------------------------------------
 

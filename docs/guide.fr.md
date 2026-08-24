@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **146 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **147 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 146 checks, **109 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 147 checks, **110 sont mesurés et 37 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -300,6 +300,11 @@ Identité lisible par machine et éligibilité aux résultats enrichis.
 **Vérifie :** *(ignoré sauf si `<video>`/embed YouTube ou VideoObject présent)* VideoObject avec name + description + thumbnailUrl absolue + uploadDate ISO ; bonus contentUrl/embedUrl/duration (échec si vidéo présente mais VideoObject absent/incomplet).
 **Pourquoi :** Le balisage VideoObject rend la vidéo éligible aux résultats enrichis vidéo et aux surfaces des assistants.
 **Corriger :** Ajoutez VideoObject(name/description/thumbnailUrl/uploadDate).
+
+### `sd-speakable` (1 pt)
+**Vérifie :** *(ignoré sauf si la page d'accueil porte du contenu Article/NewsArticle/BlogPosting/TechArticle/FAQPage/HowTo)* Un nœud `speakable` (`SpeakableSpecification`) nommant le résumé/la réponse via `cssSelector` ou `xpath` (avertissement si absent ou sans sélecteur).
+**Pourquoi :** Les assistants vocaux et enceintes connectées ont besoin d'une zone de texte déclarée à lire à voix haute ; sans cela, ils ne peuvent que deviner.
+**Corriger :** Ajoutez `"speakable": {"@type": "SpeakableSpecification", "cssSelector": [...]}` pointant vers le résumé ou la réponse.
 
 ### `sd-special-types` (3 pts)
 **Vérifie :** *(ignoré sauf si présents)* Champs requis de HowTo / Event / Recipe bien formés (ex. Event exige name + startDate ISO + location) ; échec sur tout champ requis manquant.

@@ -7,7 +7,7 @@ import { Crawler } from '../../src/crawler.js';
 import {
   extractJsonLd, jsonLd, jsonLdEntity, twitterCard,
   jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness,
-  sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity, sdConsistency,
+  sdWebsiteSearchAction, sdVideo, sdSpeakable, sdSpecialTypes, sdGraphIntegrity, sdConsistency,
 } from '../../src/checks/structured-data.js';
 
 const fixtures = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -261,6 +261,31 @@ describe('sd-video', () => {
       contentUrl: 'https://example.com/video.mp4', duration: 'PT1M30S',
     })}</head></html>`);
     expect((await sdVideo.run(c)).status).toBe('pass');
+  });
+});
+
+describe('sd-speakable', () => {
+  it('skips when there is no eligible content type', async () => {
+    const c = homeCtx(`<html><head>${ld({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Acme' })}</head></html>`);
+    expect((await sdSpeakable.run(c)).status).toBe('skip');
+  });
+  it('warns when the eligible type has no speakable node', async () => {
+    const c = homeCtx(`<html><head>${ld({ '@context': 'https://schema.org', '@type': 'Article', name: 'Demo' })}</head></html>`);
+    expect((await sdSpeakable.run(c)).status).toBe('warn');
+  });
+  it('warns when speakable has neither cssSelector nor xpath', async () => {
+    const c = homeCtx(`<html><head>${ld({
+      '@context': 'https://schema.org', '@type': 'FAQPage', name: 'Demo',
+      speakable: { '@type': 'SpeakableSpecification' },
+    })}</head></html>`);
+    expect((await sdSpeakable.run(c)).status).toBe('warn');
+  });
+  it('passes when speakable declares a cssSelector', async () => {
+    const c = homeCtx(`<html><head>${ld({
+      '@context': 'https://schema.org', '@type': 'HowTo', name: 'Demo',
+      speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.summary'] },
+    })}</head></html>`);
+    expect((await sdSpeakable.run(c)).status).toBe('pass');
   });
 });
 

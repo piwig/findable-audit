@@ -15,7 +15,7 @@ import {
 } from './llm-content.js';
 import {
   jsonLd, jsonLdEntity, twitterCard, jsonLdValid, sdOrganization, sdEntityGrounding,
-  sdLocalBusiness, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity, sdConsistency,
+  sdLocalBusiness, sdWebsiteSearchAction, sdVideo, sdSpeakable, sdSpecialTypes, sdGraphIntegrity, sdConsistency,
 } from './structured-data.js';
 import { sdArticle, sdProduct, sdFaq, sdBreadcrumb, napConsistency } from './structured-data-mp.js';
 import { richResultEligibility } from './rich-results.js';
@@ -79,7 +79,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     headingsOutline, anchorText, anchorTargetProfile,
     charset, favicon, contentReadability, figureCaption,
     jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness, sdArticle, sdProduct,
-    sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpecialTypes, sdGraphIntegrity,
+    sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpeakable, sdSpecialTypes, sdGraphIntegrity,
     sdConsistency, napConsistency, entityGraphConnectivity, richResultEligibility, sdPageEntity,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,

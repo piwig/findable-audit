@@ -144,9 +144,10 @@ test('every indexable page declares dateModified equal to its sitemap lastmod', 
 // The two findings we deliberately did NOT paper over. If either ever starts
 // passing (a real second profile / Wikidata entity, or a real site search), this
 // test fails and tells whoever changed it to update the honesty note in README.
-test('the two knowingly-unfixed findings are still warn, and still only warn', () => {
+test('the three knowingly-unfixed findings are still warn, and still only warn', () => {
   assert.equal(check('sd-entity-grounding').status, 'warn', why('sd-entity-grounding'));
   assert.equal(check('sd-website-searchaction').status, 'warn', why('sd-website-searchaction'));
+  assert.equal(check('rsl-license').status, 'warn', why('rsl-license'));
 });
 
 /**
@@ -170,6 +171,7 @@ const LOCAL_ONLY = new Set([
 const KNOWN_WARNS = new Set([
   'sd-entity-grounding',      // documented in README: no second official profile yet
   'sd-website-searchaction',  // documented in README: no internal search to declare
+  'rsl-license',              // documented in README: no licensing terms to state
 ]);
 
 test('nothing but the documented exceptions falls short against our own engine', () => {

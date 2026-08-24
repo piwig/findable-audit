@@ -81,8 +81,9 @@ either would mean shipping markup we tell auditees not to ship:
 |---|---|
 | `sd-entity-grounding` — *only 1 sameAs profile URL* | Clearing it needs a second **official** profile plus a Wikipedia/Wikidata anchor. The project has neither (the npm package is unpublished, and there is no knowledge-graph entity). `sameAs` means *same entity*, so pointing it at the maintainer's personal GitHub account would be simply false. |
 | `sd-website-searchaction` — *no SearchAction* | A sitelinks searchbox promises **site search**. This site has none: the landing form audits an external URL, it does not search this site. Declaring a `SearchAction` would hand Google a searchbox that cannot work. |
+| `rsl-license` — *no RSL declaration* | RSL (Really Simple Licensing) states AI crawling/training/inference terms. This site has no licensing terms to state — the content is a free public audit tool, not something we license or restrict. Adding an RSL tag with no real terms behind it would be exactly the kind of markup this project tells auditees not to ship. |
 
-The dogfooding suite asserts both are still `warn`, so if either ever becomes
+The dogfooding suite asserts these are still `warn`, so if any of them ever becomes
 genuinely fixable the test fails and points back at this table.
 
 A third finding, `www-consolidation`, was a **false positive in our own check** and
