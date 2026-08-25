@@ -16,6 +16,7 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import { basename } from 'node:path';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import { runAudit, UnreachableSiteError } from '../../packages/cli/dist/runner.js';
 import { buildChecks } from '../../packages/cli/dist/checks/index.js';
@@ -102,7 +103,7 @@ const jobs = createJobStore({ ttlMs: 180_000, maxJobs: 500 });
 
 // Usage-stats store (JSONL, best-effort). DATA_DIR defaults to apps/web/data/,
 // created lazily on the first append. The hashing salt is resolved once, lazily.
-const store = createStore({ dataDir: process.env.DATA_DIR ?? new URL('./data/', import.meta.url).pathname });
+const store = createStore({ dataDir: process.env.DATA_DIR ?? fileURLToPath(new URL('./data/', import.meta.url)) });
 let hashIpFn = null;
 async function hashIp(ip) {
   if (!hashIpFn) hashIpFn = ipHasher(await loadOrCreateSalt(store.dataDir));
