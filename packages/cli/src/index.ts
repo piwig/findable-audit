@@ -437,7 +437,7 @@ try {
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
   if (onProgress) process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
-  console.log(values.json ? renderJson(report) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report, langTyped)));
+  console.log(values.json ? renderJson(report, { diff }) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report, langTyped)));
   if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
@@ -471,9 +471,9 @@ try {
   }
   for (const file of targets) {
     let body: string;
-    if (/\.sarif$/i.test(file)) body = renderSarif(report);
+    if (/\.sarif$/i.test(file)) body = renderSarif(report, { diff });
     else if (/\.svg$/i.test(file)) body = renderBadge(report);
-    else if (/\.json$/i.test(file)) body = renderJson(report);
+    else if (/\.json$/i.test(file)) body = renderJson(report, { diff });
     else if (/\.xml$/i.test(file)) body = renderJunit(report);
     else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff, history });
     else body = compare ? renderCompareMarkdown(reports, langTyped, compareOpts) : renderMarkdown(report, now, langTyped, { diff });

@@ -90,3 +90,35 @@ describe('renderSarif — GitHub code-scanning ingestion', () => {
     expect(uri).not.toContain('..');
   });
 });
+
+// A86: with --baseline, regressions must be visible in code-scanning even when
+// the current status is only `warn` — otherwise --fail-on-regression is mute in
+// machine formats.
+describe('renderSarif — baseline regressions', () => {
+  const diff = {
+    baselineScore: 80,
+    currentScore: 72,
+    scoreDelta: -8,
+    familyDeltas: [],
+    regressions: [
+      { id: 'evil', family: 'security' as const, from: 'pass' as const, to: 'warn' as const, message: 'weak header' },
+    ],
+    improvements: [],
+    added: [],
+    removed: [],
+  };
+
+  it('escalates a regressed warn to error and flags it in properties', () => {
+    const sarif = JSON.parse(renderSarif(report, { diff }));
+    const byId = Object.fromEntries(sarif.runs[0].results.map((r: { ruleId: string }) => [r.ruleId, r]));
+    expect(byId['evil'].level).toBe('error');            // pass→warn regression escalated
+    expect(byId['evil'].properties.regressed).toBe(true);
+    expect(byId['llms-txt'].level).toBe('error');        // untouched fail stays error
+    expect(byId['llms-txt'].properties.regressed).toBeUndefined();
+  });
+
+  it('changes nothing when no diff is given (no --baseline)', () => {
+    const without = JSON.parse(renderSarif(report));
+    expect(without.runs[0].results.find((r: { ruleId: string }) => r.ruleId === 'evil').level).toBe('warning');
+  });
+});

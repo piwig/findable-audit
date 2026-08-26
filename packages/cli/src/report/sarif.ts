@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult } from '../types.js';
+import type { ReportDiff } from './diff.js';
 
 const VERSION: string = (() => {
   try {
@@ -50,8 +51,12 @@ function artifactPathFor(url: string): string {
  * skipped checks are omitted (SARIF is a findings format). The overall score
  * and grade are attached as run properties.
  */
-export function renderSarif(report: AuditReport): string {
+export function renderSarif(report: AuditReport, opts: { diff?: ReportDiff } = {}): string {
   const findings = report.results.filter((r) => r.status === 'fail' || r.status === 'warn');
+  // Check ids that regressed vs the baseline (e.g. pass→warn, warn→fail).
+  // Regressions are escalated to `error` so `--baseline` runs surface them in
+  // code-scanning even when the new status is only `warn`.
+  const regressedIds = new Set((opts.diff?.regressions ?? []).map((t) => t.id));
 
   // One rule per distinct check id that produced a finding.
   const ruleIndex = new Map<string, number>();
@@ -69,16 +74,24 @@ export function renderSarif(report: AuditReport): string {
   }
 
   const artifactUri = artifactPathFor(report.url);
-  const results = findings.map((r) => ({
-    ruleId: r.id,
-    ruleIndex: ruleIndex.get(r.id),
-    level: levelOf(r.status),
-    message: { text: r.fix ? `${r.message} — Fix: ${r.fix}` : r.message },
-    locations: [{
-      physicalLocation: { artifactLocation: { uri: artifactUri } },
-    }],
-    properties: { pointsLost: r.maxPoints - r.points, family: r.family, url: report.url },
-  }));
+  const results = findings.map((r) => {
+    const regressed = regressedIds.has(r.id);
+    return {
+      ruleId: r.id,
+      ruleIndex: ruleIndex.get(r.id),
+      level: regressed ? 'error' : levelOf(r.status),
+      message: { text: r.fix ? `${r.message} — Fix: ${r.fix}` : r.message },
+      locations: [{
+        physicalLocation: { artifactLocation: { uri: artifactUri } },
+      }],
+      properties: {
+        pointsLost: r.maxPoints - r.points,
+        family: r.family,
+        url: report.url,
+        ...(regressed ? { regressed: true } : {}),
+      },
+    };
+  });
 
   const sarif = {
     $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
