@@ -16,6 +16,13 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // A8 — social-proof (structured-data).
+  'no page could be read': 'aucune page n\'a pu être lue',
+  'no Product, Service, LocalBusiness or Organization markup in the sample — social proof is not expected here': 'aucun balisage Product, Service, LocalBusiness ou Organization dans l\'échantillon — la preuve sociale n\'y est pas attendue',
+  '{0} usable rating/review node(s) found, but the markup on {1} is incomplete': '{0} nœud(s) de note/avis exploitables trouvés, mais le balisage sur {1} est incomplet',
+  '{0} usable AggregateRating/Review node(s) declared across the sampled pages': '{0} nœud(s) AggregateRating/Review exploitables déclarés sur les pages échantillonnées',
+  'rating markup is declared on {0} page(s) but unusable ({1})': 'un balisage de notes est déclaré sur {0} page(s) mais inexploitable ({1})',
+  'no AggregateRating or Review markup on {0} page(s) declaring Product/Service/LocalBusiness/Organization': 'aucun balisage AggregateRating ou Review sur {0} page(s) déclarant Product/Service/LocalBusiness/Organization',
   // A56 — content-feed (llm-content).
   'feed found at {0} (RSS/Atom/JSON Feed)': 'flux trouvé sur {0} (RSS/Atom/JSON Feed)',
   'no RSS/Atom/JSON feed found': 'aucun flux RSS/Atom/JSON trouvé',

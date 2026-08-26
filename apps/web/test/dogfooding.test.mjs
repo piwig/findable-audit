@@ -172,6 +172,7 @@ const KNOWN_WARNS = new Set([
   'sd-entity-grounding',      // documented in README: no second official profile yet
   'sd-website-searchaction',  // documented in README: no internal search to declare
   'rsl-license',              // documented in README: no licensing terms to state
+  'social-proof',             // advisory heuristic: we declare Organization but collect no reviews to mark up
 ]);
 
 test('nothing but the documented exceptions falls short against our own engine', () => {

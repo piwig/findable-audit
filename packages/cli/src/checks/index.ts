@@ -58,6 +58,7 @@ import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 import { agentUsability } from './agentic.js';
 import { agentStandardsSignals } from './agent-standards.js';
 import { llmsTxtLint } from './llms-lint.js';
+import { socialProof } from './social-proof.js';
 import { topicalFocus, keywordCannibalization } from './semantic.js';
 
 export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boolean } = {}): Check[] {
@@ -80,7 +81,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     charset, favicon, contentReadability, figureCaption,
     jsonLdValid, sdOrganization, sdEntityGrounding, sdLocalBusiness, sdArticle, sdProduct,
     sdFaq, sdBreadcrumb, sdWebsiteSearchAction, sdVideo, sdSpeakable, sdSpecialTypes, sdGraphIntegrity,
-    sdConsistency, napConsistency, entityGraphConnectivity, richResultEligibility, sdPageEntity,
+    sdConsistency, napConsistency, entityGraphConnectivity, richResultEligibility, sdPageEntity, socialProof,
     canonicalResolves, wwwConsolidation, trailingSlash, redirectChains, soft404, custom404,
     urlStructure, paginationCanonical, metaRefresh, hreflangXDefault, internalLinking, linkEquityMap, crawlableNav,
     internalLinkContext, internalEquityLeaks, outboundLinkHealth,
