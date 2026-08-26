@@ -417,7 +417,7 @@ try {
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
   if (onProgress) process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
-  console.log(values.json ? renderJson(report) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report)));
+  console.log(values.json ? renderJson(report) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report, langTyped)));
   if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
