@@ -20,16 +20,18 @@ import { emitFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/inde
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import { parseHistory, appendHistory, type HistoryEntry } from './report/history.js';
+import { FAMILY_WEIGHTS } from './scoring.js';
 import type { Lang } from './report/i18n.js';
 
 const USAGE = `Usage: findable <url> [options]
        findable generate llms-txt <url> [--out <dir>] [--lang <en|fr>] [--max-pages <n>] [--timeout <ms>] [--user-agent <ua>] [--quiet]
 
-findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
+findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--fail-on <family>=<n>] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
 
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
 --fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
+--fail-on <family>=<n> (repeatable) exits 1 when that family subscore is below n, without imposing a global threshold — e.g. --fail-on ai-access=80 --fail-on structured-data=70. Families: ai-access, llm-content, structured-data, technical-seo, on-page, performance, accessibility, security.
 --entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json, .dot (Graphviz), or .mmd (Mermaid).
 --answers <file> writes the answer matrix: the questions this site's own declarations imply, and
   whether the crawled pages hold a passage that answers each one and stands on its own. Format by
@@ -84,7 +86,7 @@ By default, two report files are written to the current directory: <host>-<date>
   result on stdout and real errors still print. Errors keep the findable-audit: prefix, notes never had it.
 --no-color strips ANSI colors from the terminal output (for pagers, logs, CI). The NO_COLOR
   environment variable (no-color.org) is honored too; --no-color simply forces it for one run.
-Exit codes: 0 = score >= min-score, 1 = below, 2 = unreachable/error.`;
+Exit codes: 0 = score >= min-score and all gates pass, 1 = below min-score / regression / --fail-on gate, 2 = unreachable or invalid invocation, 3 = report write failed.`;
 
 /** Default report basename written when neither --report nor --no-report is given. */
 function defaultReportBase(url: string, now: Date): string {
@@ -111,6 +113,7 @@ const parseCliArgs = () =>
       compare: { type: 'string' },
       baseline: { type: 'string' },
       'fail-on-regression': { type: 'boolean', default: false },
+      'fail-on': { type: 'string', multiple: true },
       'regression-tolerance': { type: 'string', default: '0' },
       'entity-graph': { type: 'string' },
       answers: { type: 'string' },
@@ -231,6 +234,23 @@ const regressionTolerance = Number(values['regression-tolerance']);
 if (!Number.isInteger(regressionTolerance) || regressionTolerance < 0) {
   console.error(`findable-audit: invalid --regression-tolerance value "${values['regression-tolerance']}" (expected an integer >= 0)\n\n${USAGE}`);
   process.exit(2);
+}
+
+// --fail-on <family>=<score> validation (A89): repeatable per-family CI gates.
+const failOnGates = new Map<string, number>();
+for (const raw of values['fail-on'] ?? []) {
+  const eq = raw.indexOf('=');
+  const family = eq === -1 ? '' : raw.slice(0, eq).trim();
+  const threshold = eq === -1 ? NaN : Number(raw.slice(eq + 1));
+  if (!(family in FAMILY_WEIGHTS)) {
+    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected <family>=<score> with family one of: ${Object.keys(FAMILY_WEIGHTS).join(', ')})\n\n${USAGE}`);
+    process.exit(2);
+  }
+  if (raw.slice(eq + 1).trim() === '' || !Number.isFinite(threshold) || threshold < 0 || threshold > 100) {
+    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected a score between 0 and 100)\n\n${USAGE}`);
+    process.exit(2);
+  }
+  failOnGates.set(family, threshold);
 }
 if ((failOnRegression || values['regression-tolerance'] !== '0') && values.baseline === undefined) {
   console.error(`findable-audit: --fail-on-regression / --regression-tolerance require --baseline <file>\n\n${USAGE}`);
@@ -557,7 +577,16 @@ try {
   }
 
   const regressed = failOnRegression && baseline !== undefined && report.score < baseline.score - regressionTolerance;
-  process.exitCode = reportWriteFailed ? 2 : regressed ? 1 : report.score >= minScore ? 0 : 1;
+  // A89 — per-family gates: exit 1 when a gated family subscore is below its threshold.
+  let gateFailed = false;
+  for (const f of report.familyScores) {
+    const threshold = failOnGates.get(f.family);
+    if (threshold !== undefined && f.score < threshold) {
+      gateFailed = true;
+      console.error(`findable-audit: --fail-on gate failed — ${f.family} scored ${f.score} < ${threshold}`);
+    }
+  }
+  process.exitCode = reportWriteFailed ? 3 : regressed || gateFailed ? 1 : report.score >= minScore ? 0 : 1;
 } catch (err) {
   if (err instanceof UnreachableSiteError) {
     console.error(`findable-audit: ${err.message}`);

@@ -108,12 +108,12 @@ describe('findable CLI binary', () => {
     }
   }, 30_000);
 
-  it('exits 2 when the --report path is not writable', async () => {
+  it('exits 3 when the --report path is not writable', async () => {
     const srv = await serveFixture(path.join(fixtures, 'perfect-site'));
     closers.push(srv.close);
     const bad = path.join(tmpdir(), `no-such-dir-${Date.now()}`, 'report.md');
     const { code, stderr } = await runCli([srv.url, '--report', bad, '--indexnow-key', 'testkey123']);
-    expect(code).toBe(2);
+    expect(code).toBe(3);
     expect(stderr).toContain('cannot write report');
   }, 30_000);
 
