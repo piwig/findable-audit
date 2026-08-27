@@ -254,6 +254,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'incomplete landmarks (main only / no main) on: {0}': 'repères incomplets (main seul / pas de main) sur : {0}',
   'inconsistent NAP across pages: {0}': 'NAP incohérent d’une page à l’autre : {0}',
   'IndexNow key file /{0}.txt missing or mismatched': 'fichier de clé IndexNow /{0}.txt absent ou non concordant',
+  'IndexNow key file detected (/{0}.txt) — instant URL submission to Bing (and Bing-backed AI answers) is set up':
+    'fichier de clé IndexNow détecté (/{0}.txt) — la soumission instantanée d’URL à Bing (et aux réponses IA adossées à Bing) est en place',
   'IndexNow key file verified': 'fichier de clé IndexNow vérifié',
   'ingestion hygiene issues on: {0}': 'problèmes d’hygiène d’ingestion sur : {0}',
   'invalid hreflang code(s): {0}': 'code(s) hreflang invalide(s) : {0}',
@@ -350,8 +352,8 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'no hreflang annotations (single-language site)': 'aucune annotation hreflang (site monolingue)',
   'no iframes on sampled pages': 'aucune iframe sur les pages échantillonnées',
   'no images to assess': 'aucune image à évaluer',
-  'no IndexNow key provided (use --indexnow-key to enable)':
-    'aucune clé IndexNow fournie (utilisez --indexnow-key pour activer le contrôle)',
+  'no IndexNow key detected — IndexNow pushes new/updated URLs to Bing instantly (Copilot and other AI answers draw on that index); informational, re-run with --indexnow-key <key> to verify a known key':
+    'aucune clé IndexNow détectée — IndexNow pousse instantanément les URL nouvelles/mises à jour vers Bing (dont s’alimentent Copilot et d’autres réponses IA) ; informatif, relancez avec --indexnow-key <clé> pour vérifier une clé connue',
   'no INP field data in PSI response (low-traffic URL)':
     'aucune donnée terrain INP dans la réponse PSI (URL à faible trafic)',
   'no internal links on sampled pages': 'aucun lien interne sur les pages échantillonnées',

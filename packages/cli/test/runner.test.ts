@@ -49,7 +49,7 @@ describe('runAudit', () => {
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp',
       'cwv-ttfb', 'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate',
       'hreflang', 'hreflang-x-default', 'hsts', 'http-protocol', 'https', 'iframe-title',
-      'indexing-conflicts', 'indexnow', 'internal-equity-leaks', 'internal-link-context', 'internal-linking', 'json-ld-entity',
+      'indexing-conflicts', 'internal-equity-leaks', 'internal-link-context', 'internal-linking', 'json-ld-entity',
       'json-ld-valid', 'keyword-cannibalization', 'lab-fcp', 'lab-tbt', 'lighthouse-perf', 'link-equity-map',
       'mixed-content', 'nap-consistency', 'outbound-citations', 'outbound-link-health', 'pagination-canonical', 'redirect-chains',
       'redirect-hygiene', 'rich-result-eligibility', 'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article',

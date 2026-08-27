@@ -83,17 +83,47 @@ export const sitemapCheck: Check = {
   },
 };
 
+// A93 — auto-detection candidates: an IndexNow key is 8–128 chars of
+// [A-Za-z0-9-]. Sites rarely advertise the key file, but when they do it is a
+// root-level `/{key}.txt` reference in the homepage HTML; `/indexnow.txt`
+// (key literally "indexnow") is a common tutorial convention worth probing.
+const INDEXNOW_STEM_RE = /\/([A-Za-z0-9-]{8,128})\.txt\b/g;
+const MAX_INDEXNOW_PROBES = 5;
+
+/** Root-level `.txt` stems referenced by the homepage HTML, plausible as IndexNow keys. */
+function indexnowCandidates(html: string): string[] {
+  const stems = new Set<string>(['indexnow']);
+  for (const m of html.matchAll(INDEXNOW_STEM_RE)) stems.add(m[1]);
+  return [...stems].slice(0, MAX_INDEXNOW_PROBES);
+}
+
 export function indexnowCheck(key?: string): Check {
   return {
     id: 'indexnow', family: 'technical-seo', evidence: 'measured', maxPoints: 4,
     async run(ctx) {
-      if (!key) return makeResult(this, 'skip', 'no IndexNow key provided (use --indexnow-key to enable)');
-      const res = await ctx.fetch(`/${key}.txt`);
-      if (res?.status === 200 && isPlainText(res) && res.body.trim() === key) {
-        return makeResult(this, 'pass', 'IndexNow key file verified');
+      const verifies = async (stem: string): Promise<boolean> => {
+        const res = await ctx.fetch(`/${stem}.txt`);
+        return res?.status === 200 && isPlainText(res) && res.body.trim() === stem;
+      };
+      if (key) {
+        if (await verifies(key)) return makeResult(this, 'pass', 'IndexNow key file verified');
+        return makeResult(this, 'fail', t`IndexNow key file /${key}.txt missing or mismatched`,
+          'Publish a text file named <key>.txt at the site root containing exactly the key.');
       }
-      return makeResult(this, 'fail', t`IndexNow key file /${key}.txt missing or mismatched`,
-        'Publish a text file named <key>.txt at the site root containing exactly the key.');
+      // A93 — no key supplied: informational auto-detection, warn but never
+      // fail (same tone as rsl-license A71). IndexNow feeds Bing's index,
+      // which Copilot and other Bing-backed AI answers draw from.
+      const home = await ctx.fetch('/');
+      if (!home) return makeResult(this, 'skip', 'homepage not reachable');
+      for (const stem of indexnowCandidates(home.body ?? '')) {
+        if (await verifies(stem)) {
+          return makeResult(this, 'pass',
+            t`IndexNow key file detected (/${stem}.txt) — instant URL submission to Bing (and Bing-backed AI answers) is set up`);
+        }
+      }
+      return makeResult(this, 'warn',
+        'no IndexNow key detected — IndexNow pushes new/updated URLs to Bing instantly (Copilot and other AI answers draw on that index); informational, re-run with --indexnow-key <key> to verify a known key',
+        'Adopt IndexNow: publish a text file named <key>.txt at the site root containing exactly the key (many CMS/SEO plugins do this for you), then re-run with --indexnow-key <key> to verify.');
     },
   };
 }
