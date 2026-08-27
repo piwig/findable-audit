@@ -82,9 +82,42 @@ describe('sitemap + indexnow', () => {
     const c = await ctx('spa-fallback', { spaFallback: true });
     expect((await sitemapCheck.run(c)).status).toBe('fail');
   });
-  it('indexnow skips without a key', async () => {
+  it('indexnow without a key warns informatively when no key signal is found (A93)', async () => {
     const c = await ctx('sitemap-ok');
-    expect((await indexnowCheck().run(c)).status).toBe('skip');
+    const r = await indexnowCheck().run(c);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('no IndexNow key detected');
+    expect(r.fix).toContain('--indexnow-key');
+  });
+  it('indexnow without a key detects a key file referenced by the homepage (A93)', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html><head><link rel="indexnow" href="/a1b2c3d4e5f6a7b8.txt"></head></html>' },
+      '/a1b2c3d4e5f6a7b8.txt': { contentType: 'text/plain', body: 'a1b2c3d4e5f6a7b8\n' },
+    });
+    const r = await indexnowCheck().run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('/a1b2c3d4e5f6a7b8.txt');
+  });
+  it('indexnow without a key probes the conventional /indexnow.txt (A93)', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<html></html>' },
+      '/indexnow.txt': { contentType: 'text/plain', body: 'indexnow' },
+    });
+    const r = await indexnowCheck().run(c);
+    expect(r.status).toBe('pass');
+    expect(r.message).toContain('/indexnow.txt');
+  });
+  it('indexnow without a key never fails, even when a candidate mismatches (A93)', async () => {
+    const c = stubCtx({
+      '/': { contentType: 'text/html', body: '<a href="/deadbeefdeadbeef.txt">key</a>' },
+      '/deadbeefdeadbeef.txt': { contentType: 'text/plain', body: 'something-else' },
+    });
+    const r = await indexnowCheck().run(c);
+    expect(r.status).toBe('warn');
+  });
+  it('indexnow without a key skips when the homepage is unreachable', async () => {
+    const bare = { ...stubCtx({}), fetch: async () => null };
+    expect((await indexnowCheck().run(bare as never)).status).toBe('skip');
   });
   it('indexnow passes when key file matches', async () => {
     const c = await ctx('sitemap-ok');
