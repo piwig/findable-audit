@@ -24,8 +24,10 @@ dist/
 /*-baseline.json
 /*.md.html
 
-# One-off research scratch (source extraction / quote mining for the deep-research
-# write-ups). Disposable: the verified conclusions live in docs/research/.
+# One-off research/debug scratch, regroupe hors racine dans /scratch/ (A96).
+# Disposable: the verified conclusions live in docs/research/.
+/scratch/
+# Legacy root-level patterns kept so stray regenerated copies stay ignored too.
 /lantern_*.txt
 /extract_lantern.js
 /pull_strings.js
