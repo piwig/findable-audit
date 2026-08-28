@@ -1,8 +1,8 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **148 checks in 8 families**.
+findable-audit scores a site out of 100 across **149 checks in 8 families**.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 148 checks, **110 are measured and 38 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 149 checks, **111 are measured and 38 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
@@ -88,6 +88,11 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Verifies:** Presence of an RSL (Really Simple Licensing) declaration: a `<link rel="license" href="...">` in the homepage `<head>`, and/or a `License:` directive in robots.txt (same shape as `Sitemap:`). Either source passing → pass; neither found → warn. Homepage unreachable → skip.
 **Why:** RSL is an AI-licensing web standard finalized December 2025, letting a site state its crawling/training/inference terms machine-readably. It is emerging and optional, so absence is only ever a warning.
 **Fix:** Add `<link rel="license" href="https://example.com/rsl.xml">` to the homepage `<head>`, and/or a `License: https://example.com/rsl.xml` directive in robots.txt, pointing to an RSL document.
+
+### `content-signals` (2 pts)
+**Verifies:** Parses `Content-Signal:` directives in robots.txt (Cloudflare's Content Signals Policy): `search`, `ai-input` and `ai-train` values. `search=no` or `ai-input=no` → warn (declared preference against the audited visibility); unrecognised tokens → warn; `ai-train=no` alone, all-yes, or no directive at all → pass (the directive is optional; absence signals nothing).
+**Why:** Cloudflare injects this directive on millions of sites; a findability audit must read what the site actually declares — `ai-input=no` asks answer engines that honour it to drop the site from AI answers, while `ai-train=no` alone is a licensing stance that does not affect citation-time retrieval. Non-binding either way (Google has said it ignores them).
+**Fix:** Set the signals you actually want — e.g. `Content-Signal: search=yes, ai-input=yes, ai-train=no` keeps search and AI-answer visibility while declining training — and do not rely on the directive as protection.
 
 ### `snippet-preview-directives` (4 pts)
 **Verifies:** No page sets `nosnippet`, `max-snippet:0`, `max-image-preview:none`, or `max-video-preview:0` (warn if merely absent; `max-image-preview:large` counts positively).

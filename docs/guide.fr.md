@@ -1,8 +1,8 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **148 checks répartis en 8 familles**.
+findable-audit note un site sur 100 à travers **149 checks répartis en 8 familles**.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 148 checks, **110 sont mesurés et 38 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 149 checks, **111 sont mesurés et 38 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
@@ -96,6 +96,11 @@ Nuance utile (d'après la doc Perplexity) : PerplexityBot est le crawler *d'inde
 **Vérifie :** La présence d'une déclaration RSL (Really Simple Licensing) : un `<link rel="license" href="...">` dans le `<head>` de la page d'accueil, et/ou une directive `License:` dans le robots.txt (même forme que `Sitemap:`). Une des deux sources trouvée → réussite ; aucune → avertissement. Accueil injoignable → ignoré.
 **Pourquoi :** RSL est un standard web de licensing IA finalisé en décembre 2025, permettant à un site d'énoncer ses conditions de crawl/entraînement/inférence de façon lisible par machine. C'est un standard émergent et facultatif : son absence ne donne toujours qu'un avertissement.
 **Corriger :** Ajoutez `<link rel="license" href="https://example.com/rsl.xml">` dans le `<head>` de la page d'accueil, et/ou une directive `License: https://example.com/rsl.xml` dans le robots.txt, pointant vers un document RSL.
+
+### `content-signals` (2 pts)
+**Vérifie :** Analyse les directives `Content-Signal:` du robots.txt (Content Signals Policy de Cloudflare) : valeurs `search`, `ai-input` et `ai-train`. `search=no` ou `ai-input=no` → avertissement (préférence déclarée contre la visibilité même qu’on audite) ; jeton non reconnu → avertissement ; `ai-train=no` seul, tout à `yes`, ou aucune directive → réussite (la directive est facultative ; son absence ne signale rien).
+**Pourquoi :** Cloudflare injecte cette directive sur des millions de sites ; un audit de findabilité doit lire ce que le site déclare réellement — `ai-input=no` demande aux moteurs de réponse qui l’honorent de retirer le site des réponses IA, tandis que `ai-train=no` seul est une position de licensing qui n’affecte pas la récupération au moment de la citation. Non contraignant dans les deux cas (Google a indiqué l’ignorer).
+**Corriger :** Déclarez les signaux que vous voulez vraiment — p. ex. `Content-Signal: search=yes, ai-input=yes, ai-train=no` conserve la visibilité recherche et réponses IA tout en refusant l’entraînement — et ne comptez pas sur la directive comme protection.
 
 ### `snippet-preview-directives` (4 pts)
 **Vérifie :** Aucune page ne pose `nosnippet`, `max-snippet:0`, `max-image-preview:none` ou `max-video-preview:0` (avertissement si simplement absent ; `max-image-preview:large` compte positivement).

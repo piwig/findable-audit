@@ -486,3 +486,79 @@ export const rslLicense: Check = {
       fix);
   },
 };
+
+// ---------------------------------------------------------------------------
+// content-signals (backlog A98): the Content Signals Policy directive that
+// Cloudflare injects into robots.txt on millions of sites —
+// `Content-Signal: search=yes, ai-input=no, ai-train=no`. A33 already flags
+// that these are a non-binding preference; this check *parses* the declared
+// values, because a findability audit must read what the site actually says:
+// `search=no` or `ai-input=no` declares a preference against exactly the
+// visibility (search inclusion, AI-answer grounding) the site is being
+// audited for. `ai-train=no` alone is a legitimate licensing stance that does
+// not affect citation-time retrieval. Absence is a pass: the directive is
+// optional and its absence signals nothing.
+// ---------------------------------------------------------------------------
+
+const CONTENT_SIGNAL_LINE_RE = /^\s*content-signal\s*:\s*(.+)$/gim;
+const KNOWN_SIGNALS = ['search', 'ai-input', 'ai-train'] as const;
+
+/** Parse every `Content-Signal:` line into a signal -> yes/no map (last value wins), plus unknown tokens. */
+export function parseContentSignals(body: string): { signals: Map<string, 'yes' | 'no'>; unknown: string[] } {
+  const signals = new Map<string, 'yes' | 'no'>();
+  const unknown: string[] = [];
+  for (const line of body.matchAll(CONTENT_SIGNAL_LINE_RE)) {
+    for (const pair of line[1].split(',')) {
+      const m = /^\s*([a-z-]+)\s*=\s*(yes|no)\s*$/i.exec(pair);
+      if (!m) {
+        if (pair.trim() !== '') unknown.push(pair.trim());
+        continue;
+      }
+      const name = m[1].toLowerCase();
+      if ((KNOWN_SIGNALS as readonly string[]).includes(name)) {
+        signals.set(name, m[2].toLowerCase() as 'yes' | 'no');
+      } else {
+        unknown.push(pair.trim());
+      }
+    }
+  }
+  return { signals, unknown };
+}
+
+export const contentSignals: Check = {
+  id: 'content-signals', family: 'ai-access', evidence: 'measured', maxPoints: 2,
+  async run(ctx) {
+    const robots = await ctx.fetch('/robots.txt');
+    if (!robots || robots.status !== 200 || !isPlainText(robots)) {
+      return makeResult(this, 'pass',
+        'no robots.txt to carry Content-Signal directives — the directive is optional, absence signals nothing');
+    }
+    const { signals, unknown } = parseContentSignals(robots.body);
+    if (signals.size === 0 && unknown.length === 0) {
+      return makeResult(this, 'pass',
+        'no Content-Signal directives in robots.txt — the directive is optional, absence signals nothing');
+    }
+    const declared = [...signals.entries()].map(([k, v]) => `${k}=${v}`).join(', ');
+    const fix = 'Review the Content-Signal directive in robots.txt (often injected by Cloudflare): '
+      + '"search=no" or "ai-input=no" declares a preference against search inclusion or AI-answer grounding — '
+      + 'the exact visibility this audit measures. Set the signals you actually want '
+      + '(e.g. "Content-Signal: search=yes, ai-input=yes, ai-train=no" keeps visibility while declining training), '
+      + 'and remember these are a non-binding preference, not an enforcement mechanism.';
+    const against = KNOWN_SIGNALS.filter((s) => s === 'search' || s === 'ai-input').filter((s) => signals.get(s) === 'no');
+    if (against.length > 0) {
+      return makeResult(this, 'warn',
+        t`robots.txt declares ${declared} — ${against.join(' and ')} set to "no" states a preference against the AI/search visibility this audit measures (non-binding, but crawlers that honour it will drop the site from answers)`,
+        fix);
+    }
+    if (unknown.length > 0) {
+      return makeResult(this, 'warn',
+        t`Content-Signal directive present (${declared || 'no recognised signals'}) but with unrecognised token(s): ${unknown.join(', ')} — crawlers may ignore the whole directive`,
+        fix);
+    }
+    if (signals.get('ai-train') === 'no') {
+      return makeResult(this, 'pass',
+        t`robots.txt declares ${declared} — declining AI training while keeping search/AI-answer visibility is a coherent licensing stance (non-binding preference)`);
+    }
+    return makeResult(this, 'pass', t`robots.txt declares ${declared} — no signal contradicts findability`);
+  },
+};
