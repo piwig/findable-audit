@@ -173,6 +173,7 @@ const KNOWN_WARNS = new Set([
   'sd-website-searchaction',  // documented in README: no internal search to declare
   'rsl-license',              // documented in README: no licensing terms to state
   'social-proof',             // advisory heuristic: we declare Organization but collect no reviews to mark up
+  'indexnow',                 // A93 (58f2e91): informational warn when no IndexNow key is detected; we do not publish one
 ]);
 
 test('nothing but the documented exceptions falls short against our own engine', () => {

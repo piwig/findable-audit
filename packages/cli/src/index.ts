@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { buildChecks } from './checks/index.js';
 import { runAudit, sampleSite, UnreachableSiteError, type AuditProgress, type AuditReport } from './runner.js';
@@ -451,7 +451,16 @@ try {
   } else if (values['no-report']) {
     targets = [];
   } else {
-    const base = defaultReportBase(report.url, now) + (compare ? '-compare' : '');
+    let base = defaultReportBase(report.url, now) + (compare ? '-compare' : '');
+    // A101: two audits of the same host on the same day silently overwrote each
+    // other. Increment a `-2`, `-3`… suffix until BOTH default files are free,
+    // so the .md/.html pair always shares one basename. Explicit --report paths
+    // are untouched: overwriting is then the caller's stated intent.
+    if (existsSync(`${base}.md`) || existsSync(`${base}.html`)) {
+      let n = 2;
+      while (existsSync(`${base}-${n}.md`) || existsSync(`${base}-${n}.html`)) n++;
+      base = `${base}-${n}`;
+    }
     targets = [`${base}.md`, `${base}.html`];
   }
   let reportWriteFailed = false;
