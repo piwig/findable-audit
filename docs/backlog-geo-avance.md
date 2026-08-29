@@ -328,6 +328,6 @@ Signal interne majeur : `npm test` ROUGE au 2026-08-29, casse par le commit A98 
 
 | # | Idee | Principe | Impact/Effort |
 |---|------|----------|---------------|
-| A105 | 🚑 **Reparer la suite cassee par A98 (content-signals)** | mettre a jour le compteur du README CLI (148 → 149), ajouter les traductions FR des 3 messages `content-signals`, ajuster le test d'enregistrement (147 → 148) — CI, action GitHub et dogfooding (P4/P92) restent bloques tant que la suite est rouge | fort / faible |
+| A105 | ✅ 2026-08-29 **Reparer la suite cassee par A98 (content-signals)** | mettre a jour le compteur du README CLI (148 → 149), ajouter les traductions FR des 3 messages `content-signals`, ajuster le test d'enregistrement (147 → 148) — CI, action GitHub et dogfooding (P4/P92) restent bloques tant que la suite est rouge | fort / faible |
 | A106 | 🔢 **Compteurs de checks generes depuis le registre** | « annonce N au lieu de N+1 » est la 2e casse du meme type : generer README/guides/badge depuis `buildChecks()` (script de build qui reecrit, plutot qu'un test qui verifie a la main), pour supprimer toute la classe d'erreurs de compteur manuel | fort / faible |
 | A107 | 🪝 **Garde-fou : suite verte obligatoire avant tout commit [auto]** | hook pre-commit ou etape systematique `npm test` avant les commits des sessions automatiques (recidive constatee : `58f2e91` puis `5191b92`) — protege aussi les consommateurs du depot (action GitHub, futur paquet npm) | moyen / faible |

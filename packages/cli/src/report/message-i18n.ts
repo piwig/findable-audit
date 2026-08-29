@@ -581,6 +581,19 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'moyen d’aide (contact/support) présent sur les {0} page(s) échantillonnée(s)',
   'help mechanism present on {0}/{1} sampled pages but missing on: {2}':
     'moyen d’aide présent sur {0}/{1} pages échantillonnées mais absent sur : {2}',
+  // A98 — content-signals (ai-access).
+  'no robots.txt to carry Content-Signal directives — the directive is optional, absence signals nothing':
+    'pas de robots.txt pour porter des directives Content-Signal — la directive est optionnelle, son absence ne signale rien',
+  'no Content-Signal directives in robots.txt — the directive is optional, absence signals nothing':
+    'aucune directive Content-Signal dans le robots.txt — la directive est optionnelle, son absence ne signale rien',
+  'robots.txt declares {0} — {1} set to "no" states a preference against the AI/search visibility this audit measures (non-binding, but crawlers that honour it will drop the site from answers)':
+    'le robots.txt déclare {0} — {1} à « no » exprime une préférence contre la visibilité IA/recherche que cet audit mesure (non contraignant, mais les robots qui la respectent retireront le site des réponses)',
+  'Content-Signal directive present ({0}) but with unrecognised token(s): {1} — crawlers may ignore the whole directive':
+    'directive Content-Signal présente ({0}) mais avec des jetons non reconnus : {1} — les robots peuvent ignorer toute la directive',
+  'robots.txt declares {0} — declining AI training while keeping search/AI-answer visibility is a coherent licensing stance (non-binding preference)':
+    'le robots.txt déclare {0} — refuser l\'entraînement IA tout en gardant la visibilité recherche/réponses IA est une position de licence cohérente (préférence non contraignante)',
+  'robots.txt declares {0} — no signal contradicts findability':
+    'le robots.txt déclare {0} — aucun signal ne contredit la findabilité',
 };
 
 /** Refill a template's `{0}`, `{1}`, … slots with the values the check captured. */
