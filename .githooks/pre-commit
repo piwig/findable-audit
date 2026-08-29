@@ -1,0 +1,13 @@
+#!/bin/sh
+# A107 — garde-fou : plus jamais de commit [auto] sur une suite rouge
+# (recidives 58f2e91 puis 5191b92). Installe via `npm install` ("prepare"
+# configure core.hooksPath). Contournement humain assume et trace :
+#   FINDABLE_SKIP_TESTS=1 git commit …
+set -e
+cd "$(git rev-parse --show-toplevel)"
+node scripts/sync-check-counts.mjs --check
+if [ "$FINDABLE_SKIP_TESTS" = "1" ]; then
+  echo "pre-commit: suite de tests SAUTEE (FINDABLE_SKIP_TESTS=1)" >&2
+  exit 0
+fi
+npm test

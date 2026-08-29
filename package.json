@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "prepare": "git config core.hooksPath .githooks",
     "sync-counts": "node scripts/sync-check-counts.mjs",
     "test": "node scripts/build-if-missing.mjs && npm test --workspaces",
     "test:fast": "npm test --workspaces"
