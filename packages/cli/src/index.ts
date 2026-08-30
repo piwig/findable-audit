@@ -18,6 +18,7 @@ import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { pickAnswersRenderer } from './report/answers.js';
 import { emitFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/index.js';
+import { renderProbesJson } from './generate/probes.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
 import { parseHistory, appendHistory, type HistoryEntry } from './report/history.js';
@@ -41,6 +42,9 @@ findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-r
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
   sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
+--emit-probes <file.json> writes suggested vigie-seo AI probes: one question per family scoring below 80,
+  built only from the site's own words (hostname, homepage title/h1). The aiProbes array is paste-ready for
+  vigie.config.json — review before use; a clean audit yields an empty array, never invented weaknesses.
 --summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
   the three highest-gain actions with their cost, and what they would be worth together. Format by extension
   (.html or anything else Markdown). No check table — that is what --report is for.
@@ -120,6 +124,8 @@ const parseCliArgs = () =>
       'entity-graph': { type: 'string' },
       answers: { type: 'string' },
       emit: { type: 'string' },
+      // A99 — vigie-seo probe suggestions derived from weak families.
+      'emit-probes': { type: 'string' },
       submit: { type: 'boolean', default: false },
       'verify-profiles': { type: 'boolean', default: false },
       'check-outbound': { type: 'boolean', default: false },
@@ -325,6 +331,14 @@ if (emitDir !== undefined && emitDir.trim() === '') {
   process.exit(2);
 }
 
+// --emit-probes <file.json>: same rule — validate up front, write after the
+// audit, once familyScores exist to derive the suggestions from.
+const emitProbesFile = values['emit-probes'];
+if (emitProbesFile !== undefined && emitProbesFile.trim() === '') {
+  console.error(`findable-audit: --emit-probes must not be empty\n\n${USAGE}`);
+  process.exit(2);
+}
+
 let baseline: AuditReport | undefined;
 if (values.baseline !== undefined) {
   let parsedBaseline: unknown;
@@ -518,6 +532,21 @@ try {
         : '⚠ generic files — review before deploying, especially robots.txt');
     } catch (err) {
       console.error(`findable-audit: cannot write generated files to "${emitDir}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
+  // --emit-probes <file.json>: suggested vigie-seo AI probes derived from the
+  // families that scored below the amber bar (#A99). Suggestions, not config —
+  // the file says so, and an empty aiProbes array on a clean site is correct.
+  if (emitProbesFile !== undefined) {
+    try {
+      writeFileSync(emitProbesFile, renderProbesJson(report, langTyped, now.toISOString()), 'utf8');
+      note(`suggested AI probes written to ${emitProbesFile}`);
+      note(langTyped === 'fr'
+        ? '⚠ suggestions — relire avant de coller dans aiProbes de vigie.config.json'
+        : '⚠ suggestions — review before pasting into aiProbes in vigie.config.json');
+    } catch (err) {
+      console.error(`findable-audit: cannot write probe suggestions to "${emitProbesFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
     }
   }

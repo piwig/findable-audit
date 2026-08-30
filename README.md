@@ -164,6 +164,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page answers each one *and stands on its own* when a model is handed it in isolation. |
 | `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth together. |
 | `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs. |
+| `--emit-probes <file.json>` | Suggested **vigie-seo AI probes** — one question per family scoring below 80, built from the site's own words; the `aiProbes` array is paste-ready for `vigie.config.json`. Review before use. |
 | `--cwv` `--psi-key <key>` | Opt into Core Web Vitals via one PageSpeed Insights call. |
 | `--lang <en\|fr>` | Report language. Terminal, JSON, SARIF, JUnit and the badge stay English. |
 
