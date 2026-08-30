@@ -11,6 +11,7 @@ import { renderMarkdown } from './report/markdown.js';
 import { renderHtml } from './report/html.js';
 import { renderSarif } from './report/sarif.js';
 import { renderBadge } from './report/badge.js';
+import { renderShieldsJson } from './report/shields.js';
 import { renderJunit } from './report/junit.js';
 import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from './report/compare.js';
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
@@ -75,7 +76,8 @@ By default, two report files are written to the current directory: <host>-<date>
   (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
 --report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
   by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), .xml -> JUnit
-  (GitLab CI / Jenkins), .svg -> status badge for a README, anything else -> Markdown.
+  (GitLab CI / Jenkins), .svg -> status badge for a README, .shields.json -> shields.io endpoint
+  JSON (live badge via img.shields.io/endpoint?url=...), anything else -> Markdown.
 --lang selects the report language (en or fr; default en): chrome, check titles, "why", fixes and the
   checks' own dynamic messages. Terminal, JSON, SARIF, JUnit and the SVG badge stay English.
 --user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
@@ -482,6 +484,9 @@ try {
     let body: string;
     if (/\.sarif$/i.test(file)) body = renderSarif(report, { diff });
     else if (/\.svg$/i.test(file)) body = renderBadge(report);
+    // `.shields.json` must be tested before the generic `.json` branch: it is
+    // a JSON file too, but carries the shields.io endpoint document (#A95).
+    else if (/\.shields\.json$/i.test(file)) body = renderShieldsJson(report);
     else if (/\.json$/i.test(file)) body = renderJson(report, { diff });
     else if (/\.xml$/i.test(file)) body = renderJunit(report);
     else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff, history });

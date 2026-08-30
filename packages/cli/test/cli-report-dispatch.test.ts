@@ -77,6 +77,25 @@ test('--report *.svg writes a self-contained status badge', async () => {
   });
 });
 
+test('--report *.shields.json writes a shields.io endpoint document', async () => {
+  await withFixture(async (base) => {
+    const out = path.join(process.cwd(), 'tmp-cli-badge.shields.json');
+    rmSync(out, { force: true });
+    const r = await runCli([DIST, base, '--report', out, '--min-score', '0']);
+    expect(r.status).toBe(0);
+    expect(existsSync(out)).toBe(true);
+    const parsed = JSON.parse(readFileSync(out, 'utf8'));
+    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.label).toBe('findable');
+    expect(parsed.message).toMatch(/^[A-F] \d{1,3}\/100$/);
+    expect(parsed.color).toMatch(/^#[0-9a-f]{6}$/);
+    // Must NOT be the full audit report (the generic .json branch).
+    expect(parsed.score).toBeUndefined();
+    expect(parsed.checks).toBeUndefined();
+    rmSync(out, { force: true });
+  });
+});
+
 test('--report *.junit.xml writes a JUnit XML report', async () => {
   await withFixture(async (base) => {
     const out = path.join(process.cwd(), 'tmp-cli-report.junit.xml');
