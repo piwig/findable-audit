@@ -11,7 +11,7 @@ import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
 import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg, renderImpactEffortScatter, type ScatterPoint } from './charts.js';
 import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
 import type { Effort } from './effort.js';
-import { renderSparklineSvg, type HistoryEntry } from './history.js';
+import { renderSparklineSvg, checkTransitions, type HistoryEntry } from './history.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -306,6 +306,10 @@ const STYLE = `
     .ap-line { flex-wrap: wrap; }
     .ap-fix { flex-basis: 100%; }
   }
+  .trend-changes ul { list-style: none; padding: 0; margin: .3rem 0 0; }
+  .trend-change { font-size: .85rem; padding: .1rem 0; }
+  .trend-worse code { color: #b91c1c; }
+  .trend-better code { color: #15803d; }
   @media print {
     /* Layers 1 and 2 are the printable synthesis: force a page break after the
        plan so the summary stands on its own sheet. */
@@ -456,6 +460,7 @@ ${families.map((f) => {
       if (vals.length < 2) return '';
       return `<div class="trend-row"><span class="trend-label">${escapeHtml(familyShort[f])}</span>${renderSparklineSvg(vals)}<span class="trend-now">${vals[vals.length - 1]}</span></div>`;
     }).join('\n')}
+${renderTrendChanges(series, m)}
 <p class="trend-caption">${escapeHtml(m.trendsRuns(series.length))}</p>
 </section>`
     : '';
@@ -633,4 +638,26 @@ ${sections.join('\n')}
 </body>
 </html>
 `;
+}
+
+/**
+ * A100: the "what changed" list under the sparklines. Only rendered when the
+ * two latest runs of the series both recorded per-check statuses (older
+ * series, produced before `checks` existed, keep the exact previous output).
+ */
+function renderTrendChanges(
+  series: HistoryEntry[],
+  m: { trendsChangesTitle: string; trendsNoChanges: string },
+): string {
+  const withChecks = series.filter((e) => e.checks !== undefined);
+  if (withChecks.length < 2) return '';
+  const moves = checkTransitions(series);
+  if (moves.length === 0) return `<p class="trend-caption">${escapeHtml(m.trendsNoChanges)}</p>`;
+  const items = moves
+    .map((t) => `<li class="trend-change ${t.regressed ? 'trend-worse' : 'trend-better'}"><code>${escapeHtml(t.id)}</code> ${escapeHtml(t.from)} → ${escapeHtml(t.to)}</li>`)
+    .join('\n');
+  return `<div class="trend-changes">
+<h3>${escapeHtml(m.trendsChangesTitle)}</h3>
+<ul>${items}</ul>
+</div>`;
 }

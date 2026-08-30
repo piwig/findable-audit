@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseHistory, appendHistory, renderSparklineSvg, HISTORY_MAX_ENTRIES, type HistoryEntry } from '../../src/report/history.js';
+import { parseHistory, appendHistory, renderSparklineSvg, checkTransitions, HISTORY_MAX_ENTRIES, type HistoryEntry } from '../../src/report/history.js';
 import { renderHtml } from '../../src/report/html.js';
 import type { AuditReport } from '../../src/runner.js';
 
@@ -40,6 +40,49 @@ describe('parseHistory', () => {
   it('throws on invalid JSON', () => {
     expect(() => parseHistory('not json')).toThrow();
   });
+
+  it('accepts entries without checks (pre-A100 series) but refuses a non-object checks', () => {
+    expect(parseHistory(JSON.stringify([entry()]))).toHaveLength(1);
+    expect(() => parseHistory(JSON.stringify([entry({ checks: 'nope' as never })]))).toThrow(/checks/);
+    expect(() => parseHistory(JSON.stringify([entry({ checks: [1] as never })]))).toThrow(/checks/);
+  });
+});
+
+describe('checkTransitions', () => {
+  it('returns empty when fewer than 2 entries carry checks', () => {
+    expect(checkTransitions([])).toEqual([]);
+    expect(checkTransitions([entry({ checks: { a: 'pass' } })])).toEqual([]);
+    expect(checkTransitions([entry(), entry({ checks: { a: 'pass' } })])).toEqual([]);
+  });
+
+  it('reports regressions first, then improvements, alphabetically', () => {
+    const series = [
+      entry({ checks: { up: 'fail', down: 'pass', same: 'pass', bad2: 'pass' } }),
+      entry({ checks: { up: 'pass', down: 'warn', same: 'pass', bad2: 'fail' } }),
+    ];
+    expect(checkTransitions(series)).toEqual([
+      { id: 'bad2', from: 'pass', to: 'fail', regressed: true },
+      { id: 'down', from: 'pass', to: 'warn', regressed: true },
+      { id: 'up', from: 'fail', to: 'pass', regressed: false },
+    ]);
+  });
+
+  it('ignores checks present on only one side (tooling change, not site change)', () => {
+    const series = [
+      entry({ checks: { gone: 'pass', stays: 'pass' } }),
+      entry({ checks: { added: 'fail', stays: 'pass' } }),
+    ];
+    expect(checkTransitions(series)).toEqual([]);
+  });
+
+  it('compares the last two entries that have checks, skipping older ones in between', () => {
+    const series = [
+      entry({ checks: { a: 'pass' } }),
+      entry(), // pre-A100 run in the middle
+      entry({ checks: { a: 'fail' } }),
+    ];
+    expect(checkTransitions(series)).toEqual([{ id: 'a', from: 'pass', to: 'fail', regressed: true }]);
+  });
 });
 
 describe('appendHistory', () => {
@@ -52,7 +95,19 @@ describe('appendHistory', () => {
       url: 'https://ex.com/',
       score: 81,
       families: { 'ai-access': 70 },
+      checks: {},
     });
+  });
+
+  it('records the status of every check (A100)', () => {
+    const r = report({
+      results: [
+        { id: 'robots-ai', status: 'pass' },
+        { id: 'llms-txt', status: 'fail' },
+      ] as AuditReport['results'],
+    });
+    const next = appendHistory([], r, new Date());
+    expect(next[0].checks).toEqual({ 'robots-ai': 'pass', 'llms-txt': 'fail' });
   });
 
   it('does not mutate the prior series', () => {
@@ -120,5 +175,33 @@ describe('renderHtml with --history', () => {
     const html = renderHtml(report(), new Date(), 'fr', { history });
     expect(html).toContain('Score dans le temps');
     expect(html).toContain('2 audits dans cette série');
+  });
+
+  it('lists per-check changes when the two latest runs carry checks (A100)', () => {
+    const history = [
+      entry({ checks: { 'llms-txt': 'pass', 'robots-ai': 'pass' } }),
+      entry({ checks: { 'llms-txt': 'fail', 'robots-ai': 'pass' } }),
+    ];
+    const html = renderHtml(report(), new Date(), 'en', { history });
+    expect(html).toContain('Changed since the previous audit');
+    expect(html).toContain('trend-worse');
+    expect(html).toContain('llms-txt');
+    expect(html).not.toContain('robots-ai</code>');
+  });
+
+  it('says so when checks are tracked but nothing moved', () => {
+    const history = [
+      entry({ checks: { 'llms-txt': 'pass' } }),
+      entry({ checks: { 'llms-txt': 'pass' } }),
+    ];
+    const html = renderHtml(report(), new Date(), 'en', { history });
+    expect(html).toContain('No check changed status since the previous audit.');
+  });
+
+  it('keeps the pre-A100 output for series without checks', () => {
+    const history = [entry({ score: 60 }), entry({ score: 70 })];
+    const html = renderHtml(report(), new Date(), 'en', { history });
+    expect(html).not.toContain('Changed since the previous audit');
+    expect(html).not.toContain('No check changed status');
   });
 });

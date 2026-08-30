@@ -120,6 +120,9 @@ export interface ReportMessages {
   trendsTitle: string;            // heading of the --history sparklines section
   trendsOverall: string;          // label of the overall-score sparkline
   trendsRuns: (n: number) => string; // caption: how many runs the series holds
+  /** A100: per-check transitions between the last two runs of the series. */
+  trendsChangesTitle: string;     // sub-heading of the "what changed" list
+  trendsNoChanges: string;        // shown when two runs carry checks but nothing moved
   showPassed: (n: number) => string; // <summary> of the folded passing checks
   noIssues: string;               // family whose checks all pass
   /** A52: accessibility section note when performance/CWV also has open issues. */
@@ -240,6 +243,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     trendsTitle: 'Score over time',
     trendsOverall: 'Overall',
     trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} in this series`,
+    trendsChangesTitle: 'Changed since the previous audit',
+    trendsNoChanges: 'No check changed status since the previous audit.',
     showPassed: (n) => `Show the ${n} passing check${n > 1 ? 's' : ''}`,
     noIssues: 'Everything passes in this family.',
     a11yPerfLink: (n) =>
@@ -354,6 +359,8 @@ export const MESSAGES: Record<Lang, ReportMessages> = {
     trendsTitle: 'Score dans le temps',
     trendsOverall: 'Global',
     trendsRuns: (n) => `${n} audit${n > 1 ? 's' : ''} dans cette série`,
+    trendsChangesTitle: 'Changements depuis l\'audit précédent',
+    trendsNoChanges: 'Aucun contrôle n\'a changé de statut depuis l\'audit précédent.',
     showPassed: (n) => `Afficher ${n === 1 ? 'le contrôle réussi' : `les ${n} contrôles réussis`}`,
     noIssues: 'Tout passe dans cette famille.',
     a11yPerfLink: (n) =>
