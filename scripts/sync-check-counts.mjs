@@ -19,6 +19,11 @@ const TARGETS = [
   path.join(ROOT, 'packages', 'cli', 'README.md'),
   path.join(ROOT, 'docs', 'guide.md'),
   path.join(ROOT, 'docs', 'guide.fr.md'),
+  // A111 — les deux surfaces que voit un prospect (page npm, Marketplace GitHub)
+  // portaient un compteur figé, invisible du garde-fou tant qu'il ne listait que
+  // la documentation. Elles comptent autant que le README.
+  path.join(ROOT, 'packages', 'cli', 'package.json'),
+  path.join(ROOT, 'action.yml'),
 ];
 
 // Même regex que declarations() dans packages/cli/test/docs-checks.test.ts.
