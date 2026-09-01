@@ -35,6 +35,22 @@ export interface ReportDiff {
   added: string[];
   removed: string[];
   baselineGeneratedAt?: string;
+  /** Tool version that produced the baseline, when it recorded one. */
+  baselineToolVersion?: string;
+  /** Tool version that produced the current report. */
+  currentToolVersion?: string;
+  /**
+   * A128 — the two reports come from different releases of findable-audit, so the
+   * deltas below mix "the site changed" with "the ruler changed": a check added to
+   * a family dilutes every other check in it (family weights are fixed and sum to
+   * 1.00). Only true when BOTH versions are known and differ.
+   */
+  crossVersion: boolean;
+  /**
+   * The baseline predates `toolVersion` (or was hand-written), so we cannot tell
+   * whether it is cross-version. Worth saying; not worth blocking a CI gate on.
+   */
+  baselineVersionUnknown: boolean;
 }
 
 // A skipped check contributes no score and is treated as absent for diffing.
@@ -95,6 +111,10 @@ export function diffReports(current: AuditReport, baseline: AuditReport): Report
     added: added.sort(),
     removed: removed.sort(),
     baselineGeneratedAt: baseline.generatedAt,
+    baselineToolVersion: baseline.toolVersion,
+    currentToolVersion: current.toolVersion,
+    crossVersion: Boolean(baseline.toolVersion && current.toolVersion && baseline.toolVersion !== current.toolVersion),
+    baselineVersionUnknown: !baseline.toolVersion,
   };
 }
 
@@ -103,19 +123,45 @@ interface DiffLabels {
   title: string; baseline: string; overall: string; family: string;
   regressions: string; improvements: string; added: string; removed: string;
   none: string; was: string;
+  crossVersion: (from: string, to: string) => string;
+  unknownVersion: string;
 }
 const LABELS: Record<Lang, DiffLabels> = {
   en: {
     title: 'Change vs baseline', baseline: 'baseline', overall: 'Overall score', family: 'Family',
     regressions: 'Regressions', improvements: 'Improvements', added: 'New checks', removed: 'Dropped checks',
     none: 'none', was: 'was',
+    crossVersion: (from, to) =>
+      `Baseline produced by findable-audit ${from}, this run by ${to}. Part of any change below may come from the scoring `
+      + `model itself — a check added to a family dilutes the others — and not from the site. Compare like for like before concluding.`,
+    unknownVersion:
+      'The baseline records no tool version, so we cannot tell which release produced it. If it is older, part of any '
+      + 'change below may come from the scoring model rather than from the site.',
   },
   fr: {
     title: 'Évolution vs référence', baseline: 'référence', overall: 'Score global', family: 'Famille',
     regressions: 'Régressions', improvements: 'Améliorations', added: 'Nouveaux tests', removed: 'Tests disparus',
     none: 'aucun', was: 'était',
+    crossVersion: (from, to) =>
+      `Référence produite par findable-audit ${from}, ce rapport par ${to}. Une partie des écarts ci-dessous peut venir du modèle `
+      + `de score lui-même — un test ajouté à une famille dilue les autres — et non du site. Comparez à modèle égal avant de conclure.`,
+    unknownVersion:
+      "La référence ne porte aucune version d'outil : impossible de dire quelle version l'a produite. Si elle est plus ancienne, "
+      + 'une partie des écarts ci-dessous peut venir du modèle de score et non du site.',
   },
 };
+
+/**
+ * A128 — one sentence saying that the two reports may not have been measured with
+ * the same ruler. Returns null only when both versions are known and identical,
+ * the one case where the deltas are purely about the site.
+ */
+export function versionNotice(d: ReportDiff, lang: Lang = 'en'): string | null {
+  const L = LABELS[lang];
+  if (d.crossVersion) return L.crossVersion(d.baselineToolVersion!, d.currentToolVersion!);
+  if (d.baselineVersionUnknown) return L.unknownVersion;
+  return null;
+}
 
 function sign(n: number): string { return n > 0 ? `+${n}` : `${n}`; }
 
@@ -132,6 +178,8 @@ export function renderDiffTerminal(d: ReportDiff, lang: Lang = 'en'): string {
   const L = LABELS[lang];
   const lines: string[] = [];
   lines.push(`${L.title}: ${d.currentScore}/100 (${L.baseline} ${d.baselineScore}, ${sign(d.scoreDelta)})`);
+  const termNotice = versionNotice(d, lang);
+  if (termNotice) lines.push(`  ! ${termNotice}`);
   for (const f of d.familyDeltas) {
     if (f.delta === null) continue;
     if (f.delta !== 0) lines.push(`  ${f.family}: ${f.current} (${sign(f.delta)})`);
@@ -152,6 +200,8 @@ export function renderDiffMarkdown(d: ReportDiff, lang: Lang = 'en'): string {
   const lines: string[] = [];
   lines.push(`## ${L.title}`, '');
   lines.push(`**${L.overall}:** ${d.currentScore}/100 — ${L.baseline} ${d.baselineScore} (${sign(d.scoreDelta)})`, '');
+  const mdNotice = versionNotice(d, lang);
+  if (mdNotice) lines.push(`> ${mdNotice}`, '');
   lines.push(`| ${L.family} | ${L.baseline} | ${lang === 'fr' ? 'actuel' : 'current'} | Δ |`, '|---|---|---|---|');
   for (const f of d.familyDeltas) {
     lines.push(`| ${f.family} | ${f.baseline ?? '—'} | ${f.current ?? '—'} | ${f.delta === null ? '—' : sign(f.delta)} |`);
@@ -177,10 +227,14 @@ export function renderDiffHtmlSection(d: ReportDiff, lang: Lang = 'en'): string 
     `<tr><td>${esc(f.family)}</td><td>${f.baseline ?? '—'}</td><td>${f.current ?? '—'}</td>`
     + `<td>${f.delta === null ? '—' : deltaMark(f.delta)}</td></tr>`).join('');
   const idList = (items: string[]) => items.length ? items.map((i) => `<code>${esc(i)}</code>`).join(', ') : L.none;
+  const htmlNotice = versionNotice(d, lang);
   return `<section class="diff" style="max-width:960px;margin:1.5rem auto;padding:1rem;border:1px solid #e2e8e2;border-radius:10px">`
     + `<h2 style="margin:0 0 .5rem">${esc(L.title)}</h2>`
     + `<p><strong>${esc(L.overall)}:</strong> ${d.currentScore}/100 — ${esc(L.baseline)} ${d.baselineScore} `
     + `(${deltaMark(d.scoreDelta)})</p>`
+    + (htmlNotice
+      ? `<p class="diff-version-notice" style="margin:.25rem 0 .75rem;padding:.6rem .8rem;border-left:3px solid #b45309;background:#fffbeb;color:#3f3f46">${esc(htmlNotice)}</p>`
+      : '')
     + `<table style="width:100%;border-collapse:collapse"><thead><tr>`
     + `<th style="text-align:left">${esc(L.family)}</th><th>${esc(L.baseline)}</th><th>${lang === 'fr' ? 'actuel' : 'current'}</th><th>Δ</th>`
     + `</tr></thead><tbody>${famRows}</tbody></table>`

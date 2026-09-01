@@ -174,6 +174,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | Flag | What it does |
 |---|---|
 | `--regression-tolerance <n>` | Points the score may drop before `--fail-on-regression` trips (default `0`). |
+| `--allow-cross-version` | Let `--fail-on-regression` fire even when the baseline came from another findable-audit version. Off by default: new releases add checks, and since family weights are fixed and sum to `1.00`, a new check dilutes the others — the score can move because the ruler changed, not the site. The diff always names both versions; this flag is how you accept the mixed comparison on purpose. |
 | `--entity-graph <file>` | Export the JSON-LD entity graph: `.json`, `.dot` (Graphviz) or `.mmd` (Mermaid). The HTML report already draws it grouped by type; this exports it entity by entity, uncapped. |
 | `--verify-profiles` | Fetch the profiles your JSON-LD declares in `sameAs` and check each links back — the return link is what turns a claim into a verified identity. At most 8 URLs, same SSRF guard. Never hunts for a presence you did not declare; a platform that refuses robots is *unverifiable*, never held against you. |
 | `--check-outbound` | Probe the outbound links in your main content. 10 URLs max, one per host, same SSRF guard. Only `404`/`410` count as broken — `401`, `403`, `429`, `5xx`, timeouts and DNS failures are *unverifiable*, never dead. |

@@ -33,6 +33,10 @@ findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-r
 --compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
 --baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
 --fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
+--allow-cross-version lets that gate fire even when the baseline was produced by a different findable-audit version.
+  By default it does not: between two releases checks are added, and since family weights are fixed and sum to 1.00, a new
+  check dilutes the others — the score can move because the ruler changed, not the site. The diff always says so;
+  this flag is how you accept the mixed comparison on purpose. Reports and exit codes are otherwise unaffected.
 --fail-on <family>=<n> (repeatable) exits 1 when that family subscore is below n, without imposing a global threshold — e.g. --fail-on ai-access=80 --fail-on structured-data=70. Families: ai-access, llm-content, structured-data, technical-seo, on-page, performance, accessibility, security.
 --entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json, .dot (Graphviz), or .mmd (Mermaid).
 --answers <file> writes the answer matrix: the questions this site's own declarations imply, and
@@ -121,6 +125,7 @@ const parseCliArgs = () =>
       'fail-on-regression': { type: 'boolean', default: false },
       'fail-on': { type: 'string', multiple: true },
       'regression-tolerance': { type: 'string', default: '0' },
+      'allow-cross-version': { type: 'boolean', default: false },
       'entity-graph': { type: 'string' },
       answers: { type: 'string' },
       emit: { type: 'string' },
@@ -619,7 +624,17 @@ try {
     }
   }
 
-  const regressed = failOnRegression && baseline !== undefined && report.score < baseline.score - regressionTolerance;
+  // A128 — never fail a client's CI because OUR scoring model moved. When the
+  // baseline comes from another release, the gate is held (and says why) unless
+  // --allow-cross-version opts into the mixed comparison.
+  const crossVersionBlocked = diff !== undefined && diff.crossVersion && !values['allow-cross-version'];
+  if (crossVersionBlocked && failOnRegression) {
+    console.error(
+      `findable-audit: --fail-on-regression not applied — baseline was produced by findable-audit ${diff!.baselineToolVersion}, `
+      + `this run by ${diff!.currentToolVersion}. Re-run the baseline with this version, or pass --allow-cross-version.`);
+  }
+  const regressed = failOnRegression && !crossVersionBlocked && baseline !== undefined
+    && report.score < baseline.score - regressionTolerance;
   // A89 — per-family gates: exit 1 when a gated family subscore is below its threshold.
   let gateFailed = false;
   for (const f of report.familyScores) {
