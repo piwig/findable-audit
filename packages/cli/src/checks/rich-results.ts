@@ -27,6 +27,10 @@
 //   * FAQ, HowTo, Q&A. Google restricted or retired these result types; `sd-faq`
 //     and `sd-special-types` already grade their markup.
 //
+// Both retirements are recorded — with their date, their source and what the
+// markup is still worth — in `src/deprecations.ts` (A116). Add the record there
+// before teaching any check to promise a feature back.
+//
 // The check never fetches anything: it reads the JSON-LD already extracted from
 // the crawled pages.
 
