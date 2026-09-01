@@ -25,78 +25,146 @@ import { parseHistory, appendHistory, type HistoryEntry } from './report/history
 import { FAMILY_WEIGHTS } from './scoring.js';
 import type { Lang } from './report/i18n.js';
 
+// --help is the first contact for whoever installs the package (A130). It used to
+// be one 584-character line enumerating 32 options, which wraps mid-word six times
+// in a 100-column terminal before saying anything. Same text, now in sections: the
+// head is what `findable --help` prints, and `--help <topic>` prints one section.
+// Sections are delimited by "== <topic> ==" lines and parsed back by helpFor().
 const USAGE = `Usage: findable <url> [options]
-       findable generate llms-txt <url> [--out <dir>] [--lang <en|fr>] [--max-pages <n>] [--timeout <ms>] [--user-agent <ua>] [--quiet]
+       findable generate llms-txt <url> [options]
 
-findable <url> [--compare <url2,url3,...>] [--baseline <file.json>] [--fail-on-regression] [--fail-on <family>=<n>] [--regression-tolerance <n>] [--json] [--report <file.md|file.html|file.json|file.sarif|file.xml|file.svg>] [--no-report] [--lang <en|fr>] [--min-score <n>] [--timeout <ms>] [--max-pages <n>] [--user-agent <ua>] [--indexnow-key <key>] [--cwv] [--psi-key <key>] [--psi-strategy <mobile|desktop>] [--entity-graph <file>] [--answers <file>] [--summary <file>] [--submit] [--verify-profiles] [--check-outbound] [--emit <dir>] [--history <file.json>] [--quiet] [--no-color]
+Audits a website's readiness for AI search (GEO) and technical SEO. With no options it samples up to
+10 pages, prints the score, and writes two reports in the current directory: <host>-<date>.md and
+<host>-<date>.html (the .html is self-contained and printable, open it and "Print to PDF").
 
---compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side scorecard (overall + per-family, with the gaps where you trail).
---baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas + which checks regressed or improved (shown in the terminal and the md/html reports).
---fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance points (default 0); requires --baseline. Ideal as a CI gate.
---allow-cross-version lets that gate fire even when the baseline was produced by a different findable-audit version.
-  By default it does not: between two releases checks are added, and since family weights are fixed and sum to 1.00, a new
-  check dilutes the others — the score can move because the ruler changed, not the site. The diff always says so;
-  this flag is how you accept the mixed comparison on purpose. Reports and exit codes are otherwise unaffected.
---fail-on <family>=<n> (repeatable) exits 1 when that family subscore is below n, without imposing a global threshold — e.g. --fail-on ai-access=80 --fail-on structured-data=70. Families: ai-access, llm-content, structured-data, technical-seo, on-page, performance, accessibility, security.
---entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json, .dot (Graphviz), or .mmd (Mermaid).
+The four options most runs need:
+  --max-pages <n>        how deep to sample (default 10; 1 = homepage only)
+  --lang <en|fr>         report language (default en)
+  --report <file>        write exactly this file instead of the two defaults (repeatable)
+  --no-report            write nothing to disk; terminal only
+
+The rest, one topic at a time -- findable --help <topic>:
+  audit      what gets crawled and how: depth, timeout, user agent, language, Core Web Vitals
+  compare    measuring against something: --compare, --baseline, --history
+  output     report formats and the other files: --json, --summary, --entity-graph, --answers, --emit
+  ci         the gates that decide the exit code, and the exit codes themselves
+  network    the only options that fetch anything off your own origin
+  all        every section at once
+
+== audit ==
+Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
+  Depth is an intention, not a number: 1 = fast check (homepage only) · 5-10 = template audit (the
+  page shapes a site reuses) · 25-50 = site audit · 100+ = deep investigation. A bigger sample costs
+  proportionally more requests to the audited site, so pick the smallest one that answers your question.
+--timeout <ms> caps each request to the audited site.
+--user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
+--lang selects the report language (en or fr; default en): chrome, check titles, "why", fixes and the
+  checks' own dynamic messages. Terminal, JSON, SARIF, JUnit and the SVG badge stay English.
+--cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
+--psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
+--psi-strategy selects the PSI form factor (default mobile).
+--experimental-agent-standards probes the emerging agent-actionability manifests (/.well-known/agents.json,
+  /agents.json, /.well-known/ucp.json) on the audited origin. Experimental: no engine or agent vendor has
+  committed to these standards, so the result is informational only and NEVER counts in the score (0 points).
+--quiet silences the informational notes on stderr ("auditing…", "report written to…"); the audit
+  result on stdout and real errors still print. Errors keep the findable-audit: prefix, notes never had it.
+--no-color strips ANSI colors from the terminal output (for pagers, logs, CI). The NO_COLOR
+  environment variable (no-color.org) is honored too; --no-color simply forces it for one run.
+
+== compare ==
+--compare audits your URL against one or more competitor URLs (comma-separated) and writes a side-by-side
+  scorecard (overall + per-family, with the gaps where you trail).
+--baseline <file.json> diffs this run against a prior findable --report *.json: overall/per-family deltas
+  + which checks regressed or improved (shown in the terminal and the md/html reports). The diff names the
+  version behind each side, because a release that adds checks moves the score on its own.
+--history <file.json> appends this run (date + overall and per-family scores, never full results) to a
+  small JSON series and reads it back: with 2+ runs the HTML report opens with sparklines, the score's
+  direction over time, overall and per family. The file is safe to commit; oldest entries are dropped
+  past 500. A file that is not a findable-audit history is refused, never overwritten.
+
+== output ==
+By default, two report files are written to the current directory: <host>-<date>.md and <host>-<date>.html
+  (the .html is a self-contained, printable report). Use --no-report to write none.
+--report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
+  by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), .xml -> JUnit
+  (GitLab CI / Jenkins), .svg -> status badge for a README, .shields.json -> shields.io endpoint
+  JSON (live badge via img.shields.io/endpoint?url=...), anything else -> Markdown.
+--json prints the machine-readable report on stdout instead of the human one.
+--summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
+  the three highest-gain actions with their cost, and what they would be worth together. Format by extension
+  (.html or anything else Markdown). No check table, that is what --report is for.
+--entity-graph <file> writes the JSON-LD entity graph across the sampled pages; format by extension: .json,
+  .dot (Graphviz), or .mmd (Mermaid).
 --answers <file> writes the answer matrix: the questions this site's own declarations imply, and
   whether the crawled pages hold a passage that answers each one and stands on its own. Format by
-  extension: .json, or anything else Markdown. These questions come from what the site DECLARES —
-  its services, its areas, its markup — never from measured search demand, and the file says so.
+  extension: .json, or anything else Markdown. These questions come from what the site DECLARES,
+  its services, its areas, its markup, never from measured search demand, and the file says so.
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
-  sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic — review before deploying,
+  sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic, review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
 --emit-probes <file.json> writes suggested vigie-seo AI probes: one question per family scoring below 80,
   built only from the site's own words (hostname, homepage title/h1). The aiProbes array is paste-ready for
-  vigie.config.json — review before use; a clean audit yields an empty array, never invented weaknesses.
---summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
-  the three highest-gain actions with their cost, and what they would be worth together. Format by extension
-  (.html or anything else Markdown). No check table — that is what --report is for.
+  vigie.config.json, review before use; a clean audit yields an empty array, never invented weaknesses.
+findable generate llms-txt <url> [--out <dir>] crawls and samples only (no checks, no score) and writes
+  llms.txt / llms-full.txt built from the pages it really fetched. --lang, --max-pages, --timeout,
+  --user-agent and --quiet apply as above.
+
+== ci ==
+--min-score <n> sets the score below which the run exits 1 (default 60).
+--fail-on-regression exits 1 when the score drops below the baseline by more than --regression-tolerance
+  points (default 0); requires --baseline. Ideal as a CI gate.
+--regression-tolerance <n> is how many points the score may drop before that gate trips.
+--allow-cross-version lets that gate fire even when the baseline was produced by a different findable-audit
+  version. By default it does not: between two releases checks are added, and since family weights are fixed
+  and sum to 1.00, a new check dilutes the others, so the score can move because the ruler changed, not the
+  site. The diff always says so; this flag is how you accept the mixed comparison on purpose.
+--fail-on <family>=<n> (repeatable) exits 1 when that family subscore is below n, without imposing a global
+  threshold, e.g. --fail-on ai-access=80 --fail-on structured-data=70. Families: ai-access, llm-content,
+  structured-data, technical-seo, on-page, performance, accessibility, security.
+Exit codes: 0 = score >= min-score and all gates pass, 1 = below min-score / regression / --fail-on gate, 2 = unreachable or invalid invocation, 3 = report write failed.
+
+== network ==
 --verify-profiles fetches the profiles your JSON-LD declares in sameAs and checks each one links back
-  to your site — the return link is what turns a claim into a verified identity. It never hunts for a
+  to your site, the return link is what turns a claim into a verified identity. It never hunts for a
   presence you did not declare, and a platform that refuses robots (LinkedIn, Instagram...) is reported
   as unverifiable, never held against you. At most 8 URLs, http(s) only, same SSRF guard.
 --check-outbound probes the external links your pages publish and reports the dead ones (outbound-link-health),
   because a citation that 404s is a dead reference nothing on-page reveals. HEAD first (ranged GET only for
   servers that refuse it), at most 10 URLs, one per host, main content first, shorter timeout, SSRF guard
-  always on. A host that times out or refuses robots is reported as unverifiable — only a 404/410 counts
+  always on. A host that times out or refuses robots is reported as unverifiable, only a 404/410 counts
   as broken, so a network hiccup never fails your audit.
---verify-profiles and --check-outbound are the ONLY options that fetch anything off your own origin, and
-  neither implies the other; without them the audit touches nothing but the audited site.
---experimental-agent-standards probes the emerging agent-actionability manifests (/.well-known/agents.json,
-  /agents.json, /.well-known/ucp.json) on the audited origin. Experimental: no engine or agent vendor has
-  committed to these standards, so the result is informational only and NEVER counts in the score (0 points).
---history <file.json> appends this run (date + overall and per-family scores, never full results) to a
-  small JSON series and reads it back: with 2+ runs the HTML report opens with sparklines — the score's
-  direction over time, overall and per family. The file is safe to commit; oldest entries are dropped
-  past 500. A file that is not a findable-audit history is refused, never overwritten.
---submit notifies IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate) of the sampled URLs.
+--submit notifies IndexNow (Bing, Yandex, Seznam, Naver, Google does not participate) of the sampled URLs.
   Opt-in and requires --indexnow-key: nothing is sent unless /<key>.txt is verified on the audited site, which
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
   changes the exit code.
+--indexnow-key <key> is that key; it also lets the audit verify the key file is in place.
+--verify-profiles, --check-outbound and --submit are the ONLY options that fetch anything off your own origin,
+  and none implies another; without them the audit touches nothing but the audited site.`;
 
-Audits a website's readiness for AI search (GEO) and technical SEO.
-Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered pages; 1 = homepage only).
-  Depth is an intention, not a number: 1 = fast check (homepage only) · 5-10 = template audit (the
-  page shapes a site reuses) · 25-50 = site audit · 100+ = deep investigation. A bigger sample costs
-  proportionally more requests to the audited site, so pick the smallest one that answers your question.
-By default, two report files are written to the current directory: <host>-<date>.md and <host>-<date>.html
-  (the .html is a self-contained, printable report — open it and "Print to PDF"). Use --no-report to write none.
---report <file> overrides the default and writes exactly the file(s) you name (repeatable); the format is chosen
-  by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), .xml -> JUnit
-  (GitLab CI / Jenkins), .svg -> status badge for a README, .shields.json -> shields.io endpoint
-  JSON (live badge via img.shields.io/endpoint?url=...), anything else -> Markdown.
---lang selects the report language (en or fr; default en): chrome, check titles, "why", fixes and the
-  checks' own dynamic messages. Terminal, JSON, SARIF, JUnit and the SVG badge stay English.
---user-agent overrides the crawler User-Agent (e.g. "GPTBot/1.0") to test UA-based blocking.
---cwv opts into Core Web Vitals via one (slow, ~15-30s) PageSpeed Insights call; without it the CWV checks skip.
---psi-key <key> supplies a Google PSI/CrUX API key (recommended: the keyless endpoint is rate-limited).
---psi-strategy selects the PSI form factor (default mobile).
---quiet silences the informational notes on stderr ("auditing…", "report written to…"); the audit
-  result on stdout and real errors still print. Errors keep the findable-audit: prefix, notes never had it.
---no-color strips ANSI colors from the terminal output (for pagers, logs, CI). The NO_COLOR
-  environment variable (no-color.org) is honored too; --no-color simply forces it for one run.
-Exit codes: 0 = score >= min-score and all gates pass, 1 = below min-score / regression / --fail-on gate, 2 = unreachable or invalid invocation, 3 = report write failed.`;
+/** Topic sections of USAGE, keyed by the name in their "== topic ==" header. */
+const HELP_TOPICS = new Map<string, string>(
+  USAGE.split(/^== (.+) ==$/m).slice(1).reduce<Array<[string, string]>>((acc, part, i, all) => {
+    if (i % 2 === 0) acc.push([part.trim(), (all[i + 1] ?? '').trim()]);
+    return acc;
+  }, []),
+);
+
+/** The head of USAGE: everything before the first topic section. */
+const USAGE_HEAD = USAGE.split(/^== .+ ==$/m)[0].trimEnd();
+
+/**
+ * `--help` prints the head, `--help <topic>` one section, `--help all` the lot.
+ * An unknown topic is not worth exiting 2 for: print the head plus the topics
+ * that do exist.
+ */
+function helpFor(topic?: string): string {
+  if (!topic) return USAGE_HEAD;
+  const key = topic.trim().toLowerCase();
+  if (key === 'all') return USAGE;
+  const section = HELP_TOPICS.get(key);
+  if (section) return `${key}\n\n${section}`;
+  return `findable-audit: unknown help topic "${topic}", try: ${[...HELP_TOPICS.keys()].join(', ')}, all\n\n${USAGE_HEAD}`;
+}
 
 /** Default report basename written when neither --report nor --no-report is given. */
 function defaultReportBase(url: string, now: Date): string {
@@ -153,7 +221,7 @@ try {
   parsed = parseCliArgs();
 } catch (err) {
   // Unknown option / missing value: a clean message, not a stack trace.
-  console.error(`findable-audit: ${(err as Error).message}\n\n${USAGE}`);
+  console.error(`findable-audit: ${(err as Error).message}\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 const { values, positionals } = parsed;
@@ -179,65 +247,67 @@ if (values.version) {
 const isGenerate = positionals[0] === 'generate';
 const url = isGenerate ? positionals[2] : positionals[0];
 if (values.help || !url) {
-  console.log(USAGE);
+  // `findable --help ci` reads the topic off the positionals: with --help there is
+  // no URL to audit, so the first positional can only be a help topic.
+  console.log(values.help ? helpFor(positionals[0]) : USAGE_HEAD);
   process.exit(values.help ? 0 : 2);
 }
 if (isGenerate && positionals[1] !== 'llms-txt') {
-  console.error(`findable-audit: unknown generate target "${positionals[1] ?? ''}" (expected "llms-txt")\n\n${USAGE}`);
+  console.error(`findable-audit: unknown generate target "${positionals[1] ?? ''}" (expected "llms-txt")\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 const outDir = values.out ?? '.';
 if (outDir.trim() === '') {
-  console.error(`findable-audit: --out must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --out must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const minScore = Number(values['min-score']);
 if (values['min-score'].trim() === '' || !Number.isFinite(minScore)) {
-  console.error(`findable-audit: invalid --min-score value "${values['min-score']}" (expected a number)\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --min-score value "${values['min-score']}" (expected a number)\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const timeoutMs = Number(values.timeout);
 if (values.timeout.trim() === '' || !Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-  console.error(`findable-audit: invalid --timeout value "${values.timeout}" (expected a positive number of milliseconds)\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --timeout value "${values.timeout}" (expected a positive number of milliseconds)\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const maxPages = Number(values['max-pages']);
 if (values['max-pages'].trim() === '' || !Number.isInteger(maxPages) || maxPages < 1) {
-  console.error(`findable-audit: invalid --max-pages value "${values['max-pages']}" (expected an integer >= 1)\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --max-pages value "${values['max-pages']}" (expected an integer >= 1)\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const userAgent = values['user-agent'];
 if (userAgent !== undefined && userAgent.trim() === '') {
-  console.error(`findable-audit: --user-agent must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --user-agent must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const psiKey = values['psi-key'];
 if (psiKey !== undefined && psiKey.trim() === '') {
-  console.error(`findable-audit: --psi-key must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --psi-key must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const psiStrategy = values['psi-strategy'];
 if (psiStrategy !== 'mobile' && psiStrategy !== 'desktop') {
-  console.error(`findable-audit: invalid --psi-strategy value "${psiStrategy}" (expected "mobile" or "desktop")\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --psi-strategy value "${psiStrategy}" (expected "mobile" or "desktop")\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
 const lang = (values.lang ?? 'en');
 if (lang !== 'en' && lang !== 'fr') {
-  console.error(`findable-audit: invalid --lang value "${lang}" (expected "en" or "fr")\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --lang value "${lang}" (expected "en" or "fr")\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 const langTyped: Lang = lang;
 
 const targetUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
 if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) {
-  console.error(`findable-audit: invalid URL "${url}"\n\n${USAGE}`);
+  console.error(`findable-audit: invalid URL "${url}"\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
@@ -245,7 +315,7 @@ if (!URL.canParse(targetUrl) || !/^https?:$/.test(new URL(targetUrl).protocol)) 
 const failOnRegression = values['fail-on-regression'];
 const regressionTolerance = Number(values['regression-tolerance']);
 if (!Number.isInteger(regressionTolerance) || regressionTolerance < 0) {
-  console.error(`findable-audit: invalid --regression-tolerance value "${values['regression-tolerance']}" (expected an integer >= 0)\n\n${USAGE}`);
+  console.error(`findable-audit: invalid --regression-tolerance value "${values['regression-tolerance']}" (expected an integer >= 0)\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
@@ -256,17 +326,17 @@ for (const raw of values['fail-on'] ?? []) {
   const family = eq === -1 ? '' : raw.slice(0, eq).trim();
   const threshold = eq === -1 ? NaN : Number(raw.slice(eq + 1));
   if (!(family in FAMILY_WEIGHTS)) {
-    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected <family>=<score> with family one of: ${Object.keys(FAMILY_WEIGHTS).join(', ')})\n\n${USAGE}`);
+    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected <family>=<score> with family one of: ${Object.keys(FAMILY_WEIGHTS).join(', ')})\n\n${USAGE_HEAD}`);
     process.exit(2);
   }
   if (raw.slice(eq + 1).trim() === '' || !Number.isFinite(threshold) || threshold < 0 || threshold > 100) {
-    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected a score between 0 and 100)\n\n${USAGE}`);
+    console.error(`findable-audit: invalid --fail-on value "${raw}" (expected a score between 0 and 100)\n\n${USAGE_HEAD}`);
     process.exit(2);
   }
   failOnGates.set(family, threshold);
 }
 if ((failOnRegression || values['regression-tolerance'] !== '0') && values.baseline === undefined) {
-  console.error(`findable-audit: --fail-on-regression / --regression-tolerance require --baseline <file>\n\n${USAGE}`);
+  console.error(`findable-audit: --fail-on-regression / --regression-tolerance require --baseline <file>\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 // --answers <file>: validate the target extension up front, like --entity-graph.
@@ -282,7 +352,7 @@ if (answersFile !== undefined) {
 const entityGraphFile = values['entity-graph'];
 if (entityGraphFile !== undefined) {
   if (entityGraphFile.trim() === '' || pickEntityGraphRenderer(entityGraphFile) === null) {
-    console.error(`findable-audit: --entity-graph file must end in .json, .dot or .mmd (got "${entityGraphFile}")\n\n${USAGE}`);
+    console.error(`findable-audit: --entity-graph file must end in .json, .dot or .mmd (got "${entityGraphFile}")\n\n${USAGE_HEAD}`);
     process.exit(2);
   }
 }
@@ -290,7 +360,7 @@ if (entityGraphFile !== undefined) {
 // --summary <file>: validated up front, written after the audit.
 const summaryFile = values.summary;
 if (summaryFile !== undefined && summaryFile.trim() === '') {
-  console.error(`findable-audit: --summary must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --summary must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
@@ -301,7 +371,7 @@ const historyFile = values.history;
 let priorHistory: HistoryEntry[] = [];
 if (historyFile !== undefined) {
   if (historyFile.trim() === '' || !/\.json$/i.test(historyFile)) {
-    console.error(`findable-audit: --history file must end in .json (got "${historyFile}")\n\n${USAGE}`);
+    console.error(`findable-audit: --history file must end in .json (got "${historyFile}")\n\n${USAGE_HEAD}`);
     process.exit(2);
   }
   let raw: string | undefined;
@@ -324,7 +394,7 @@ if (historyFile !== undefined) {
 // the key file hosted on the site is the ownership proof, and the audit itself
 // verifies it (the `indexnow` check must pass before anything is sent).
 if (values.submit && (values['indexnow-key'] === undefined || values['indexnow-key'].trim() === '')) {
-  console.error(`findable-audit: --submit requires --indexnow-key <key> (the key file proves you own the site)\n\n${USAGE}`);
+  console.error(`findable-audit: --submit requires --indexnow-key <key> (the key file proves you own the site)\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
@@ -332,7 +402,7 @@ if (values.submit && (values['indexnow-key'] === undefined || values['indexnow-k
 // once report.entityGraph is available (see includeEntityGraph below).
 const emitDir = values.emit;
 if (emitDir !== undefined && emitDir.trim() === '') {
-  console.error(`findable-audit: --emit must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --emit must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
@@ -340,7 +410,7 @@ if (emitDir !== undefined && emitDir.trim() === '') {
 // audit, once familyScores exist to derive the suggestions from.
 const emitProbesFile = values['emit-probes'];
 if (emitProbesFile !== undefined && emitProbesFile.trim() === '') {
-  console.error(`findable-audit: --emit-probes must not be empty\n\n${USAGE}`);
+  console.error(`findable-audit: --emit-probes must not be empty\n\n${USAGE_HEAD}`);
   process.exit(2);
 }
 
