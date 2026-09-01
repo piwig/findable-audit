@@ -133,6 +133,25 @@ export const CITATION_BOTS = [
                            // application rate-limiting) actually blocks it.
 ];
 
+/**
+ * Date de la derniere revue du roster ci-dessus, et sources verifiables.
+ *
+ * Un roster de crawlers se perime en silence : sans date, personne ne peut dire
+ * s'il a deux mois ou six, et un agent nouvellement apparu passe inapercu.
+ * Cette constante rend le millesime lisible et re-verifiable.
+ */
+export const AI_ROSTER_REVIEWED = '2026-09-01';
+
+/** Sources officielles a rouvrir a chaque revue du roster. */
+export const AI_ROSTER_SOURCES = [
+  'https://platform.openai.com/docs/bots',
+  'https://docs.anthropic.com/en/docs/claude-code/bot',
+  'https://docs.perplexity.ai/guides/bots',
+  'https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers',
+  'https://developers.facebook.com/docs/sharing/webmasters/web-crawlers',
+  'https://darkvisitors.com/agents',
+];
+
 /** Full 2026 roster: training-time crawlers + citation-time fetchers. */
 export const AI_BOTS = [...TRAINING_BOTS, ...CITATION_BOTS];
 
