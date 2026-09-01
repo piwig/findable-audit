@@ -22,10 +22,11 @@ import { readFileSync } from 'node:fs';
  * `[livré 2026-08-25]`, `(fait 2026-08-09 - …)` — est libre : uniformiser 110
  * lignes existantes serait un gain d'apparence pour un risque de sens.
  */
-// L'identifiant suit le premier groupe entre crochets, quel que soit son
-// contenu : `- [ ] A116 …` comme `- [LIVRE 2026-08-17] A48 …`. On exige sa
-// PRESENCE, pas sa position — c'est le dedoublonnage qui compte, pas la mise en page.
-export const IDENTIFIANT = /^- \[[^\]]*\]\s*[A-Z]\d+\b/;
+// On exige la PRESENCE d'un identifiant en tete de ligne, pas sa position :
+// `- [ ] A116 …`, `- [LIVRE 2026-08-17] A48 …`, `- [x] (2026-08-07, livre) V32 …`
+// coexistent dans les trois depots. Le suffixe optionnel couvre les items
+// scindes apres coup (`V75a`). C'est le dedoublonnage qui compte, pas la mise en page.
+export const IDENTIFIANT = /^- .{0,60}?\b[A-Z]\d+[a-z]?\b/;
 export const DATE_ISO = /\d{4}-\d{2}-\d{2}/;
 
 export function conforme(ligne) {
