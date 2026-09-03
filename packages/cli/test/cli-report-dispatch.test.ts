@@ -110,3 +110,40 @@ test('--report *.junit.xml writes a JUnit XML report', async () => {
     rmSync(out, { force: true });
   });
 });
+
+// A131 — --format overrides the extension; `--report -` streams to stdout.
+test('--report - --format json streams the JSON report on stdout and skips the human summary', async () => {
+  await withFixture(async (base) => {
+    const r = await runCli([DIST, base, '--report', '-', '--format', 'json', '--min-score', '0']);
+    expect(r.status).toBe(0);
+    const parsed = JSON.parse(r.stdout);
+    expect(typeof parsed.score).toBe('number');
+    expect(r.stderr).toMatch(/written to stdout/);
+  });
+});
+
+test('--format sarif wins over a .txt extension', async () => {
+  await withFixture(async (base) => {
+    const out = path.join(process.cwd(), 'tmp-cli-forced.txt');
+    rmSync(out, { force: true });
+    const r = await runCli([DIST, base, '--report', out, '--format', 'sarif', '--min-score', '0']);
+    expect(r.status).toBe(0);
+    const parsed = JSON.parse(readFileSync(out, 'utf8'));
+    expect(Array.isArray(parsed.runs)).toBe(true);
+    rmSync(out, { force: true });
+  });
+});
+
+test('--report - without --format is Markdown', async () => {
+  await withFixture(async (base) => {
+    const r = await runCli([DIST, base, '--report', '-', '--min-score', '0']);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/^# /m);
+  });
+});
+
+test('--format bogus is rejected with exit code 2', async () => {
+  const r = await runCli([DIST, 'https://example.com', '--format', 'bogus']);
+  expect(r.status).toBe(2);
+  expect(r.stderr).toMatch(/--format/);
+});

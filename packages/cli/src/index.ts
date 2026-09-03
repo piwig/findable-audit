@@ -89,6 +89,10 @@ By default, two report files are written to the current directory: <host>-<date>
   by extension: .html/.htm -> HTML, .json -> JSON, .sarif -> SARIF (GitHub code-scanning), .xml -> JUnit
   (GitLab CI / Jenkins), .svg -> status badge for a README, .shields.json -> shields.io endpoint
   JSON (live badge via img.shields.io/endpoint?url=...), anything else -> Markdown.
+--format <md|html|json|sarif|junit|svg|shields> forces the format of every --report file, whatever its
+  extension (A131). --report - writes the report to stdout instead of a file (the human summary is then
+  skipped, as with --json), so --report - --format sarif | jq or piping JUnit to a collector needs no
+  temporary file. Without --format, --report - is Markdown.
 --json prints the machine-readable report on stdout instead of the human one.
 --summary <file> writes the one-screen version for whoever decides: score, verdict, the three axes,
   the three highest-gain actions with their cost, and what they would be worth together. Format by extension
@@ -208,6 +212,8 @@ const parseCliArgs = () =>
       history: { type: 'string' },
       out: { type: 'string' },
       report: { type: 'string', short: 'r', multiple: true },
+      // A131 — report format independent of the file extension; needed for `--report -` (stdout).
+      format: { type: 'string' },
       'no-report': { type: 'boolean', default: false },
       quiet: { type: 'boolean', short: 'q', default: false },
       'no-color': { type: 'boolean', default: false },
@@ -234,6 +240,27 @@ const { values, positionals } = parsed;
 const note = (msg: string): void => { if (!values.quiet) console.error(msg); };
 const stripAnsi = (s: string): string => s.replace(/\x1b\[[0-9;]*m/g, '');
 const colorize = (s: string): string => (values['no-color'] ? stripAnsi(s) : s);
+
+// A131: --format names one of the report writers; the file extension no longer decides when it is given.
+const REPORT_FORMATS = ['md', 'html', 'json', 'sarif', 'junit', 'svg', 'shields'] as const;
+type ReportFormat = typeof REPORT_FORMATS[number];
+if (values.format !== undefined && !(REPORT_FORMATS as readonly string[]).includes(values.format)) {
+  console.error(`findable-audit: --format must be one of ${REPORT_FORMATS.join(', ')} (got "${values.format}")`);
+  process.exit(2);
+}
+const forcedFormat = values.format as ReportFormat | undefined;
+function reportFormatFor(file: string): ReportFormat {
+  if (forcedFormat) return forcedFormat;
+  if (/[.]sarif$/i.test(file)) return 'sarif';
+  if (/[.]svg$/i.test(file)) return 'svg';
+  // `.shields.json` must be tested before the generic `.json` branch: it is
+  // a JSON file too, but carries the shields.io endpoint document (#A95).
+  if (/[.]shields[.]json$/i.test(file)) return 'shields';
+  if (/[.]json$/i.test(file)) return 'json';
+  if (/[.]xml$/i.test(file)) return 'junit';
+  if (/[.]html?$/i.test(file)) return 'html';
+  return 'md';
+}
 
 if (values.version) {
   console.log(createRequire(import.meta.url)('../package.json').version);
@@ -528,8 +555,12 @@ try {
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
   if (onProgress) process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
-  console.log(values.json ? renderJson(report, { diff }) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report, langTyped)));
-  if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
+  // A131: `--report -` owns stdout exactly like --json does; the human summary is skipped.
+  const reportToStdout = (values.report ?? []).includes('-');
+  if (!reportToStdout) {
+    console.log(values.json ? renderJson(report, { diff }) : colorize(compare ? renderCompareTerminal(reports, langTyped, compareOpts) : renderTerminal(report, langTyped)));
+    if (diff && !values.json) console.log('\n' + colorize(renderDiffTerminal(diff, langTyped)));
+  }
   // Decide which report files to write:
   //   --report given  -> exactly those (format by extension); default suppressed
   //   --no-report     -> none
@@ -571,15 +602,19 @@ try {
   }
   for (const file of targets) {
     let body: string;
-    if (/\.sarif$/i.test(file)) body = renderSarif(report, { diff });
-    else if (/\.svg$/i.test(file)) body = renderBadge(report);
-    // `.shields.json` must be tested before the generic `.json` branch: it is
-    // a JSON file too, but carries the shields.io endpoint document (#A95).
-    else if (/\.shields\.json$/i.test(file)) body = renderShieldsJson(report);
-    else if (/\.json$/i.test(file)) body = renderJson(report, { diff });
-    else if (/\.xml$/i.test(file)) body = renderJunit(report);
-    else if (/\.html?$/i.test(file)) body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff, history });
+    const fmt = reportFormatFor(file);
+    if (fmt === 'sarif') body = renderSarif(report, { diff });
+    else if (fmt === 'svg') body = renderBadge(report);
+    else if (fmt === 'shields') body = renderShieldsJson(report);
+    else if (fmt === 'json') body = renderJson(report, { diff });
+    else if (fmt === 'junit') body = renderJunit(report);
+    else if (fmt === 'html') body = compare ? renderCompareHtml(reports, now, langTyped, compareOpts) : renderHtml(report, now, langTyped, { diff, history });
     else body = compare ? renderCompareMarkdown(reports, langTyped, compareOpts) : renderMarkdown(report, now, langTyped, { diff });
+    if (file === '-') {
+      process.stdout.write(body.endsWith('\n') ? body : body + '\n');
+      note(`report (${fmt}) written to stdout`);
+      continue;
+    }
     try {
       writeFileSync(file, body, 'utf8');
       note(`report written to ${file}`);

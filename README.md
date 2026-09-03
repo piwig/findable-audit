@@ -148,7 +148,7 @@ It is built in **three layers, one screen each**, on the principle that a report
 npx findable-audit https://your-site.com --report audit.md --report audit.html
 ```
 
-Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit), `.svg` (score badge), anything else Markdown. `--no-report` writes nothing.
+Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit), `.svg` (score badge), anything else Markdown — or force it with `--format`, and use `--report -` to stream the report to stdout. `--no-report` writes nothing.
 
 **Exit codes:** `0` = score ≥ `--min-score`, `1` = below, `2` = unreachable or error.
 
@@ -181,6 +181,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--submit` | Notify IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate). Requires `--indexnow-key`, and sends nothing until `/<key>.txt` on your site proves you own it. |
 | `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
 | `--json` | Full report as JSON, for scripts and CI. |
+| `--format <md|html|json|sarif|junit|svg|shields>` | Forces the format of every `--report` file whatever its extension. With `--report -` the report goes to stdout (human summary skipped), so `--report - --format sarif | jq` needs no temporary file. |
 | `--report <file>`, `-r` | Write exactly the named file(s). Repeatable, format by extension. |
 | `--no-report` | Write no report files — stdout only. |
 | `--timeout <ms>` | Per-request timeout (default `10000`). |
