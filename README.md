@@ -244,7 +244,7 @@ jobs:
       - run: echo "Score ${{ steps.findable.outputs.score }} — grade ${{ steps.findable.outputs.grade }}"
 ```
 
-The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`, `regression-tolerance`, extra `report` files (extension picks the format) and `lang`. It exposes `score` and `grade` as step outputs. By default (`version: 'local'`) it builds from its own checkout; pin a published version instead with `version: '0.9.0'`. A complete example lives in [`.github/workflows/findable-gate.yml`](.github/workflows/findable-gate.yml).
+The action's inputs mirror the CLI gates: `baseline`, `fail-on-regression`, `regression-tolerance`, `allow-cross-version`, `fail-on`, extra `report` files (extension picks the format, or force it with `format`), `emit`, `cwv` + `psi-key`, `quiet`, `no-color` and `lang` — a test keeps this list aligned with the CLI options. It exposes `score` and `grade` as step outputs. By default (`version: 'local'`) it builds from its own checkout; pin a published version instead with `version: '0.9.0'`. A complete example lives in [`.github/workflows/findable-gate.yml`](.github/workflows/findable-gate.yml).
 
 ### Regression gate
 

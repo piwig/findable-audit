@@ -53,6 +53,43 @@ inputs:
     description: 'Report chrome language: en or fr.'
     required: false
     default: ''
+  allow-cross-version:
+    description: >-
+      Let fail-on-regression compare against a baseline produced by a different
+      findable-audit release. Off by default: a score that moved because OUR
+      scoring model changed is not a regression of your site (A128).
+    required: false
+    default: 'false'
+  fail-on:
+    description: >-
+      Check id(s) that must pass, space-separated (e.g. "https robots-txt").
+      Fails the job when any of them does not pass, whatever the score.
+    required: false
+    default: ''
+  format:
+    description: 'Force the report format (md, html, json, sarif, junit, svg, shields) regardless of file extension. Empty = by extension.'
+    required: false
+    default: ''
+  emit:
+    description: 'Directory to write ready-to-deploy indexing files into (robots.txt, llms.txt, sitemap.xml…). Empty = do not emit.'
+    required: false
+    default: ''
+  cwv:
+    description: 'Add the Core Web Vitals check (PageSpeed Insights). Set psi-key to avoid the anonymous quota.'
+    required: false
+    default: 'false'
+  psi-key:
+    description: 'PageSpeed Insights API key for cwv. Pass a secret, never a literal.'
+    required: false
+    default: ''
+  quiet:
+    description: 'Silence progress output; only the result and errors are printed.'
+    required: false
+    default: 'false'
+  no-color:
+    description: 'Disable ANSI colours in the CLI output (the summary is plain text either way).'
+    required: false
+    default: 'true'
   version:
     description: >-
       findable-audit version to run via `npx findable-audit@<version>`, or
@@ -98,6 +135,14 @@ runs:
         FINDABLE_BADGE: ${{ inputs.badge }}
         FINDABLE_LANG: ${{ inputs.lang }}
         FINDABLE_VERSION: ${{ inputs.version }}
+        FINDABLE_ALLOW_CROSS_VERSION: ${{ inputs.allow-cross-version }}
+        FINDABLE_FAIL_ON: ${{ inputs.fail-on }}
+        FINDABLE_FORMAT: ${{ inputs.format }}
+        FINDABLE_EMIT: ${{ inputs.emit }}
+        FINDABLE_CWV: ${{ inputs.cwv }}
+        FINDABLE_PSI_KEY: ${{ inputs.psi-key }}
+        FINDABLE_QUIET: ${{ inputs.quiet }}
+        FINDABLE_NO_COLOR: ${{ inputs.no-color }}
       run: |
         set -u
         if [ "$FINDABLE_VERSION" = "local" ]; then
@@ -123,6 +168,17 @@ runs:
         [ "$FINDABLE_FAIL_ON_REGRESSION" = "true" ] && ARGS+=(--fail-on-regression)
         [ -n "$FINDABLE_REGRESSION_TOLERANCE" ] && ARGS+=(--regression-tolerance "$FINDABLE_REGRESSION_TOLERANCE")
         [ -n "$FINDABLE_LANG" ] && ARGS+=(--lang "$FINDABLE_LANG")
+        # A135 — the options below existed in the CLI but not here; the action is
+        # the surface CI users actually touch (test/action-parity.test.ts keeps
+        # this list aligned with parseArgs).
+        [ "$FINDABLE_ALLOW_CROSS_VERSION" = "true" ] && ARGS+=(--allow-cross-version)
+        for id in $FINDABLE_FAIL_ON; do ARGS+=(--fail-on "$id"); done
+        [ -n "$FINDABLE_FORMAT" ] && ARGS+=(--format "$FINDABLE_FORMAT")
+        [ -n "$FINDABLE_EMIT" ] && ARGS+=(--emit "$FINDABLE_EMIT")
+        [ "$FINDABLE_CWV" = "true" ] && ARGS+=(--cwv)
+        [ -n "$FINDABLE_PSI_KEY" ] && ARGS+=(--psi-key "$FINDABLE_PSI_KEY")
+        [ "$FINDABLE_QUIET" = "true" ] && ARGS+=(--quiet)
+        [ "$FINDABLE_NO_COLOR" = "true" ] && ARGS+=(--no-color)
 
         set +e
         "${CLI[@]}" "${ARGS[@]}"
