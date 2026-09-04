@@ -522,6 +522,11 @@ export function generateReadme(report: AuditReport, { lang }: GenerateOptions): 
 }
 
 /** Write every EMITTED_FILES entry plus GENERATED-README.md into `dir`. Returns the written paths. */
+/** A138 — the paths emitFiles WOULD write, for --dry-run. Same list, same order, nothing touched. */
+export function plannedFiles(dir: string): string[] {
+  return [...EMITTED_FILES.map((e) => path.join(dir, e.filename)), path.join(dir, 'GENERATED-README.md')];
+}
+
 export function emitFiles(report: AuditReport, dir: string, { lang }: GenerateOptions): string[] {
   const written: string[] = [];
   for (const entry of EMITTED_FILES) {

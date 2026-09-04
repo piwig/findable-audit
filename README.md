@@ -179,6 +179,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--verify-profiles` | Fetch the profiles your JSON-LD declares in `sameAs` and check each links back — the return link is what turns a claim into a verified identity. At most 8 URLs, same SSRF guard. Never hunts for a presence you did not declare; a platform that refuses robots is *unverifiable*, never held against you. |
 | `--check-outbound` | Probe the outbound links in your main content. 10 URLs max, one per host, same SSRF guard. Only `404`/`410` count as broken — `401`, `403`, `429`, `5xx`, timeouts and DNS failures are *unverifiable*, never dead. |
 | `--submit` | Notify IndexNow (Bing, Yandex, Seznam, Naver — Google does not participate). Requires `--indexnow-key`, and sends nothing until `/<key>.txt` on your site proves you own it. |
+| `--dry-run` | Run the audit but only list what `--emit`, `--emit-probes` and `--submit` would write or send (paths and URLs on stderr). Nothing written, nothing posted; reports are unaffected. |
 | `--indexnow-key <key>` | Enable the IndexNow key-file check for the given key. |
 | `--json` | Full report as JSON, for scripts and CI. |
 | `--format <md|html|json|sarif|junit|svg|shields>` | Forces the format of every `--report` file whatever its extension. With `--report -` the report goes to stdout (human summary skipped), so `--report - --format sarif | jq` needs no temporary file. |

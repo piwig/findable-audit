@@ -17,7 +17,7 @@ import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from 
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { pickAnswersRenderer } from './report/answers.js';
-import { emitFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/index.js';
+import { emitFiles, plannedFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/index.js';
 import { renderProbesJson } from './generate/probes.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
 import { buildIndexNowPayload, submitIndexNow } from './submit/indexnow.js';
@@ -142,6 +142,9 @@ Exit codes: 0 = score >= min-score and all gates pass, 1 = below min-score / reg
   is what proves you own it. Only sampled same-origin URLs are submitted, and a refused submission never
   changes the exit code.
 --indexnow-key <key> is that key; it also lets the audit verify the key file is in place.
+--dry-run runs the audit but only LISTS what --emit, --emit-probes and --submit would write or send: the file
+  paths and the IndexNow URL list go to stderr, nothing is written, nothing is posted. Reports (--report) are
+  unaffected. Use it in CI to review an emission before arming it; IndexNow submissions cannot be undone.
 --verify-profiles, --check-outbound and --submit are the ONLY options that fetch anything off your own origin,
   and none implies another; without them the audit touches nothing but the audited site.`;
 
@@ -204,6 +207,8 @@ const parseCliArgs = () =>
       // A99 — vigie-seo probe suggestions derived from weak families.
       'emit-probes': { type: 'string' },
       submit: { type: 'boolean', default: false },
+      // A138 — list what --emit/--emit-probes/--submit would do, without doing it.
+      'dry-run': { type: 'boolean', default: false },
       'verify-profiles': { type: 'boolean', default: false },
       'check-outbound': { type: 'boolean', default: false },
       // A38 — opt-in probe of emerging agents.json / UCP manifests (never scored).
@@ -633,7 +638,12 @@ try {
   // llms-full.txt, .well-known/ai.json, sitemap.xml, jsonld-stubs.json,
   // GENERATED-README.md). Independent of --report/--no-report: emitFiles
   // already uses writeFileSync, never process.exit.
-  if (emitDir !== undefined) {
+  const dryRun = values['dry-run'];
+  if (emitDir !== undefined && dryRun) {
+    const planned = plannedFiles(emitDir);
+    note(`dry-run: would write ${planned.length} generated files (nothing written):`);
+    for (const f of planned) note(`  ${f}`);
+  } else if (emitDir !== undefined) {
     try {
       const written = emitFiles(report, emitDir, { lang: langTyped });
       note(`generated indexing files in ${emitDir} (${written.length} files)`);
@@ -648,7 +658,9 @@ try {
   // --emit-probes <file.json>: suggested vigie-seo AI probes derived from the
   // families that scored below the amber bar (#A99). Suggestions, not config —
   // the file says so, and an empty aiProbes array on a clean site is correct.
-  if (emitProbesFile !== undefined) {
+  if (emitProbesFile !== undefined && dryRun) {
+    note(`dry-run: would write AI probe suggestions to ${emitProbesFile} (nothing written)`);
+  } else if (emitProbesFile !== undefined) {
     try {
       writeFileSync(emitProbesFile, renderProbesJson(report, langTyped, now.toISOString()), 'utf8');
       note(`suggested AI probes written to ${emitProbesFile}`);
@@ -718,6 +730,9 @@ try {
       const payload = buildIndexNowPayload(report, key);
       if (payload === null) {
         console.error('findable-audit: not submitting — no sampled URL to submit.');
+      } else if (dryRun) {
+        note(`dry-run: would submit ${payload.urlList.length} URL(s) to IndexNow (nothing sent):`);
+        for (const u of payload.urlList) note(`  ${u}`);
       } else {
         note(`submitting ${payload.urlList.length} URL(s) to IndexNow (Bing, Yandex, Seznam, Naver)…`);
         const result = await submitIndexNow(payload, { timeoutMs });
