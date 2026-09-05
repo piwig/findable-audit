@@ -50,9 +50,17 @@ function depthOf(url: string): number {
  * Homepage + up to (maxPages - 1) same-origin HTML pages.
  * Deterministic: candidates sorted by path depth, then lexicographically.
  */
-export async function samplePages(ctx: CrawlContext, maxPages: number): Promise<PageSample> {
+export async function samplePages(
+  ctx: CrawlContext,
+  maxPages: number,
+  onPage?: (done: number) => void,
+): Promise<PageSample> {
   const home = await ctx.fetch('/');
   const pages: FetchedResource[] = isHtml(home) ? [home] : [];
+  // A133: report each page as it lands, so `--progress plain` prints
+  // "page 1/10", "page 2/10"… instead of one "page 3/10" after the whole batch.
+  const report = (): void => { try { onPage?.(pages.length); } catch { /* best-effort */ } };
+  if (pages.length > 0) report();
   if (maxPages <= 1 || pages.length === 0) return { pages, source: 'homepage-only' };
 
   let source: PageSample['source'] = 'sitemap';
@@ -88,6 +96,7 @@ export async function samplePages(ctx: CrawlContext, maxPages: number): Promise<
     if (sampledFinals.has(finalUrl)) continue;
     sampledFinals.add(finalUrl);
     pages.push(res);
+    report();
   }
   return { pages, source };
 }

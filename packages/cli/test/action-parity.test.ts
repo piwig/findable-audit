@@ -26,6 +26,7 @@ const CLI_ONLY = new Set([
   'psi-strategy', 'compare', 'entity-graph', 'answers', 'emit-probes', 'summary',
   'history', 'verify-profiles', 'check-outbound', 'experimental-agent-standards',
   'dry-run',
+  'progress', // A133 : une Action est non-TTY, CI=true => plain automatique
 ]);
 
 function actionInputs(yaml: string): string[] {

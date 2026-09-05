@@ -134,8 +134,9 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     }))
     : null;
 
-  crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
-  emit({ phase: 'sample', done: crawler.sample.pages.length, total: opts.maxPages ?? 10 });
+  const pageCap = opts.maxPages ?? 10;
+  crawler.sample = await samplePages(crawler, pageCap, (done) => emit({ phase: 'sample', done, total: pageCap }));
+  emit({ phase: 'sample', done: crawler.sample.pages.length, total: pageCap });
 
   // Build the JSON-LD entity graph once, from the sampled HTML the crawler
   // already fetched (never executes JS). Checks read it from ctx.entityGraph.
@@ -214,8 +215,9 @@ export async function sampleSite(url: string, opts: Pick<AuditOptions, 'timeoutM
   const home = await crawler.fetch('/');
   if (home === null) throw new UnreachableSiteError(`Cannot reach ${url}`);
   emit({ phase: 'connect', done: 1, total: 1 });
-  crawler.sample = await samplePages(crawler, opts.maxPages ?? 10);
-  emit({ phase: 'sample', done: crawler.sample.pages.length, total: opts.maxPages ?? 10 });
+  const pageCap = opts.maxPages ?? 10;
+  crawler.sample = await samplePages(crawler, pageCap, (done) => emit({ phase: 'sample', done, total: pageCap }));
+  emit({ phase: 'sample', done: crawler.sample.pages.length, total: pageCap });
   return {
     url: crawler.baseUrl.toString(),
     sampledPages: crawler.sample.pages.map(pathOf),

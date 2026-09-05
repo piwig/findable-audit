@@ -190,6 +190,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--psi-strategy <mobile\|desktop>` | PSI form factor for `--cwv` (default `mobile`). |
 | `--experimental-agent-standards` | Probe emerging agent manifests (`agents.json` / UCP discovery). Same-origin only, informational, never scored. |
 | `--quiet`, `-q` | Silence the informational notes on stderr ("auditing…", "report written to…"). The result on stdout and real errors still print. |
+| `--progress <tty|plain|off>` | How progress is shown on stderr. Default: `tty` (rewritten line) in a terminal, `plain` (one line per page / every 25 checks, readable in CI logs) when `CI=true` or stderr is not a terminal, `off` under `--quiet`. |
 | `--no-color` | Strip ANSI colors from the terminal output (pagers, logs, CI). The `NO_COLOR` env var is honored too. |
 | `--out <dir>` | Where `findable generate llms-txt` writes its files (default `.`). |
 

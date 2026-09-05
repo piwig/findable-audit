@@ -68,6 +68,9 @@ Samples up to --max-pages pages (default 10, homepage + sitemap/link-discovered 
   committed to these standards, so the result is informational only and NEVER counts in the score (0 points).
 --quiet silences the informational notes on stderr ("auditing…", "report written to…"); the audit
   result on stdout and real errors still print. Errors keep the findable-audit: prefix, notes never had it.
+--progress <tty|plain|off> picks how progress is shown on stderr. Default: tty (one rewritten line) in an
+  interactive terminal; plain (one line per page, one every 25 checks — readable in CI logs) when CI=true or
+  stderr is not a terminal; off under --quiet. plain keeps a long --max-pages audit visibly alive on GitHub Actions.
 --no-color strips ANSI colors from the terminal output (for pagers, logs, CI). The NO_COLOR
   environment variable (no-color.org) is honored too; --no-color simply forces it for one run.
 
@@ -221,6 +224,8 @@ const parseCliArgs = () =>
       format: { type: 'string' },
       'no-report': { type: 'boolean', default: false },
       quiet: { type: 'boolean', short: 'q', default: false },
+      // A133 — progress rendering: tty (rewritten line), plain (one line per step, for CI logs), off.
+      progress: { type: 'string' },
       'no-color': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
@@ -516,13 +521,31 @@ try {
   // "checks 87/138" — cleared before the result prints. TTY only: a CI log
   // keeps the single "auditing…" note instead of 150 rewrites, and --quiet
   // silences both. Never stdout, which belongs to the result alone.
-  const onProgress = process.stderr.isTTY && !values.quiet
+  // A133: a CI job (non-TTY) used to stay silent for minutes on --max-pages 50;
+  // "plain" writes one line per page and every 25 checks instead of a rewrite.
+  const progressFlag = values.progress;
+  if (progressFlag !== undefined && !['tty', 'plain', 'off'].includes(progressFlag)) {
+    console.error(`findable-audit: --progress expects tty, plain or off (got "${progressFlag}")`);
+    process.exit(2);
+  }
+  const progressMode: 'tty' | 'plain' | 'off' = values.quiet ? 'off'
+    : progressFlag === 'tty' || progressFlag === 'plain' || progressFlag === 'off' ? progressFlag
+    : process.stderr.isTTY && process.env.CI !== 'true' ? 'tty'
+    : 'plain';
+  const progressLabel = (ev: AuditProgress): string => ev.phase === 'sample' ? `page ${ev.done}/${ev.total}`
+    : ev.phase === 'checks' ? `checks ${ev.done}/${ev.total}`
+    : ev.phase === 'cwv' ? 'core web vitals (PageSpeed)…'
+    : ev.phase === 'connect' ? 'connecting…' : '';
+  let lastPlain = '';
+  const onProgress = progressMode === 'tty'
+    ? (ev: AuditProgress): void => { process.stderr.write(`\r\x1b[2K${progressLabel(ev)}`); }
+    : progressMode === 'plain'
     ? (ev: AuditProgress): void => {
-        const label = ev.phase === 'sample' ? `page ${ev.done}/${ev.total}`
-          : ev.phase === 'checks' ? `checks ${ev.done}/${ev.total}`
-          : ev.phase === 'cwv' ? 'core web vitals (PageSpeed)…'
-          : ev.phase === 'connect' ? 'connecting…' : '';
-        process.stderr.write(`\r\x1b[2K${label}`);
+        if (ev.phase === 'checks' && ev.done !== ev.total && ev.done % 25 !== 0) return;
+        const label = progressLabel(ev);
+        if (!label || label === lastPlain) return;
+        lastPlain = label;
+        process.stderr.write(`${label}\n`);
       }
     : undefined;
   const auditOpts = { onProgress, timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
@@ -559,7 +582,7 @@ try {
   // Compare audits reuse auditOpts: CWV is measured only when --cwv was given,
   // so the "CWV not measured" note is suppressed exactly in that case.
   const compareOpts = { cwvNote: !values.cwv };
-  if (onProgress) process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
+  if (progressMode === 'tty') process.stderr.write('\r\x1b[2K'); // leave no half-line under the result
   // A131: `--report -` owns stdout exactly like --json does; the human summary is skipped.
   const reportToStdout = (values.report ?? []).includes('-');
   if (!reportToStdout) {
