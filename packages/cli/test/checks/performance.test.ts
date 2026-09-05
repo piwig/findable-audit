@@ -53,6 +53,27 @@ describe('html-weight', () => {
     const ctx = ctxFromPages([page('/', body)]);
     expect((await htmlWeight.run(ctx)).status).toBe('fail');
   });
+  // A141 — per-page hard limits over the whole sample (not just '/').
+  it('warns when any sampled page exceeds 1MB even if the homepage is small', async () => {
+    const big = `<html><body>${'x'.repeat(1024 * 1024 + 10)}</body></html>`;
+    const ctx = ctxFromPages([page('/', '<html><body>hi</body></html>'), page('/catalogue', big)]);
+    const r = await htmlWeight.run(ctx);
+    expect(r.status).toBe('warn');
+    expect(String(r.message)).toContain('/catalogue');
+    expect(String(r.message)).toContain('1MB');
+  });
+  it('fails when any sampled page exceeds 2MB (truncation limit)', async () => {
+    const huge = `<html><body>${'x'.repeat(2 * 1024 * 1024 + 10)}</body></html>`;
+    const ctx = ctxFromPages([page('/', '<html><body>hi</body></html>'), page('/tout', huge)]);
+    const r = await htmlWeight.run(ctx);
+    expect(r.status).toBe('fail');
+    expect(String(r.message)).toContain('/tout');
+    expect(String(r.message)).toContain('2MB');
+  });
+  it('keeps the homepage-only thresholds when no page is over 1MB', async () => {
+    const ctx = ctxFromPages([page('/', '<html><body>hi</body></html>'), page('/p', `<html><body>${'x'.repeat(600 * 1024)}</body></html>`)]);
+    expect((await htmlWeight.run(ctx)).status).toBe('pass');
+  });
   it('fails when the homepage is not reachable', async () => {
     expect((await htmlWeight.run(emptyCtx)).status).toBe('fail');
   });

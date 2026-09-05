@@ -570,7 +570,7 @@ Titres, en-têtes, meta et correction du `<head>`.
 Les heuristiques statiques s'exécutent toujours ; les Core Web Vitals terrain/labo sont optionnels via `--cwv --psi-key`. Sans clé, les checks CWV sont ignorés et la famille est notée sur les seules heuristiques statiques.
 
 ### `html-weight` (3 pts)
-**Vérifie :** Les octets bruts du document HTML — réussite ≤100 Ko, avertissement ≤250 Ko, échec >250 Ko.
+**Vérifie :** Les octets bruts du document HTML — accueil : réussite ≤100 Ko, avertissement ≤250 Ko, échec >250 Ko ; chaque page échantillonnée : avertissement >1 Mo, échec >2 Mo (taille au-delà de laquelle Google et les fetchers IA tronquent le document).
 **Pourquoi :** Un document HTML lourd ralentit le premier rendu et gonfle le coût de crawl.
 **Corriger :** Externalisez les gros blocs inline et paginez les pages énormes.
 

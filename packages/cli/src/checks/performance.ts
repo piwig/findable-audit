@@ -10,11 +10,34 @@ import { rollupBySeverity, type SeverityItem } from './jsonld.js';
 // html-weight (SH)
 // ---------------------------------------------------------------------------
 
+// A141 — hard per-page limits. Beyond ~2 MB of HTML, Google truncates the
+// document and AI fetchers (stricter still) give up on it; the crawler already
+// holds every sampled body, so the whole sample is measured, not just '/'.
+export const HTML_WARN_BYTES = 1024 * 1024;      // 1 MB
+export const HTML_FAIL_BYTES = 2 * 1024 * 1024;  // 2 MB
+
+function mb(bytes: number): string { return `${(bytes / (1024 * 1024)).toFixed(1)}MB`; }
+
 export const htmlWeight: Check = {
   id: 'html-weight', family: 'performance', evidence: 'heuristic', maxPoints: 3,
   async run(ctx) {
     const res = await ctx.fetch('/');
     if (res?.status !== 200) return makeResult(this, 'fail', 'homepage not reachable');
+    const truncated: string[] = [];
+    const heavy: string[] = [];
+    for (const p of await pagesOf(ctx)) {
+      const size = Buffer.byteLength(p.body, 'utf8');
+      if (size > HTML_FAIL_BYTES) truncated.push(`${pathOf(p)} (${mb(size)})`);
+      else if (size > HTML_WARN_BYTES) heavy.push(`${pathOf(p)} (${mb(size)})`);
+    }
+    const splitFix = 'Split the page: paginate listings, move inline data/SVG/CSS out of the HTML.';
+    if (truncated.length > 0) {
+      return makeResult(this, 'fail',
+        t`HTML over 2MB (truncated by crawlers and AI fetchers) on: ${truncated.slice(0, 5).join(', ')}`, splitFix);
+    }
+    if (heavy.length > 0) {
+      return makeResult(this, 'warn', t`HTML over 1MB on: ${heavy.slice(0, 5).join(', ')}`, splitFix);
+    }
     const bytes = Buffer.byteLength(res.body, 'utf8');
     const msg = `HTML document is ${Math.round(bytes / 1024)}KB`;
     if (bytes <= 100 * 1024) return makeResult(this, 'pass', msg);

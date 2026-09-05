@@ -16,6 +16,9 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  // A141 — html-weight, per-page hard limits.
+  'HTML over 2MB (truncated by crawlers and AI fetchers) on: {0}': 'HTML de plus de 2 Mo (tronqué par les crawlers et les fetchers IA) sur : {0}',
+  'HTML over 1MB on: {0}': 'HTML de plus de 1 Mo sur : {0}',
   // A8 — social-proof (structured-data).
   'no page could be read': 'aucune page n\'a pu être lue',
   'no Product, Service, LocalBusiness or Organization markup in the sample — social proof is not expected here': 'aucun balisage Product, Service, LocalBusiness ou Organization dans l\'échantillon — la preuve sociale n\'y est pas attendue',

@@ -562,7 +562,7 @@ Titles, headings, meta, and document-head correctness.
 Static heuristics run always; field/lab Core Web Vitals are opt-in via `--cwv --psi-key`. Without a key, the CWV checks skip and the family scores on the static heuristics alone.
 
 ### `html-weight` (3 pts)
-**Verifies:** Raw HTML document bytes — pass ≤100 KB, warn ≤250 KB, fail >250 KB.
+**Verifies:** Raw HTML document bytes — homepage: pass ≤100 KB, warn ≤250 KB, fail >250 KB; every sampled page: warn >1 MB, fail >2 MB (the size beyond which Google and AI fetchers truncate the document).
 **Why:** A heavy HTML document slows first paint and inflates crawl cost.
 **Fix:** Externalize large inline blobs and paginate huge pages.
 
