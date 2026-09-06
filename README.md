@@ -17,7 +17,7 @@ No account. No telemetry. Nothing sent to a third party.
 npx findable-audit https://your-site.com
 ```
 
-That is the whole setup — Node ≥ 20.3, no configuration, no key. Prefer a browser? **[findable.bordebat.fr](https://findable.bordebat.fr)** runs the same engine.
+That is the whole setup — Node ≥ 22, no configuration, no key. Prefer a browser? **[findable.bordebat.fr](https://findable.bordebat.fr)** runs the same engine.
 
 ## What you get back
 

@@ -6,7 +6,7 @@
   "license": "MIT",
   "author": "PB OpenTech (https://pb-ot.fr)",
   "engines": {
-    "node": ">=20.3"
+    "node": ">=22"
   },
   "bin": {
     "findable": "dist/index.js"
@@ -67,7 +67,7 @@
     "picocolors": "^1.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
+    "@types/node": "^24.0.0",
     "typescript": "^5.5.0",
     "vitest": "^4.1.10"
   }

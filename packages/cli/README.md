@@ -56,7 +56,7 @@ npm install -g findable-audit
 findable https://your-site.com        # global bin: `findable`
 ```
 
-Node ≥ 20.3, zero configuration. The crawler stays polite: same-origin only, a
+Node ≥ 22, zero configuration. The crawler stays polite: same-origin only, a
 `--max-pages` cap (default 10), and one PageSpeed call only when you ask for `--cwv`.
 
 ## Key flags
