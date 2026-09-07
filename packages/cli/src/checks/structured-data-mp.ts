@@ -98,6 +98,7 @@ function stripSchemaPrefix(v: string): string {
 function classifyProduct(
   node: Record<string, unknown>,
   ids: Map<string, Record<string, unknown>>,
+  today: Date = new Date(),
 ): { status: 'pass' | 'warn' | 'fail'; reason?: string } {
   const offersRaw = resolveValue(node.offers, ids);
   const offer = Array.isArray(offersRaw) ? offersRaw[0] : offersRaw;
@@ -131,6 +132,13 @@ function classifyProduct(
   }
   const hasIdentifier = ['gtin', 'gtin8', 'gtin12', 'gtin13', 'gtin14', 'mpn'].some((k) => str(node[k]));
   if (!hasIdentifier) warnings.push('missing gtin/mpn');
+  // A153 — commercial freshness. Google reads priceValidUntil as the offer's
+  // shelf life and agentic checkout (ACP/UCP) drops stale feeds outright; a
+  // date in the past is worse than none, since it says the price is expired.
+  const validUntil = str(o.priceValidUntil);
+  if (!validUntil) warnings.push('missing priceValidUntil');
+  else if (Number.isNaN(Date.parse(validUntil))) warnings.push('invalid priceValidUntil');
+  else if (Date.parse(validUntil) < today.getTime()) warnings.push('priceValidUntil in the past');
   if (warnings.length === 0) return { status: 'pass' };
   return { status: 'warn', reason: warnings.join('; ') };
 }
@@ -154,7 +162,7 @@ export const sdProduct: Check = {
     const rollup = rollupBySeverity(items);
     if (rollup.status === 'pass') return makeResult(this, 'pass', 'Product offer markup complete on all sampled product pages');
     return makeResult(this, rollup.status, t`Product offer incomplete on: ${rollup.detail}`,
-      'Add offers(price/priceCurrency/availability) + brand + gtin/mpn.');
+      'Add offers(price/priceCurrency/availability/priceValidUntil in the future) + brand + gtin/mpn.');
   },
 };
 

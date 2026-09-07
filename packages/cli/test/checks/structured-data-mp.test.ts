@@ -89,13 +89,41 @@ describe('sd-product', () => {
     ]);
     expect((await sdProduct.run(ctx)).status).toBe('warn');
   });
-  it('passes with a complete Product offer', async () => {
+  it('warns when priceValidUntil is missing (A153: commercial freshness)', async () => {
     const ctx = ctxFromPages([
       page('/', html('')),
       page('/shop/widget.html', html(ld({
         '@context': 'https://schema.org', '@type': 'Product', name: 'Widget', image: 'https://x.example/widget.jpg',
         brand: { '@type': 'Brand', name: 'Acme' }, gtin13: '1234567890123',
         offers: { '@type': 'Offer', price: '19.99', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.5', reviewCount: '10' },
+      }))),
+    ]);
+    const r = await sdProduct.run(ctx);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('missing priceValidUntil');
+  });
+  it('warns when priceValidUntil is in the past (A153)', async () => {
+    const ctx = ctxFromPages([
+      page('/', html('')),
+      page('/shop/widget.html', html(ld({
+        '@context': 'https://schema.org', '@type': 'Product', name: 'Widget', image: 'https://x.example/widget.jpg',
+        brand: { '@type': 'Brand', name: 'Acme' }, gtin13: '1234567890123',
+        offers: { '@type': 'Offer', price: '19.99', priceCurrency: 'USD', availability: 'https://schema.org/InStock', priceValidUntil: '2024-12-31' },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.5', reviewCount: '10' },
+      }))),
+    ]);
+    const r = await sdProduct.run(ctx);
+    expect(r.status).toBe('warn');
+    expect(r.message).toContain('priceValidUntil in the past');
+  });
+  it('passes with a complete Product offer', async () => {
+    const ctx = ctxFromPages([
+      page('/', html('')),
+      page('/shop/widget.html', html(ld({
+        '@context': 'https://schema.org', '@type': 'Product', name: 'Widget', image: 'https://x.example/widget.jpg',
+        brand: { '@type': 'Brand', name: 'Acme' }, gtin13: '1234567890123',
+        offers: { '@type': 'Offer', price: '19.99', priceCurrency: 'USD', availability: 'https://schema.org/InStock', priceValidUntil: '2999-12-31' },
         aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.5', reviewCount: '10' },
       }))),
     ]);
