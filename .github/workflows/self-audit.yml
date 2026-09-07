@@ -6,7 +6,7 @@
 #     breaks `uses: piwig/findable-audit@main` is caught here, not by a user;
 #   - the score floor turns a silent regression on the site into a red run.
 #
-# The floor is deliberately below the current score: it should catch a real drop,
+# Two gates: a floor and a diff. The floor is deliberately below the current score: it should catch a real drop,
 # not fail on the one-point noise of a warning appearing.
 name: self-audit
 on:
@@ -32,6 +32,14 @@ jobs:
           max-pages: '10'
           lang: 'en'
           badge: 'docs/badge.svg'
+          # A158: regression gate against the committed baseline (a real --report
+          # of this site). Two points of tolerance absorb warning-level noise; a
+          # baseline from another findable-audit release is skipped, not compared
+          # (A128) — refresh docs/self-audit-baseline.json after each release:
+          #   npx findable-audit https://findable.bordebat.fr --max-pages 10 --report docs/self-audit-baseline.json
+          baseline: 'docs/self-audit-baseline.json'
+          fail-on-regression: 'true'
+          regression-tolerance: '2'
 
       - if: always()
         uses: github/codeql-action/upload-sarif@v3

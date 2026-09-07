@@ -1,0 +1,2087 @@
+{
+  "url": "https://findable.bordebat.fr/",
+  "score": 98,
+  "grade": "A",
+  "familyScores": [
+    {
+      "family": "ai-access",
+      "score": 96,
+      "weight": 0.16,
+      "earned": 66,
+      "max": 69
+    },
+    {
+      "family": "llm-content",
+      "score": 100,
+      "weight": 0.18,
+      "earned": 72,
+      "max": 72
+    },
+    {
+      "family": "structured-data",
+      "score": 94,
+      "weight": 0.15,
+      "earned": 67,
+      "max": 71
+    },
+    {
+      "family": "technical-seo",
+      "score": 98,
+      "weight": 0.15,
+      "earned": 100,
+      "max": 102
+    },
+    {
+      "family": "on-page",
+      "score": 100,
+      "weight": 0.12,
+      "earned": 47,
+      "max": 47
+    },
+    {
+      "family": "performance",
+      "score": 100,
+      "weight": 0.1,
+      "earned": 30,
+      "max": 30
+    },
+    {
+      "family": "accessibility",
+      "score": 100,
+      "weight": 0.07,
+      "earned": 30,
+      "max": 30
+    },
+    {
+      "family": "security",
+      "score": 100,
+      "weight": 0.07,
+      "earned": 35,
+      "max": 35
+    }
+  ],
+  "sampledPages": [
+    "/en/",
+    "/fr/",
+    "/en/about/",
+    "/en/contact/",
+    "/fr/about/",
+    "/fr/contact/"
+  ],
+  "results": [
+    {
+      "id": "robots-exists",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "robots.txt found",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "robots.txt found",
+      "messageParams": []
+    },
+    {
+      "id": "robots-wellformed",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "robots.txt is well-formed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "robots.txt is well-formed",
+      "messageParams": []
+    },
+    {
+      "id": "search-crawlers-allowed",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "search crawlers (Googlebot, Bingbot, *) allowed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "search crawlers (Googlebot, Bingbot, *) allowed",
+      "messageParams": []
+    },
+    {
+      "id": "ai-crawlers-allowed",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 12,
+      "maxPoints": 12,
+      "message": "all AI crawlers (training + citation-time) allowed",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "all AI crawlers (training + citation-time) allowed",
+      "messageParams": []
+    },
+    {
+      "id": "homepage-ok",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "homepage responds 200",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "homepage responds 200",
+      "messageParams": []
+    },
+    {
+      "id": "robots-directives",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no blocking robots directives (X-Robots-Tag / meta robots)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no blocking robots directives (X-Robots-Tag / meta robots)",
+      "messageParams": []
+    },
+    {
+      "id": "ai-serving-parity",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "same document served across 5 AI/mobile UA probe(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "same document served across {0} AI/mobile UA probe(s)",
+      "messageParams": [
+        5
+      ]
+    },
+    {
+      "id": "ai-crawler-reachability",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "homepage reachable (HTTP 2xx) for 2 citation-time crawler UA(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "homepage reachable (HTTP 2xx) for {0} citation-time crawler UA(s)",
+      "messageParams": [
+        2
+      ]
+    },
+    {
+      "id": "cloudflare-ai-defaults",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "warn",
+      "points": 1,
+      "maxPoints": 3,
+      "message": "site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15",
+      "fix": "In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, then re-run this audit to confirm ai-serving-parity and ai-crawler-reachability still pass.",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15",
+      "messageParams": []
+    },
+    {
+      "id": "pay-per-crawl",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no pay-per-crawl signals (HTTP 402 or crawler-* pricing headers) on the homepage",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no pay-per-crawl signals (HTTP 402 or crawler-* pricing headers) on the homepage",
+      "messageParams": []
+    },
+    {
+      "id": "rsl-license",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "warn",
+      "points": 1,
+      "maxPoints": 2,
+      "message": "no RSL (Really Simple Licensing) declaration found — no <link rel=\"license\"> on the homepage, no \"License:\" directive in robots.txt",
+      "fix": "Declare AI licensing terms with RSL (Really Simple Licensing): add <link rel=\"license\" href=\"https://example.com/rsl.xml\"> to the homepage <head>, and/or a \"License: https://example.com/rsl.xml\" directive in robots.txt, pointing to an RSL document that states your crawling/training/inference terms.",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no RSL (Really Simple Licensing) declaration found — no <link rel=\"license\"> on the homepage, no \"License:\" directive in robots.txt",
+      "messageParams": []
+    },
+    {
+      "id": "content-signals",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no Content-Signal directives in robots.txt — the directive is optional, absence signals nothing",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no Content-Signal directives in robots.txt — the directive is optional, absence signals nothing",
+      "messageParams": []
+    },
+    {
+      "id": "snippet-preview-directives",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "preview directives set on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "preview directives set on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "llms-txt",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "llms.txt structured (summary + section + 5 descriptive links)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "llms.txt structured (summary + section + {0} descriptive links)",
+      "messageParams": [
+        5
+      ]
+    },
+    {
+      "id": "llms-txt-lint",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "llms.txt lints clean (5 same-origin link(s) verified)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "llms.txt lints clean ({0} same-origin link(s) verified)",
+      "messageParams": [
+        5
+      ]
+    },
+    {
+      "id": "llms-full-txt",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "llms-full.txt has 2397 words under 30 headings",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "llms-full.txt has {0} words under {1} headings",
+      "messageParams": [
+        2397,
+        30
+      ]
+    },
+    {
+      "id": "content-without-js",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "static text ≥200 chars on 6 sampled page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "static text ≥200 chars on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "csr-content-parity",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "server-rendered main content on 6 sampled page(s), no empty CSR mount roots",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "server-rendered main content on {0} sampled page(s), no empty CSR mount roots",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "content-depth",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "main content above the word threshold on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "main content above the word threshold on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "content-lead-answer",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "direct-answer lead on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "direct-answer lead on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "answer-headings",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "question-style subheadings on 4 long page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "question-style subheadings on {0} long page(s)",
+      "messageParams": [
+        4
+      ]
+    },
+    {
+      "id": "extractable-structure",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "lists/tables in main content on 6 substantial page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "lists/tables in main content on {0} substantial page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "content-freshness",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "no article-type pages to date",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no article-type pages to date",
+      "messageParams": []
+    },
+    {
+      "id": "content-author-eeat",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "no article-type pages to attribute",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no article-type pages to attribute",
+      "messageParams": []
+    },
+    {
+      "id": "outbound-citations",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "outbound citations on 6 substantial page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "outbound citations on {0} substantial page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "content-uniqueness",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "no near-duplicate bodies across 6 pages",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no near-duplicate bodies across {0} pages",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "about-contact",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "About and Contact reachable with a contact method",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "About and Contact reachable with a contact method",
+      "messageParams": []
+    },
+    {
+      "id": "well-known-ai-json",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 1,
+      "maxPoints": 1,
+      "message": "/.well-known/ai.json serves a JSON object manifest",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "/.well-known/ai.json serves a JSON object manifest",
+      "messageParams": []
+    },
+    {
+      "id": "content-feed",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "feed found at /feed.xml (RSS/Atom/JSON Feed)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "feed found at {0} (RSS/Atom/JSON Feed)",
+      "messageParams": [
+        "/feed.xml"
+      ]
+    },
+    {
+      "id": "images-alt",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no <img> elements on sampled pages",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no <img> elements on sampled pages",
+      "messageParams": []
+    },
+    {
+      "id": "freshness-coherence",
+      "family": "llm-content",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "freshness signals coherent (24h tolerance) on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "freshness signals coherent (24h tolerance) on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "hedging-rate",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "direct, hedge-free leads on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "direct, hedge-free leads on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "answer-units",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "47 liftable answer unit(s) across 4 pillar page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0} liftable answer unit(s) across {1} pillar page(s)",
+      "messageParams": [
+        47,
+        4
+      ]
+    },
+    {
+      "id": "chunk-boundary",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "chunk-safe structure on 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "chunk-safe structure on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "chunk-retrieval-sim",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "8/8 ~512-token chunk(s) survive isolated retrieval (100%)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0}/{1} ~{2}-token chunk(s) survive isolated retrieval ({3}%)",
+      "messageParams": [
+        8,
+        8,
+        512,
+        100
+      ]
+    },
+    {
+      "id": "injection-hygiene",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "no hidden text or unattributed UGC across 6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "no hidden text or unattributed UGC across {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "agent-usability",
+      "family": "llm-content",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "4 form(s) submittable without JS; contact reachable on 4/6 page(s)",
+      "docUrl": "https://llmstxt.org/",
+      "messageTemplate": "{0}; contact reachable on {1}/{2} page(s)",
+      "messageParams": [
+        "4 form(s) submittable without JS",
+        4,
+        6
+      ]
+    },
+    {
+      "id": "json-ld",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 10,
+      "maxPoints": 10,
+      "message": "1 valid JSON-LD block(s)",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} valid JSON-LD block(s)",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "json-ld-entity",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "relevant entity found: Organization",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "relevant entity found: {0}",
+      "messageParams": [
+        "Organization"
+      ]
+    },
+    {
+      "id": "schema-coverage",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "6/6 sampled pages carry valid JSON-LD",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "6/6 sampled pages carry valid JSON-LD",
+      "messageParams": []
+    },
+    {
+      "id": "sitemap",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 10,
+      "maxPoints": 10,
+      "message": "valid sitemap, referenced in robots.txt",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "valid sitemap, referenced in robots.txt",
+      "messageParams": []
+    },
+    {
+      "id": "indexnow",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "warn",
+      "points": 2,
+      "maxPoints": 4,
+      "message": "no IndexNow key detected — IndexNow pushes new/updated URLs to Bing instantly (Copilot and other AI answers draw on that index); informational, re-run with --indexnow-key <key> to verify a known key",
+      "fix": "Adopt IndexNow: publish a text file named <key>.txt at the site root containing exactly the key (many CMS/SEO plugins do this for you), then re-run with --indexnow-key <key> to verify.",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no IndexNow key detected — IndexNow pushes new/updated URLs to Bing instantly (Copilot and other AI answers draw on that index); informational, re-run with --indexnow-key <key> to verify a known key",
+      "messageParams": []
+    },
+    {
+      "id": "title-description",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "title and meta description look good",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and meta description look good",
+      "messageParams": []
+    },
+    {
+      "id": "canonical",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "self-referential canonical on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "self-referential canonical on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "open-graph",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "Open Graph complete (core set + site_name + locale)",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "Open Graph complete (core set + site_name + locale)",
+      "messageParams": []
+    },
+    {
+      "id": "twitter-card",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "twitter:card=summary_large_image complete",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "twitter:card={0} complete",
+      "messageParams": [
+        "summary_large_image"
+      ]
+    },
+    {
+      "id": "https",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "served over HTTPS",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "served over HTTPS",
+      "messageParams": []
+    },
+    {
+      "id": "viewport",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "mobile viewport set",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "mobile viewport set",
+      "messageParams": []
+    },
+    {
+      "id": "meta-robots-noindex",
+      "family": "ai-access",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "no noindex on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
+      "messageTemplate": "no noindex on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "unique-titles",
+      "family": "on-page",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "titles and descriptions unique across 6 pages",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "titles and descriptions unique across {0} pages",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "broken-internal-links",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 8,
+      "maxPoints": 8,
+      "message": "9 internal link(s) resolve",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} internal link(s) resolve",
+      "messageParams": [
+        9
+      ]
+    },
+    {
+      "id": "redirect-hygiene",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "http:// 301-redirects to https://",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "http:// 301-redirects to https://",
+      "messageParams": []
+    },
+    {
+      "id": "hreflang",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "5 hreflang alternate(s) reachable and reciprocal",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} hreflang alternate(s) reachable and reciprocal",
+      "messageParams": [
+        5
+      ]
+    },
+    {
+      "id": "meta-per-page",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "title and description in range on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and description in range on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "title-pattern",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "title is topic-first with a brand suffix",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title is topic-first with a brand suffix",
+      "messageParams": []
+    },
+    {
+      "id": "title-h1-alignment",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "title and H1 share 4 meaningful token(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "title and H1 share {0} meaningful token(s)",
+      "messageParams": [
+        4
+      ]
+    },
+    {
+      "id": "topical-focus",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "main content stays on the declared topic across 6 page(s) (lowest 50%)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "main content stays on the declared topic across {0} page(s) (lowest {1}%)",
+      "messageParams": [
+        6,
+        50
+      ]
+    },
+    {
+      "id": "keyword-cannibalization",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "the 6 compared page(s) each target a distinct intent",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "the {0} compared page(s) each target a distinct intent",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "headings-outline",
+      "family": "on-page",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "heading outline clean on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "heading outline clean on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "anchor-text",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "0% generic internal anchor text (0/28)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "{0}% generic internal anchor text ({1}/{2})",
+      "messageParams": [
+        0,
+        0,
+        28
+      ]
+    },
+    {
+      "id": "anchor-target-profile",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "anchor text names the target on 2 internal page(s)",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "anchor text names the target on {0} internal page(s)",
+      "messageParams": [
+        2
+      ]
+    },
+    {
+      "id": "charset",
+      "family": "on-page",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "UTF-8 charset declared",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "UTF-8 charset declared",
+      "messageParams": []
+    },
+    {
+      "id": "favicon",
+      "family": "on-page",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "favicon and apple-touch-icon present",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "favicon and apple-touch-icon present",
+      "messageParams": []
+    },
+    {
+      "id": "content-readability",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "main content reads at approximately grade 10.2",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "main content reads at approximately grade {0}",
+      "messageParams": [
+        "10.2"
+      ]
+    },
+    {
+      "id": "figure-caption",
+      "family": "on-page",
+      "evidence": "heuristic",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no explanatory content images on sampled pages",
+      "docUrl": "https://developers.google.com/search/docs/appearance",
+      "messageTemplate": "no explanatory content images on sampled pages",
+      "messageParams": []
+    },
+    {
+      "id": "json-ld-valid",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "1 JSON-LD block(s) all valid (parse + @context + @type)",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} JSON-LD block(s) all valid (parse + @context + @type)",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "sd-organization",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "Organization entity complete: findable-audit",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "Organization entity complete: {0}",
+      "messageParams": [
+        "findable-audit"
+      ]
+    },
+    {
+      "id": "sd-entity-grounding",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "warn",
+      "points": 2,
+      "maxPoints": 4,
+      "message": "only 1 sameAs profile URL",
+      "fix": "List ≥2 official profile URLs in sameAs, including Wikipedia/Wikidata if available.",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "only 1 sameAs profile URL",
+      "messageParams": []
+    },
+    {
+      "id": "sd-localbusiness",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no LocalBusiness entity on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no LocalBusiness entity on the homepage",
+      "messageParams": []
+    },
+    {
+      "id": "sd-article",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no Article/NewsArticle/BlogPosting page in the sample",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no Article/NewsArticle/BlogPosting page in the sample",
+      "messageParams": []
+    },
+    {
+      "id": "sd-product",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no Product page in the sample",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no Product page in the sample",
+      "messageParams": []
+    },
+    {
+      "id": "sd-faq",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "FAQ content backed by FAQPage/QAPage schema",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "FAQ content backed by FAQPage/QAPage schema",
+      "messageParams": []
+    },
+    {
+      "id": "sd-breadcrumb",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "breadcrumbs present on all interior pages",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "breadcrumbs present on all interior pages",
+      "messageParams": []
+    },
+    {
+      "id": "sd-website-searchaction",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "warn",
+      "points": 1,
+      "maxPoints": 2,
+      "message": "WebSite present but no SearchAction declaring your internal search",
+      "fix": "Add potentialAction SearchAction with a urlTemplate and query-input.",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "WebSite present but no SearchAction declaring your internal search",
+      "messageParams": []
+    },
+    {
+      "id": "sd-video",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no video content on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no video content on the homepage",
+      "messageParams": []
+    },
+    {
+      "id": "sd-speakable",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 1,
+      "message": "no Article/FAQPage/HowTo content on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no Article/FAQPage/HowTo content on the homepage",
+      "messageParams": []
+    },
+    {
+      "id": "sd-special-types",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no HowTo/Event/Recipe on the homepage",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no HowTo/Event/Recipe on the homepage",
+      "messageParams": []
+    },
+    {
+      "id": "sd-graph-integrity",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "5 @id-linked entities, no dangling references",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} @id-linked entities, no dangling references",
+      "messageParams": [
+        5
+      ]
+    },
+    {
+      "id": "sd-consistency",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "1 JSON-LD value(s) confirmed visible on the page",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} JSON-LD value(s) confirmed visible on the page",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "nap-consistency",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "NAP consistent across sampled pages",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "NAP consistent across sampled pages",
+      "messageParams": []
+    },
+    {
+      "id": "entity-graph-connectivity",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "43 entities, 52 links, no dangling references (1 component(s))",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} entities, {1} links, no dangling references ({2} component(s))",
+      "messageParams": [
+        43,
+        52,
+        1
+      ]
+    },
+    {
+      "id": "rich-result-eligibility",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 rich-result candidate(s) carry every field Google requires and recommends",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} rich-result candidate(s) carry every field Google requires and recommends",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "sd-page-entity",
+      "family": "structured-data",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "1 page(s) name an anchored primary entity",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "{0} page(s) name an anchored primary entity",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "social-proof",
+      "family": "structured-data",
+      "evidence": "heuristic",
+      "status": "warn",
+      "points": 1,
+      "maxPoints": 2,
+      "message": "no AggregateRating or Review markup on 6 page(s) declaring Product/Service/LocalBusiness/Organization",
+      "fix": "If you already collect reviews, expose them as AggregateRating (ratingValue + ratingCount) on the entity customers actually rate — it is often the cheapest markup with a visible payoff.",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "no AggregateRating or Review markup on {0} page(s) declaring Product/Service/LocalBusiness/Organization",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "canonical-resolves",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 declared canonical(s) resolve 200 and are indexable",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} declared canonical(s) resolve 200 and are indexable",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "www-consolidation",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 5,
+      "maxPoints": 5,
+      "message": "apex host serves the site; www host not live",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} host serves the site; {1} host not live",
+      "messageParams": [
+        "apex",
+        "www"
+      ]
+    },
+    {
+      "id": "trailing-slash",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "slash-toggled variants of 6 path(s) do not duplicate",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "slash-toggled variants of {0} path(s) do not duplicate",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "redirect-chains",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no redirect chains across 7 URL(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no redirect chains across {0} URL(s)",
+      "messageParams": [
+        7
+      ]
+    },
+    {
+      "id": "soft-404",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 6,
+      "maxPoints": 6,
+      "message": "missing route returns 404",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "missing route returns {0}",
+      "messageParams": [
+        404
+      ]
+    },
+    {
+      "id": "custom-404",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "404 page offers a way back (links/nav/search)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "404 page offers a way back (links/nav/search)",
+      "messageParams": []
+    },
+    {
+      "id": "url-structure",
+      "family": "technical-seo",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "9 sampled URL(s) are clean and readable",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled URL(s) are clean and readable",
+      "messageParams": [
+        9
+      ]
+    },
+    {
+      "id": "pagination-canonical",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no pagination detected (single page series)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no pagination detected (single page series)",
+      "messageParams": []
+    },
+    {
+      "id": "meta-refresh",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no meta-refresh redirects on 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no meta-refresh redirects on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "hreflang-x-default",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "hreflang set complete on 6 page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "hreflang set complete on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "internal-linking",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 sampled page(s) linked and shallow",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled page(s) linked and shallow",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "link-equity-map",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "link equity well-distributed across 6 page(s) — top: /en/ (23.27%), /fr/ (23.27%), /en/contact/ (13.75%)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "link equity well-distributed across {0} page(s) — top: {1}",
+      "messageParams": [
+        6,
+        "/en/ (23.27%), /fr/ (23.27%), /en/contact/ (13.75%)"
+      ]
+    },
+    {
+      "id": "crawlable-nav",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "72 crawlable link(s); navigation works without JavaScript",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} crawlable link(s); navigation works without JavaScript",
+      "messageParams": [
+        72
+      ]
+    },
+    {
+      "id": "internal-link-context",
+      "family": "technical-seo",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "18% of internal links sit in the main content (4/22); 2 substantial page(s) link out only from the template",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0}% of internal links sit in the main content ({1}/{2}); {3} substantial page(s) link out only from the template",
+      "messageParams": [
+        18,
+        4,
+        22,
+        2
+      ]
+    },
+    {
+      "id": "internal-equity-leaks",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "no rel=\"nofollow\" on 22 internal link(s); 2 point at a noindex page, 0 at an error page",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no rel=\"nofollow\" on {0} internal link(s); {1} point at a noindex page, {2} at an error page",
+      "messageParams": [
+        22,
+        2,
+        0
+      ]
+    },
+    {
+      "id": "outbound-link-health",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "outbound links not probed — pass --check-outbound to check them",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "outbound links not probed — pass --check-outbound to check them",
+      "messageParams": []
+    },
+    {
+      "id": "sitemap-lastmod",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6/6 entries have valid, varied <lastmod>",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0}/{1} entries have valid, varied <lastmod>",
+      "messageParams": [
+        6,
+        6
+      ]
+    },
+    {
+      "id": "sitemap-urls-valid",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 sampled sitemap URL(s) are clean and indexable",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled sitemap URL(s) are clean and indexable",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "sitemap-index-limits",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no <sitemapindex> (single urlset sitemap)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no <sitemapindex> (single urlset sitemap)",
+      "messageParams": []
+    },
+    {
+      "id": "sitemap-orphans",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "sitemap and internal links agree on 6 URL(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "sitemap and internal links agree on {0} URL(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "html-lang",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "valid <html lang> on 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "valid <html lang> on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "alt-descriptive",
+      "family": "accessibility",
+      "evidence": "heuristic",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "no non-empty alt text to assess",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no non-empty alt text to assess",
+      "messageParams": []
+    },
+    {
+      "id": "landmarks",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "semantic landmarks on 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "semantic landmarks on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "form-labels",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "all 8 form control(s) have an accessible name",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "all {0} form control(s) have an accessible name",
+      "messageParams": [
+        8
+      ]
+    },
+    {
+      "id": "link-text",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "all 72 link(s) have an accessible name",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "all {0} link(s) have an accessible name",
+      "messageParams": [
+        72
+      ]
+    },
+    {
+      "id": "viewport-zoom",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "viewport allows pinch-zoom",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "viewport allows pinch-zoom",
+      "messageParams": []
+    },
+    {
+      "id": "iframe-title",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no iframes on sampled pages",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no iframes on sampled pages",
+      "messageParams": []
+    },
+    {
+      "id": "rgaa-eaa-deadline",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no basic accessibility deficiency (language, landmarks, alt text) on 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "no basic accessibility deficiency (language, landmarks, alt text) on {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "consistent-help",
+      "family": "accessibility",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "help mechanism (contact/support) present on all 6 sampled page(s)",
+      "docUrl": "https://www.w3.org/WAI/WCAG21/quickref/",
+      "messageTemplate": "help mechanism (contact/support) present on all {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "broken-subresources",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "no same-origin subresources (1 third-party only)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "no same-origin subresources ({0} third-party only)",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "js-only-destinations",
+      "family": "technical-seo",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "6 page(s) inspected; every internal destination is a real <a href>",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} page(s) inspected; every internal destination is a real <a href>",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "soft-error-pages",
+      "family": "technical-seo",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "6 sampled page(s) return 200 with real content",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "{0} sampled page(s) return 200 with real content",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "indexing-conflicts",
+      "family": "technical-seo",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "indexing directives agree across 6 sitemap URL(s) and 6 sampled page(s)",
+      "docUrl": "https://developers.google.com/search/docs",
+      "messageTemplate": "indexing directives agree across {0} sitemap URL(s) and {1} sampled page(s)",
+      "messageParams": [
+        6,
+        6
+      ]
+    },
+    {
+      "id": "sameas-verified",
+      "family": "structured-data",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "profile verification is opt-in (run with --verify-profiles)",
+      "docUrl": "https://schema.org/docs/schemas.html",
+      "messageTemplate": "profile verification is opt-in (run with --verify-profiles)",
+      "messageParams": []
+    },
+    {
+      "id": "mixed-content",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no mixed content across 6 sampled page(s)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "no mixed content across {0} sampled page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "hsts",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "HSTS max-age=31536000 (+includeSubDomains)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "HSTS max-age={0}{1}",
+      "messageParams": [
+        31536000,
+        " (+includeSubDomains)"
+      ]
+    },
+    {
+      "id": "x-content-type-options",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "X-Content-Type-Options: nosniff",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "X-Content-Type-Options: nosniff",
+      "messageParams": []
+    },
+    {
+      "id": "csp",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "Content-Security-Policy present",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Content-Security-Policy present",
+      "messageParams": []
+    },
+    {
+      "id": "clickjacking",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "CSP frame-ancestors restricts framing",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "CSP frame-ancestors restricts framing",
+      "messageParams": []
+    },
+    {
+      "id": "referrer-policy",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "Referrer-Policy: no-referrer",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Referrer-Policy: {0}",
+      "messageParams": [
+        "no-referrer"
+      ]
+    },
+    {
+      "id": "permissions-policy",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "Permissions-Policy present",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "Permissions-Policy present",
+      "messageParams": []
+    },
+    {
+      "id": "security-txt",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "security.txt published, contact and expiry valid (2027-09-07)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "security.txt published, contact and expiry valid ({0})",
+      "messageParams": [
+        "2027-09-07"
+      ]
+    },
+    {
+      "id": "tls-version",
+      "family": "security",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "TLSv1.3 negotiated (TLS_AES_256_GCM_SHA384)",
+      "docUrl": "https://developer.mozilla.org/en-US/docs/Web/Security",
+      "messageTemplate": "{0} negotiated ({1})",
+      "messageParams": [
+        "TLSv1.3",
+        "TLS_AES_256_GCM_SHA384"
+      ]
+    },
+    {
+      "id": "html-weight",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "HTML document is 25KB",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "HTML document is 25KB",
+      "messageParams": []
+    },
+    {
+      "id": "render-blocking-js",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no render-blocking head scripts on 6 page(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no render-blocking head scripts on {0} page(s)",
+      "messageParams": [
+        6
+      ]
+    },
+    {
+      "id": "render-blocking-css",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "0 render-blocking stylesheet(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "0 render-blocking stylesheet(s)",
+      "messageParams": []
+    },
+    {
+      "id": "img-dimensions",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 4,
+      "maxPoints": 4,
+      "message": "no <img> elements on sampled pages",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no <img> elements on sampled pages",
+      "messageParams": []
+    },
+    {
+      "id": "img-lazy-loading",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no images to assess",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no images to assess",
+      "messageParams": []
+    },
+    {
+      "id": "img-next-gen",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "no raster <img> elements to assess",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no raster <img> elements to assess",
+      "messageParams": []
+    },
+    {
+      "id": "resource-hints",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "preconnect/dns-prefetch present for 1 third-party origin(s)",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "preconnect/dns-prefetch present for {0} third-party origin(s)",
+      "messageParams": [
+        1
+      ]
+    },
+    {
+      "id": "dom-size",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "DOM has 186 element(s), max nesting depth 9",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "DOM has 186 element(s), max nesting depth 9",
+      "messageParams": []
+    },
+    {
+      "id": "text-compression",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "HTML served with Content-Encoding: br",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "HTML served with Content-Encoding: {0}",
+      "messageParams": [
+        "br"
+      ]
+    },
+    {
+      "id": "asset-caching",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "no same-origin CSS/JS asset to sample",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "no same-origin CSS/JS asset to sample",
+      "messageParams": []
+    },
+    {
+      "id": "inline-head-volume",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "pass",
+      "points": 2,
+      "maxPoints": 2,
+      "message": "13KB inline <style>/<script> in <head>",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "13KB inline <style>/<script> in <head>",
+      "messageParams": []
+    },
+    {
+      "id": "http-protocol",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "pass",
+      "points": 3,
+      "maxPoints": 3,
+      "message": "ALPN negotiated HTTP/2 (h2); the origin also advertises HTTP/3 in Alt-Svc, which this probe cannot verify",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "ALPN negotiated HTTP/2 (h2); the origin also advertises HTTP/3 in Alt-Svc, which this probe cannot verify",
+      "messageParams": []
+    },
+    {
+      "id": "cdn-edge-cache",
+      "family": "performance",
+      "evidence": "heuristic",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 2,
+      "message": "edge cache detected (Cloudflare, cf-cache-status: DYNAMIC) but no sampled page both declares a cacheable policy and reports a cache status — nothing to grade",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "edge cache detected ({0}) but no sampled page both declares a cacheable policy and reports a cache status — nothing to grade",
+      "messageParams": [
+        "Cloudflare, cf-cache-status: DYNAMIC"
+      ]
+    },
+    {
+      "id": "lighthouse-perf",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 5,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "cwv-lcp",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 6,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "cwv-cls",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "cwv-inp",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "cwv-assessment",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 4,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "cwv-ttfb",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "lab-tbt",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    },
+    {
+      "id": "lab-fcp",
+      "family": "performance",
+      "evidence": "measured",
+      "status": "skip",
+      "points": 0,
+      "maxPoints": 3,
+      "message": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "docUrl": "https://web.dev/explore/learn-core-web-vitals",
+      "messageTemplate": "Run with `--cwv --psi-key <key>` to measure Core Web Vitals (PageSpeed Insights).",
+      "messageParams": []
+    }
+  ],
+  "generatedAt": "2026-09-07T19:18:04.789Z",
+  "pageMeta": [
+    {
+      "path": "/en/",
+      "title": "SEO & AI findability audit, graded A–F — findable-audit",
+      "description": "Free, open-source SEO + GEO audit: check that search engines and AI crawlers (GPTBot, ClaudeBot) can find, extract and cite your site. Graded A–F.",
+      "h1": "Your SEO and your AI findability , graded A–F.",
+      "excerpt": "Classic SEO + GEO (AI findability) · open source Your SEO and your AI findability , graded A–F. Audit a website's search visibility — by classic search engines AND by AI crawlers (GPTBot, ClaudeBot, PerplexityBot…) — in a single pass, with a prioritized action plan. Homepage only — fast check 3 pages — template audit 6 pages — full sample Audit See a full example report Enter a public http(s) URL. Internal, private and reserved addresses are refused. Compare against competitors Audit your site next to up to two competitors — see where you lead and where you trail, family by family. Compare Public http(s) URLs. Core Web Vitals are skipped in compare mode to keep it fast. This site scores 99/100 (A) against its own engine — and the two remaining warnings are documented rather than hidden. What a report answers Reachable do crawlers get to the page at all? Understood do they understand what they read? Usable does the page hold up, for a human and for an agent? The detail of the 8 scoring families 8 weighted families · 137 checks AI access Answer-engine content Structured data Technical SEO On-page Performance / CWV Accessibility Security How it works 1 Paste a URL a public http(s) address. 2 Live audit multi-page crawl + checks, streamed in real time. 3 Score + plan A–F grade, prioritized fixes, Markdown / HTML / JSON export. Run it yourself, or in CI The same engine that just audited your site is an open-source CLI. No account, no key, nothing leaves your machine. npx findable-audit https://your-site.com The same engine, packaged four ways: npm — the published package, MIT — install it globally or run it with npx. GitHub Action — gate a merge on a score floor or on a regression, with SARIF and JUnit output. Claude Code — the plugin turns a report into a prioritized fix plan, inside your editor. GitHub — engine, web app and check guide — issues and pull requests welcome. Why GEO matters GEO (Generative Engine Optimization) is the practice of making a website findable,"
+    },
+    {
+      "path": "/fr/",
+      "title": "Audit SEO & findabilité IA, noté A–F — findable-audit",
+      "description": "Audit SEO + GEO gratuit et open source : vérifiez que les moteurs de recherche et les crawlers IA (GPTBot, ClaudeBot) trouvent et citent votre site. Note A–F.",
+      "h1": "Votre SEO et votre findabilité IA , notés A–F.",
+      "excerpt": "SEO classique + GEO (findabilité IA) · open source Votre SEO et votre findabilité IA , notés A–F. Auditez le référencement d'un site — par les moteurs de recherche classiques ET par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) — en une passe, avec un plan d'action priorisé. Page d’accueil seule — vérification rapide 3 pages — audit de gabarits 6 pages — échantillon complet Auditer Voir un rapport d’exemple complet Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées. Comparer à des concurrents Auditez votre site à côté de deux concurrents maximum — voyez où vous menez et où vous êtes devancé, famille par famille. Comparer URL http(s) publiques. Les Core Web Vitals sont ignorés en mode comparaison pour rester rapide. Ce site obtient 99/100 (A) avec son propre moteur — et les deux avertissements restants sont documentés plutôt que masqués. Ce qu’un rapport répond Trouvable les robots arrivent-ils seulement jusqu’à la page ? Compréhensible comprennent-ils ce qu’ils lisent ? Utilisable la page tient-elle la route, pour un humain et pour un agent ? Le détail des 8 familles de score 8 familles pondérées · 137 vérifications Accès IA Contenu pour moteurs de réponse Données structurées SEO technique On-page Performance / CWV Accessibilité Sécurité Comment ça marche 1 Collez une URL publique http(s). 2 Test en cours crawl multi-pages + checks, en direct. 3 Score + plan note A–F, corrections priorisées, export Markdown / HTML / JSON. À lancer soi-même, ou en CI Le moteur qui vient d’auditer votre site est une CLI open source. Sans compte, sans clé, et rien ne quitte votre machine. npx findable-audit https://votre-site.com Le même moteur, empaqueté de quatre façons : npm — le paquet publié, sous licence MIT — à installer globalement ou à lancer avec npx. GitHub Action — bloquez une fusion sous un seuil de score ou en cas de régression, avec sortie SARIF et JUnit. Claude Code — le plugin transforme un rapport en plan de correction"
+    },
+    {
+      "path": "/en/about/",
+      "title": "About findable-audit — open-source SEO + GEO audit",
+      "description": "What findable-audit checks and why: 137 SEO and GEO checks across 8 weighted families, how the A–F score works, and the open-source project behind it.",
+      "h1": "About findable-audit",
+      "excerpt": "About findable-audit findable-audit is a free, open-source tool that measures how findable a website is — by classic search engines and by AI assistants such as ChatGPT, Claude and Perplexity. It answers one question: when someone searches for what you offer, can search engines and AI crawlers reach your pages, extract your content and cite you as a source? What it checks Each audit samples several pages of the target site and runs 137 checks grouped into 8 weighted families: AI access (robots directives for GPTBot, ClaudeBot and friends), answer-engine content (llms.txt, extractable server-rendered copy), structured data (JSON-LD entities, Open Graph), technical SEO (canonicals, redirects, sitemaps), on-page semantics (titles, headings, internal links), performance and Core Web Vitals, accessibility, and security headers. How scoring works Every check awards points and ships with a concrete, prioritized fix. Family scores are weighted into a single 0–100 score and an A–F grade, so two audits of the same site are directly comparable over time — the CLI can even fail a CI build when a deploy regresses the score. Open source The engine is MIT-licensed and dependency-light. The same check catalogue powers this web app, a command-line tool and a CI gate. This site is audited with its own engine — dogfooding keeps the recommendations honest. The 8 weighted families AI access (weight 16%): robots.txt directives and edge rules for GPTBot, ClaudeBot, PerplexityBot and 25 other AI agents. Answer-engine content (18%): llms.txt, server-rendered copy, direct-answer leads, extractable lists and tables. Structured data (15%): JSON-LD entities, Open Graph, FAQPage and Article markup, entity grounding through sameAs. Technical SEO (15%): canonicals, redirects, sitemaps, hreflang, host consolidation and pagination. On-page (12%): titles, meta descriptions, heading hierarchy, image alt text and internal linking. Performance and Core Web Vitals (10%): LCP, CLS, INP and TTFB, measured"
+    },
+    {
+      "path": "/en/contact/",
+      "title": "Contact — findable-audit support & feedback",
+      "description": "How to reach the findable-audit team: report a bug, request a new check or ask a question — GitHub issues are the fastest channel for the project.",
+      "h1": "Contact",
+      "excerpt": "Contact findable-audit is developed in the open on GitHub. The fastest way to reach the team — for a bug, a question or a new-check proposal — is to open an issue on the repository; issues are read in both French and English. You do not need an account on this site: there is nothing to sign up for, and both the web app and the CLI are free to use. Report a bug Include the audited URL, the grade you got and, if possible, the exported Markdown or JSON report. Audits are ephemeral: reports expire from the server a few minutes after they finish, so attach the export itself rather than a link to it. Security reports For a security issue in the tool or in this site, please use the contact listed in our security.txt policy below rather than a public issue. Links Open a GitHub issue (bugs, questions, check proposals) Source code and documentation Security policy (security.txt)"
+    },
+    {
+      "path": "/fr/about/",
+      "title": "À propos de findable-audit — audit SEO + GEO open source",
+      "description": "Ce que findable-audit vérifie et pourquoi : 137 contrôles SEO et GEO en 8 familles pondérées, le fonctionnement de la note A–F et le projet open source.",
+      "h1": "À propos de findable-audit",
+      "excerpt": "À propos de findable-audit findable-audit est un outil gratuit et open source qui mesure la findabilité d’un site web — par les moteurs de recherche classiques et par les assistants IA comme ChatGPT, Claude ou Perplexity. Il répond à une question : quand quelqu’un cherche ce que vous proposez, les moteurs et les crawlers IA peuvent-ils atteindre vos pages, extraire votre contenu et vous citer comme source ? Ce qui est vérifié Chaque audit échantillonne plusieurs pages du site cible et exécute 137 contrôles regroupés en 8 familles pondérées : accès IA (directives robots pour GPTBot, ClaudeBot et consorts), contenu pour moteurs de réponse (llms.txt, contenu extractible rendu côté serveur), données structurées (entités JSON-LD, Open Graph), SEO technique (canonicals, redirections, sitemaps), sémantique on-page (titres, intertitres, liens internes), performance et Core Web Vitals, accessibilité, et en-têtes de sécurité. Comment le score fonctionne Chaque contrôle rapporte des points et vient avec une correction concrète et priorisée. Les scores par famille sont pondérés en un score unique sur 100 et une note A–F : deux audits du même site sont directement comparables dans le temps — la CLI peut même faire échouer un build CI quand un déploiement fait régresser le score. Open source Le moteur est sous licence MIT, avec très peu de dépendances. Le même catalogue de contrôles alimente cette application web, un outil en ligne de commande et une gate CI. Ce site est audité avec son propre moteur — le dogfooding garde les recommandations honnêtes. Les 8 familles pondérées Accès IA (poids 16 %) : directives robots.txt et règles edge pour GPTBot, ClaudeBot, PerplexityBot et 25 autres agents IA. Contenu pour moteurs de réponse (18 %) : llms.txt, contenu rendu côté serveur, chapô en réponse directe, listes et tableaux extractibles. Données structurées (15 %) : entités JSON-LD, Open Graph, balisage FAQPage et Article, ancrage d’entité via sameAs. SEO technique (15 %) :"
+    },
+    {
+      "path": "/fr/contact/",
+      "title": "Contact — support et retours findable-audit",
+      "description": "Comment joindre l’équipe findable-audit : signaler un bug, proposer un nouveau contrôle ou poser une question — les issues GitHub sont le canal le plus rapide.",
+      "h1": "Contact",
+      "excerpt": "Contact findable-audit est développé en public sur GitHub. Le moyen le plus rapide de joindre l’équipe — pour un bug, une question ou une proposition de contrôle — est d’ouvrir une issue sur le dépôt ; les issues sont lues en français comme en anglais. Aucun compte n’est nécessaire sur ce site : il n’y a rien à créer, et l’application web comme la CLI sont gratuites. Signaler un bug Indiquez l’URL auditée, la note obtenue et, si possible, l’export Markdown ou JSON du rapport. Les audits sont éphémères : les rapports expirent du serveur quelques minutes après leur fin — joignez donc l’export lui-même plutôt qu’un lien. Signalements de sécurité Pour un problème de sécurité dans l’outil ou sur ce site, utilisez le contact indiqué dans notre politique security.txt ci-dessous plutôt qu’une issue publique. Liens Ouvrir une issue GitHub (bugs, questions, propositions) Code source et documentation Politique de sécurité (security.txt)"
+    }
+  ],
+  "toolVersion": "0.11.0",
+  "schemaVersion": 1
+}
