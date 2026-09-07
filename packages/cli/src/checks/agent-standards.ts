@@ -17,6 +17,11 @@ export const AGENT_MANIFEST_PATHS = [
   '/.well-known/agents.json',
   '/agents.json',
   '/.well-known/ucp.json',
+  // A152 (2026-09-07): the Agentic Commerce Protocol (OpenAI + Stripe) was
+  // checked for a discovery file and has none — its 2026-04-17 spec is a
+  // product feed plus a checkout/delegated-payment API registered with the
+  // platform, not a merchant-hosted manifest. The `/.well-known/acp/*` paths
+  // seen on vendor blogs are not in the spec, so they are not probed.
 ] as const;
 
 /** true when the body plausibly is a JSON document (we do not validate schemas of unstable standards). */
