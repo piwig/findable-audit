@@ -195,10 +195,12 @@ describe('renderHtml layer 3 — the detail', () => {
 describe('renderHtml theming', () => {
   const html = renderHtml(report, new Date('2026-07-20T00:00:00Z'));
 
-  it('ships a dark theme driven by the same tokens as the charts', () => {
-    expect(html).toContain('color-scheme: light dark');
-    expect(html).toMatch(/@media\s*\(prefers-color-scheme:\s*dark\)/);
-    // The gauge reads the report's tokens, so it flips with the page.
+  it('uses the PB Aube light palette while retaining independent status colors', () => {
+    expect(html).toContain('color-scheme: light;');
+    expect(html).toContain('--ink: #211c38');
+    expect(html).toContain('--accent: #2653c4');
+    expect(html).toContain('stop-color="#b23a72"');
+    // The gauge reads the report's tokens, retaining legible status colors.
     expect(html).toContain('var(--ink, #1a1a1a)');
   });
   it('does not tint the whole page with the grade colour', () => {

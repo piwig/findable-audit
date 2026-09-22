@@ -23,7 +23,7 @@ test('GET /favicon.svg serves an inline SVG logomark', async () => {
   const svg = await res.text();
   assert.match(svg, /<svg[^>]*viewBox="0 0 32 32"/);
   assert.match(svg, /<linearGradient id="faGrad"/);
-  assert.match(svg, /#3bbf6b/); // Aube-verte gradient
+  assert.match(svg, /#b23a72/); // PB Aube deep spectrum, legible white mark
   assert.match(res.headers.get('cache-control') ?? '', /max-age=86400/); // cached a day
 });
 

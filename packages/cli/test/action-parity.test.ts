@@ -23,7 +23,7 @@ const ACTION_ONLY = new Set(['sarif-file', 'badge', 'version']);
 /** CLI flags deliberately kept out of the action (interactive / local-only). */
 const CLI_ONLY = new Set([
   'json', 'out', 'no-report', 'timeout', 'user-agent', 'indexnow-key', 'submit',
-  'psi-strategy', 'compare', 'entity-graph', 'answers', 'emit-probes', 'summary',
+  'psi-strategy', 'compare', 'entity-graph', 'answers', 'local-context', 'local-plan', 'emit-probes', 'summary',
   'history', 'verify-profiles', 'check-outbound', 'experimental-agent-standards',
   'dry-run',
   'progress', // A133 : une Action est non-TTY, CI=true => plain automatique

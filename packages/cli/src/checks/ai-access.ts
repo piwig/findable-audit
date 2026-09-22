@@ -348,18 +348,12 @@ export const aiCrawlerReachability: Check = {
 };
 
 // ---------------------------------------------------------------------------
-// cloudflare-ai-defaults (backlog A30): Cloudflare announced that AI crawlers
-// are blocked BY DEFAULT for its zones starting 2026-09-15 (blog.cloudflare.com).
-// A site served via Cloudflare that never opened AI Crawl Control can therefore
-// vanish from AI answers on that date without any config change of its own.
-// Detection is measured, not guessed: the `cf-ray` response header (present on
-// every Cloudflare-proxied response) or `server: cloudflare`.
+// cloudflare-ai-defaults (legacy id): measures provider presence only.
+// Search/Agent/Training policies depend on account, domain and page settings.
+// Source: https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/
 // ---------------------------------------------------------------------------
 
-/** Cloudflare's announced switch date for default AI-crawler blocking (15 September 2026, UTC). */
-const CF_AI_BLOCK_SWITCH_UTC = Date.UTC(2026, 8, 15);
-
-/** Injectable clock so tests stay deterministic on both sides of the switch date. */
+/** Legacy test seam: presence detection no longer infers account policies from a date. */
 export const cloudflareClock = { now: () => Date.now() };
 
 export const cloudflareAiDefaults: Check = {
@@ -382,27 +376,17 @@ export const cloudflareAiDefaults: Check = {
           'Treat Content Signals as documentation only; enforce crawler policy with robots.txt rules, '
           + 'WAF/bot-management, or (behind Cloudflare) AI Crawl Control.');
       }
-      return makeResult(this, 'pass', 'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply');
+      return makeResult(this, 'pass', 'not served via Cloudflare — no Cloudflare account policy inferred');
     }
-    // Behind Cloudflare this stays a dated warn either way: the default policy is
-    // an account-side switch this crawl cannot read, so the only honest verdict is
-    // "go check AI Crawl Control" — before the date as preparation, after it as urgency.
-    const fix = 'In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want '
-      + '(GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, '
-      + 'then re-run this audit to confirm ai-serving-parity and ai-crawler-reachability still pass.';
-    const beforeSwitch = cloudflareClock.now() < CF_AI_BLOCK_SWITCH_UTC;
+    // Headers establish the provider, not its per-zone Search/Agent/Training settings.
+    const fix = 'Review AI Crawl Control and Configure AI bot policies in the Cloudflare dashboard. '
+      + 'Check Search, Agent and Training choices separately for this domain and its pages; allowing search does not require allowing training. '
+      + 'Compare with ai-serving-parity and ai-crawler-reachability, which observe responses to sample requests.';
     if (hasContentSignal) {
-      return beforeSwitch
-        ? makeResult(this, 'warn',
-          'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection',
-          fix)
-        : makeResult(this, 'warn',
-          'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection',
-          fix);
+      return makeResult(this, 'warn',
+        'site served via Cloudflare — account policies are unknown; Content Signals in robots.txt are a non-binding preference, not proof of blocking', fix);
     }
-    return beforeSwitch
-      ? makeResult(this, 'warn', 'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15', fix)
-      : makeResult(this, 'warn', 'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15', fix);
+    return makeResult(this, 'warn', 'site served via Cloudflare — account policies are unknown; response headers alone do not establish AI crawler blocking', fix);
   },
 };
 

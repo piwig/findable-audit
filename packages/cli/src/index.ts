@@ -17,6 +17,9 @@ import { renderCompareHtml, renderCompareMarkdown, renderCompareTerminal } from 
 import { diffReports, renderDiffTerminal, type ReportDiff } from './report/diff.js';
 import { pickEntityGraphRenderer } from './report/entity-graph.js';
 import { pickAnswersRenderer } from './report/answers.js';
+import { parseLocalContext, LocalContextError, type LocalContext } from './local/context.js';
+import { buildLocalPlan } from './local/plan.js';
+import { pickLocalPlanRenderer } from './report/local-plan.js';
 import { emitFiles, plannedFiles, generateLlmsTxt, generateLlmsFullTxt } from './generate/index.js';
 import { renderProbesJson } from './generate/probes.js';
 import { renderSummaryHtml, renderSummaryMarkdown } from './report/summary.js';
@@ -46,7 +49,7 @@ The four options most runs need:
 The rest, one topic at a time -- findable --help <topic>:
   audit      what gets crawled and how: depth, timeout, user agent, language, Core Web Vitals
   compare    measuring against something: --compare, --baseline, --history
-  output     report formats and the other files: --json, --summary, --entity-graph, --answers, --emit
+  output     reports and other files: --json, --summary, --entity-graph, --answers, --local-plan, --emit
   ci         the gates that decide the exit code, and the exit codes themselves
   network    the only options that fetch anything off your own origin
   all        every section at once
@@ -106,6 +109,12 @@ By default, two report files are written to the current directory: <host>-<date>
   whether the crawled pages hold a passage that answers each one and stands on its own. Format by
   extension: .json, or anything else Markdown. These questions come from what the site DECLARES,
   its services, its areas, its markup, never from measured search demand, and the file says so.
+--local-context <file.json> reads a locally supplied, versioned business context (name, services, areas,
+  priority questions and optional Google Business Profile URL). It does not sign in to or fetch Google,
+  Search Console, Semrush or a competitor profile.
+--local-plan <file> writes the local readiness plan produced by crossing that context with this technical
+  audit. Format by extension: .json, or Markdown (.md/.txt). It requires --local-context; supplied facts
+  and profile work stay explicitly marked as human verification, not audit observations.
 --emit <dir> writes ready-to-deploy indexing files (robots.txt, llms.txt, llms-full.txt, .well-known/ai.json,
   sitemap.xml, jsonld-stubs.json, GENERATED-README.md) into <dir>. Content is generic, review before deploying,
   especially robots.txt. Works alongside --report/--no-report (independent of the md/html report files).
@@ -206,6 +215,8 @@ const parseCliArgs = () =>
       'allow-cross-version': { type: 'boolean', default: false },
       'entity-graph': { type: 'string' },
       answers: { type: 'string' },
+      'local-context': { type: 'string' },
+      'local-plan': { type: 'string' },
       emit: { type: 'string' },
       // A99 — vigie-seo probe suggestions derived from weak families.
       'emit-probes': { type: 'string' },
@@ -385,6 +396,40 @@ if (answersFile !== undefined) {
   }
 }
 
+// A local plan comes from an explicit file, never a silent login or scrape of
+// a client-owned Google Business Profile.
+const localContextFile = values['local-context'];
+const localPlanFile = values['local-plan'];
+let localContext: LocalContext | undefined;
+try {
+if (localContextFile === undefined && localPlanFile !== undefined) {
+  throw new LocalContextError('--local-plan requires --local-context <file.json>');
+}
+if (localContextFile !== undefined && localPlanFile === undefined) {
+  throw new LocalContextError('--local-context requires --local-plan <file>');
+}
+if (localContextFile !== undefined) {
+  if (localContextFile.trim() === '' || !/\.json$/i.test(localContextFile)) {
+    throw new LocalContextError(`--local-context file must end in .json (got "${localContextFile}")`);
+  }
+  if (localPlanFile!.trim() === '' || pickLocalPlanRenderer(localPlanFile!) === null) {
+    throw new LocalContextError(`--local-plan file must end in .json, .md, .markdown or .txt (got "${localPlanFile}")`);
+  }
+  try {
+    localContext = parseLocalContext(readFileSync(localContextFile, 'utf8'));
+  } catch (err) {
+    const message = err instanceof LocalContextError ? err.message : (err as Error).message;
+    throw new LocalContextError(`cannot read local context "${localContextFile}": ${message}`);
+  }
+}
+} catch (err) {
+  console.error(`findable-audit: ${(err as Error).message}\n\n${USAGE_HEAD}`);
+  process.exitCode = 2;
+}
+
+// A failed local preflight must drain normally and never start a crawl.
+if (process.exitCode !== 2) {
+
 // --entity-graph <file>: validate the target extension up front.
 const entityGraphFile = values['entity-graph'];
 if (entityGraphFile !== undefined) {
@@ -548,7 +593,7 @@ try {
         process.stderr.write(`${label}\n`);
       }
     : undefined;
-  const auditOpts = { onProgress, timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined };
+  const auditOpts = { onProgress, timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined || htmlReportWanted, priorityQuestions: localContext?.priorityQuestions };
   note(`auditing ${targetUrl} (up to ${maxPages} page${maxPages === 1 ? '' : 's'}, timeout ${timeoutMs}ms)…`);
   const report = await runAudit(targetUrl, checks, auditOpts);
   report.toolVersion = createRequire(import.meta.url)('../package.json').version;
@@ -716,7 +761,7 @@ try {
   // a gap found on a truncated crawl is not evidence of a gap on the site.
   if (answersFile !== undefined && report.answerMatrix) {
     const renderer = pickAnswersRenderer(answersFile)!;
-    const capped = report.sampledPages.length >= maxPages;
+    const capped = report.sampleCoverage?.limitReached ?? report.sampledPages.length >= maxPages;
     try {
       writeFileSync(answersFile, renderer(report.answerMatrix, {
         sampledPages: report.sampledPages, capped, lang,
@@ -724,6 +769,20 @@ try {
       note(`answer matrix written to ${answersFile}`);
     } catch (err) {
       console.error(`findable-audit: cannot write answer matrix to "${answersFile}": ${(err as Error).message}`);
+      reportWriteFailed = true;
+    }
+  }
+
+  // --local-plan is intentionally separate from the technical score and never
+  // serializes client-supplied address or phone values into its artifact.
+  if (localPlanFile !== undefined && localContext !== undefined) {
+    const plan = buildLocalPlan(report, localContext, langTyped);
+    const renderer = pickLocalPlanRenderer(localPlanFile)!;
+    try {
+      writeFileSync(localPlanFile, renderer(plan), 'utf8');
+      note(`local readiness plan written to ${localPlanFile}`);
+    } catch (err) {
+      console.error(`findable-audit: cannot write local readiness plan to "${localPlanFile}": ${(err as Error).message}`);
       reportWriteFailed = true;
     }
   }
@@ -795,5 +854,6 @@ try {
   } else {
     throw err;
   }
+}
 }
 }

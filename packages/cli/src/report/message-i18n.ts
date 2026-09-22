@@ -16,6 +16,17 @@ import type { Lang } from './i18n.js';
 
 /** English template → French wording. Keys are the exact `messageTemplate` values. */
 export const CHECK_MESSAGES_FR: Record<string, string> = {
+  "not served via Cloudflare — no Cloudflare account policy inferred": "site non servi via Cloudflare — aucune politique de compte Cloudflare déduite",
+  "site served via Cloudflare — account policies are unknown; Content Signals in robots.txt are a non-binding preference, not proof of blocking": "site servi via Cloudflare — politiques du compte inconnues ; les Content Signals du robots.txt expriment une préférence non contraignante, pas une preuve de blocage",
+  "site served via Cloudflare — account policies are unknown; response headers alone do not establish AI crawler blocking": "site servi via Cloudflare — politiques du compte inconnues ; les seuls en-têtes ne prouvent pas un blocage des robots IA",
+  "basic accessibility deficiencies (language, landmarks or alt text) on {0}/{1} sampled page(s) — legal applicability and compliance are not assessed": "obstacles d’accessibilité de base (langue, repères ou texte alternatif) sur {0}/{1} page(s) échantillonnée(s) — le champ légal et la conformité ne sont pas évalués",
+  'no table with >=3 rows in the sampled main content': 'aucun tableau de trois lignes ou plus dans le contenu principal échantillonné',
+  'every table is titled on {0} page(s)': 'chaque tableau possède un titre sur {0} page(s)',
+  'tables without <caption> on: {0}': 'tableaux sans légende ou titre sur : {0}',
+  'a Sources section with outbound links on {0} pillar page(s)': 'une section Sources avec des liens externes sur {0} page(s) de fond',
+  'no Sources section on {0}/{1} pillar page(s): {2}': 'aucune section Sources sur {0}/{1} page(s) de fond : {2}',
+  'no ambiguous numeric-only dates on {0} page(s)': 'aucune date ambiguë uniquement numérique sur {0} page(s)',
+  'numeric-only dates (dd/mm/yyyy) on: {0}': 'dates uniquement numériques (jj/mm/aaaa) sur : {0}',
   // A141 — html-weight, per-page hard limits.
   'HTML over 2MB (truncated by crawlers and AI fetchers) on: {0}': 'HTML de plus de 2 Mo (tronqué par les crawlers et les fetchers IA) sur : {0}',
   'HTML over 1MB on: {0}': 'HTML de plus de 1 Mo sur : {0}',
@@ -436,8 +447,6 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   'non-descriptive alt text ({0}% descriptive)': 'textes alternatifs peu descriptifs ({0} % descriptifs)',
   'not enough main text to assess readability': 'pas assez de texte principal pour évaluer la lisibilité',
   'not served over HTTPS': 'non servi en HTTPS',
-  'not served via Cloudflare — its 2026-09-15 default AI-crawler block does not apply':
-    'non servi via Cloudflare — son blocage des crawlers IA par défaut au 15/09/2026 ne s’applique pas',
   'not served via Cloudflare, but robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
     'non servi via Cloudflare, mais robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
   'only 1 sameAs profile URL': 'une seule URL de profil sameAs',
@@ -494,14 +503,6 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
     'SpeakableSpecification déclarée avec cssSelector/xpath',
   'SpeakableSpecification present without cssSelector or xpath':
     'SpeakableSpecification présente sans cssSelector ni xpath',
-  'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15':
-    'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026',
-  'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15':
-    'site servi via Cloudflare — les crawlers IA sont bloqués par défaut depuis le 15/09/2026',
-  'site served via Cloudflare — AI crawlers become blocked by default on 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
-    'site servi via Cloudflare — les crawlers IA seront bloqués par défaut le 15/09/2026 ; robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
-  'site served via Cloudflare — AI crawlers are blocked by default since 2026-09-15; robots.txt contains Content Signals directives — these are a non-binding preference (Google has said it ignores them), not an enforcement mechanism; do not rely on them as protection':
-    'site servi via Cloudflare — les crawlers IA sont bloqués par défaut depuis le 15/09/2026 ; robots.txt contient des directives Content Signals — une préférence non contraignante (Google a indiqué les ignorer), pas un mécanisme d’application ; ne pas s’y fier comme protection',
   'sitemap <lastmod> weak ({0})': '<lastmod> du sitemap peu fiable ({0})',
   'sitemap and internal links agree on {0} URL(s)': 'le sitemap et les liens internes concordent sur {0} URL',
   'sitemap has no <url> entries (index or empty)': 'le sitemap n’a aucune entrée <url> (index ou vide)',
@@ -573,8 +574,6 @@ export const CHECK_MESSAGES_FR: Record<string, string> = {
   // A50 — rgaa-eaa-deadline (accessibility).
   'no basic accessibility deficiency (language, landmarks, alt text) on {0} sampled page(s)':
     'aucune défaillance d’accessibilité de base (langue, repères, texte alternatif) sur {0} page(s) échantillonnée(s)',
-  'basic accessibility deficiencies (language, landmarks or alt text) on {0}/{1} sampled page(s) — since 2025-06-28 the European Accessibility Act makes RGAA v4.1 mandatory for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months':
-    'défaillances d’accessibilité de base (langue, repères ou texte alternatif) sur {0}/{1} page(s) échantillonnée(s) — depuis le 28/06/2025, l’European Accessibility Act rend le RGAA v4.1 obligatoire pour les entreprises privées de plus de 10 salariés, avec des amendes jusqu’à 50 000 EUR par service non conforme, renouvelables tous les 6 mois',
   // A63 — consistent-help (accessibility).
   'fewer than 2 sampled pages: nothing to compare':
     'moins de 2 pages échantillonnées : rien à comparer',

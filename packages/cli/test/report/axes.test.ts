@@ -118,8 +118,9 @@ describe('verdictSentence (A147)', () => {
   });
 
   it('excellent at 90 and above, regardless of the weakest axis', () => {
-    expect(verdictSentence(axes(95, 70, 100), 90, false, 'en')).toMatch(/nothing structural stands in the way/);
-    expect(verdictSentence(axes(95, 70, 100), 89, false, 'en')).not.toMatch(/nothing structural/);
+    expect(verdictSentence(axes(95, 70, 100), 90, false, 'en')).toMatch(/sampled pages.*does not guarantee/);
+    expect(verdictSentence(axes(95, 70, 100), 90, false, 'fr')).toMatch(/pages échantillonnées.*ne garantit/);
+    expect(verdictSentence(axes(95, 70, 100), 89, false, 'en')).not.toMatch(/does not guarantee/);
   });
 
   it('picks the weakest axis, weak below 60, mid otherwise', () => {

@@ -253,13 +253,8 @@ export const iframeTitle: Check = {
 };
 
 // ---------------------------------------------------------------------------
-// rgaa-eaa-deadline (backlog A50): since 2025-06-28 the European Accessibility
-// Act made RGAA v4.1 mandatory in France for private companies with more than
-// 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable
-// every 6 months. A low score on basic, automatically-testable accessibility
-// signals (language, landmarks, alt text) is therefore a live legal exposure
-// today, not an abstract quality nit — this check turns that into a dated
-// warning, the same pattern as cloudflareAiDefaults (A30) for a fixed deadline.
+// rgaa-eaa-deadline (legacy id): technical barriers only. The crawl cannot
+// determine the entity's activities, exemptions, legal applicability or compliance.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -323,7 +318,7 @@ export const rgaaEaaDeadline: Check = {
       return makeResult(this, 'pass', t`no basic accessibility deficiency (language, landmarks, alt text) on ${pages.length} sampled page(s)`);
     }
     return makeResult(this, 'warn',
-      t`basic accessibility deficiencies (language, landmarks or alt text) on ${deficient}/${pages.length} sampled page(s) — since 2025-06-28 the European Accessibility Act makes RGAA v4.1 mandatory for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months`,
-      'Fix the accessibility checks flagged fail/warn in this family (html-lang, landmarks, alt-descriptive…) — RGAA v4.1 compliance is now a legal requirement for companies above 10 employees, not just an SEO/UX nicety.');
+      t`basic accessibility deficiencies (language, landmarks or alt text) on ${deficient}/${pages.length} sampled page(s) — legal applicability and compliance are not assessed`,
+      'Fix the observed language, landmarks and alternative-text barriers, then carry out a broader accessibility review. Legal obligations depend on the activity and applicable exemptions; this crawl cannot determine compliance.');
   },
 };

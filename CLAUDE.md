@@ -13,13 +13,13 @@ This file is the part that is **not** obvious from reading the code.
 ## Commands
 
 ```bash
-npm run build --workspaces          # tsc; apps/web has no build step
+npm run build                       # tsc; skips apps/web's absent build step
 npm test --workspaces               # vitest, packages/cli
 cd apps/web && node --test          # node:test, real HTTP servers on loopback
 node packages/cli/dist/index.js <url> --max-pages 6 --report out.json
 ```
 
-Always `npm run build --workspaces` before running the CLI or the web tests: `apps/web`
+Always `npm run build` before running the CLI or the web tests: `apps/web`
 imports from `packages/cli/dist/`, so a stale build silently tests old code.
 
 **Never run `vitest` from the repository root.** There is no vitest config there, so it globs
@@ -71,14 +71,11 @@ git tag v<version> && git push origin v<version>   # .github/workflows/release.y
 ```
 
 `release.yml` re-runs build + the full suite, refuses a tag that disagrees with
-`packages/cli/package.json`, then publishes with `--provenance`.
+`packages/cli/package.json`, then publishes through npm OIDC trusted publishing with provenance.
 
-**npm token gotcha** (cost two failed runs on 2026-07-27): the `NPM_TOKEN` secret must be
-a **granular access token** with *bypass 2FA* enabled — a classic token gets
-`E403 … two-factor authentication … is required`. And for a token that has never
-published this package, the scope must be **All packages**: one restricted to selected
-packages cannot *create* a package and npm answers `E404 … is not in this registry`,
-which reads like a missing package but is a permission refusal.
+The current `release.yml` uses **OIDC trusted publishing**, not an npm token. Keep
+the workflow filename and repository identity aligned with npm's Trusted Publisher
+configuration; never add a token to work around a release failure.
 
 ## How scoring works (and why checks skip)
 

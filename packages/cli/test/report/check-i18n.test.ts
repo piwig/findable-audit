@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { buildChecks } from '../../src/checks/index.js';
-import { CHECK_I18N, checkWhy, checkFix } from '../../src/report/check-i18n.js';
+import { CHECK_I18N, checkWhy, checkFix, checkTitle } from '../../src/report/check-i18n.js';
 
 describe('CHECK_I18N catalogue', () => {
+  it('gives every registered check a human title in both languages', () => {
+    for (const check of buildChecks({ agentStandards: true })) {
+      expect(checkTitle(check.id, 'en')).not.toBe(check.id);
+      expect(checkTitle(check.id, 'fr')).not.toBe(check.id);
+    }
+  });
   const ids = buildChecks({ indexnowKey: 'k' }).map((c) => c.id);
 
   it('covers every check with a non-empty, bilingual "why"', () => {

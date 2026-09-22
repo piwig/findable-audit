@@ -58,9 +58,9 @@ test('both form contracts survive the redesign (action + field names)', async ()
   }
 });
 
-test('the primary CTA wears the brand green, not the near-black it used to', async () => {
+test('the primary CTA uses the PB deep spectrum, keeping white text legible', async () => {
   const { body } = await get('/en/');
-  assert.match(body, /\.ld-cta \{[^}]*background: var\(--good\)/);
+  assert.match(body, /\.ld-cta \{[^}]*background: var\(--grad-deep\)/);
 });
 
 test('three axes lead; the eight families stay, one disclosure below', async () => {
@@ -72,18 +72,20 @@ test('three axes lead; the eight families stay, one disclosure below', async () 
   assert.match(body, /Answer-engine content/);
 });
 
-test('the landing states the proof it never used to: its own score', async () => {
+test('the landing identifies the score as a dated archived example', async () => {
   const en = await get('/en/');
   assert.match(en.body, /class="ld-proof"/);
   assert.match(en.body, /99\/100 \(A\)/);
   const fr = await get('/fr/');
   assert.match(fr.body, /99\/100 \(A\)/);
+  assert.match(fr.body, /Audit archivé de/);
+  assert.match(fr.body, /2026-07-27/);
 });
 
-test('a dark theme ships with the page, driven by the OS preference alone', async () => {
+test('the Aube identity uses bright surfaces and provides reduced motion', async () => {
   const { body } = await get('/en/');
-  assert.match(body, /color-scheme: light dark/);
-  assert.match(body, /@media \(prefers-color-scheme: dark\)/);
+  assert.match(body, /color-scheme: light;/);
+  assert.match(body, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
 test('the example report is a real, frozen report of our own site, and is noindex', async () => {

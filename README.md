@@ -7,7 +7,7 @@
 [![Try it live](https://img.shields.io/badge/Try%20it%20live-findable-1a7f37)](https://findable.bordebat.fr)
 [![findable score: A 99/100](docs/badge.svg)](https://findable.bordebat.fr/en/example-report/)
 
-A robots.txt line, a page that only exists after JavaScript runs, a missing JSON-LD entity — any of these keeps you out of AI answers while your search ranking looks fine. `findable-audit` runs **149 checks** in one deterministic crawl and returns a weighted **A–F grade** across SEO, GEO, Core Web Vitals, accessibility and security, with the fixes ordered by what they are worth.
+A robots.txt rule or a page that only appears after JavaScript runs can limit how crawlers retrieve your content. `findable-audit` has a catalogue of **152 checks** and returns a weighted **A–F grade** across SEO, GEO, Core Web Vitals, accessibility and security, with suggested fixes. **151** run by default; one experimental diagnostic is opt-in and never scored.
 
 No account. No telemetry. Nothing sent to a third party.
 
@@ -63,7 +63,7 @@ Every audit also writes a self-contained **HTML report** and a Markdown one. See
 28 named AI agents, tiered by *intention* — because who you block decides what you lose. A flat "N bots blocked" count treats a deliberate policy choice exactly like an outage.
 
 **Every verdict says what it rests on.**
-111 checks grade against an RFC, WCAG, schema.org or a threshold Google publishes. 38 are heuristics — a ratio, a lexicon, a bar we chose. The reports badge them, so you never mistake our taste for a specification.
+111 checks grade against an RFC, WCAG, schema.org or a threshold Google publishes. 41 are heuristics — a ratio, a lexicon, a bar we chose. The reports badge them, so you never mistake our taste for a specification.
 
 **Five disciplines, one crawl, one grade.**
 SEO, GEO, Core Web Vitals, accessibility and security in a single weighted A–F — not five tools and five dashboards you have to reconcile yourself.
@@ -73,24 +73,26 @@ Three small pure-JS dependencies, no headless browser, no LLM SDK, no key for th
 
 ## What it checks
 
-**149 checks in 8 families.** Each family scores `0–100` over its own non-skipped checks; the eight are then blended with the weights below.
+**152 checks in 8 families.** Each family scores `0–100` over its own non-skipped checks; the eight are then blended with the weights below.
+
+The catalogue includes the optional, unscored `agent-standards-signals` diagnostic. The default audit runs **151** checks.
 
 | Family | Weight | Checks | What it covers |
 |---|---|---:|---|
-| **AI crawler access** | 0.16 | 9 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
-| **Answer-engine content** | 0.18 | 22 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json`, syndication feed, plus **GEO-advanced** heuristics — freshness-signal coherence, lead hedging, liftable answer units, retrieval chunk-boundary hygiene, a **RAG-twin chunk simulation** (do ~512-token retrieval windows still stand alone?) and **ingestion hygiene** (hidden model instructions, unattributed UGC links) |
-| **Structured data & metadata** | 0.15 | 23 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, Google rich-result eligibility, page-level `about`/`mentions`, `sameAs` grounding, Open Graph, Twitter Card |
+| **AI crawler access** | 0.16 | 15 | robots.txt validity, AI + search crawler permissions (2026 roster, training vs citation-time bots), `noindex`/preview directives, AI-vs-browser serving parity (cloaking / edge bot-blocking) — the gate: if crawlers are blocked, nothing else matters |
+| **Answer-engine content** | 0.18 | 26 | `llms.txt` / `llms-full.txt`, server-rendered text, CSR/SPA content parity, content depth & freshness, direct-answer leads, question headings, author E-E-A-T, outbound citations, uniqueness, `/.well-known/ai.json`, syndication feed, plus **GEO-advanced** heuristics — freshness-signal coherence, lead hedging, liftable answer units, retrieval chunk-boundary hygiene, a **RAG-twin chunk simulation** (do ~512-token retrieval windows still stand alone?) and **ingestion hygiene** (hidden model instructions, unattributed UGC links) |
+| **Structured data & metadata** | 0.15 | 25 | JSON-LD validity & entity typing, Organization / LocalBusiness / Article / Product / FAQ / Breadcrumb / Video markup, Google rich-result eligibility, page-level `about`/`mentions`, `sameAs` grounding, Open Graph, Twitter Card |
 | **Technical SEO** | 0.15 | 29 | canonical hygiene, sitemap discovery & validity, redirects (www/apex, trailing slash, chains), soft/custom 404, URL structure, hreflang, JS-independent crawlable navigation, internal link-equity distribution and leaks, outbound link health, IndexNow |
 | **On-page & content** | 0.12 | 14 | title & meta description quality and uniqueness, topical focus, keyword cannibalization, heading outline, anchor-to-target profile, charset, favicon, readability, figure captions |
 | **Performance & Core Web Vitals** | 0.10 | 21 | always-on static perf heuristics (HTML weight, render-blocking JS/CSS, image dimensions, compression, caching), negotiated HTTP protocol and CDN edge-cache fingerprint, plus opt-in field/lab Core Web Vitals |
-| **Accessibility** | 0.07 | 9 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
+| **Accessibility** | 0.07 | 11 | `html lang`, image alt coverage & quality, landmarks, form labels, link names, viewport & zoom, iframe titles |
 | **Security & trust** | 0.07 | 11 | HTTPS end-to-end, HTTP→HTTPS 301, negotiated TLS version, mixed content, HSTS, `X-Content-Type-Options`, CSP, clickjacking, referrer & permissions policy, `/.well-known/security.txt` (RFC 9116) |
 
 Every check is documented individually — what it verifies, why it matters, how to fix it — in the **[check guide](docs/guide.md)** ([version française](docs/guide.fr.md)).
 
 ### Measured, or a bar we chose
 
-Every check declares what its verdict rests on, and the reports say which. **110 are *measured*** — they grade against something outside this project, so two people reading the same response agree. **38 are *heuristic*** — a word count, a lexicon, a ratio, a notion of "reads like a direct answer". Reasonable people can disagree with those, and the verified research says their effectiveness varies by site, so the HTML and Markdown reports badge them and the JSON carries `evidence` on every result.
+Every check declares what its verdict rests on, and the reports say which. **111 are *measured*** — they grade against something outside this project, so two people reading the same response agree. **41 are *heuristic*** — a word count, a lexicon, a ratio, a notion of "reads like a direct answer". Reasonable people can disagree with those, and the verified research says their effectiveness varies by site, so the HTML and Markdown reports badge them and the JSON carries `evidence` on every result.
 
 The two axes are independent: `security-txt` only ever warns and is measured; `content-lead-answer` is a judgement call whatever it reports. An auditor that blurs the distinction is asking you to trust its taste as if it were a specification.
 
@@ -150,6 +152,10 @@ npx findable-audit https://your-site.com --report audit.md --report audit.html
 
 Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit), `.svg` (score badge), anything else Markdown — or force it with `--format`, and use `--report -` to stream the report to stdout. `--no-report` writes nothing.
 
+The HTML report includes the sampled scope, answer evidence and conservative internal-link suggestions for human review. `--answers` exports answer evidence as Markdown or JSON: source page, evidence kind and a short excerpt. These are observations of the sampled HTML, not measured search demand or predicted AI citations.
+
+With `--local-context` and `--local-plan`, up to 50 supplied priority questions (500 characters each) are compared lexically with the sampled content. An explicit question heading followed by answer text is marked found; partial matches need review; missing means absent from this sample. This does not verify whether an answer is correct. The plan preserves the technical score.
+
 **Exit codes:** `0` = score ≥ `--min-score`, `1` = below, `2` = unreachable or error.
 
 ## Flags
@@ -162,6 +168,7 @@ Format is chosen by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning)
 | `--compare <url2,url3>` | Side-by-side scorecard against competitors, overall and per family. |
 | `--history <f.json>` | Append this run (date + overall and per-family scores, never full results) to a small committable JSON series; with 2+ runs the HTML report opens with sparklines — the score's direction over time. |
 | `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page answers each one *and stands on its own* when a model is handed it in isolation. |
+| `--local-context <file.json>` + `--local-plan <file>` | A locally supplied business context crossed with the audit into a local-readiness plan. It never signs in to or fetches a Google Business Profile, Search Console, Semrush, or competitor account; profile facts stay marked for human verification. |
 | `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth together. |
 | `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs. |
 | `--emit-probes <file.json>` | Suggested **vigie-seo AI probes** — one question per family scoring below 80, built from the site's own words; the `aiProbes` array is paste-ready for `vigie.config.json`. Review before use. |
@@ -327,7 +334,7 @@ Almost every individual check here exists somewhere else. What no free, OSS, sel
 - **Live answer/citation monitoring** (share of voice, brand mentions) — deliberately out of scope. Pair findable-audit (input side) with a monitor (output side) if you need it.
 - **Confirming real bot traffic from server logs** (Screaming Frog LFA, Profound) — we *predict* access from code and config; we do not confirm a visit happened.
 - **CWV in a local real browser** (sitespeed.io, SEOmator) — we depend on the PSI API, whose keyless endpoint is aggressively rate-limited.
-- **Raw rule count** — SEOmator advertises 251 rules to our 149 checks.
+- **Raw rule count** — SEOmator advertises 251 rules to our 152 checks.
 - **One-shot auto-remediation** — geo-optimizer's `geo fix --apply` rewrites files in place; our `--emit` writes generic starter files for you to review and merge.
 - **Ecosystem & adoption** — geo-optimizer and the SaaS vendors have far more traction than we do today.
 

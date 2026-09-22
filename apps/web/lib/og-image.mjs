@@ -5,7 +5,7 @@
 // Everything is computed once at module init from pure math + node:zlib —
 // no binary committed to the repo, no image library, fully deterministic.
 // Visual language mirrors the inline SVG logomark in server.mjs: the
-// "Aube verte" gradient (#3bbf6b → #1a7f37 → #0f766e) + white magnifier.
+// PB OpenTech's deep Aube gradient + white magnifier.
 
 import zlib from 'node:zlib';
 
@@ -60,17 +60,14 @@ export function encodePng(width, height, rgb) {
 
 // --- Tiny raster canvas ----------------------------------------------------
 
-const GRAD = [[0x3b, 0xbf, 0x6b], [0x1a, 0x7f, 0x37], [0x0f, 0x76, 0x6e]]; // brand stops at 0 / .55 / 1
+const GRAD = [[0xb2, 0x3a, 0x72], [0x5c, 0x34, 0xa8], [0x26, 0x53, 0xc4], [0x17, 0x70, 0x8a]];
 const WHITE = [255, 255, 255];
 
 function gradientAt(t) {
-  const [a, b, c] = GRAD;
-  if (t <= 0.55) {
-    const k = t / 0.55;
-    return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-  }
-  const k = (t - 0.55) / 0.45;
-  return [b[0] + (c[0] - b[0]) * k, b[1] + (c[1] - b[1]) * k, b[2] + (c[2] - b[2]) * k];
+  const stops = [0, 0.35, 0.68, 1];
+  const i = t <= stops[1] ? 0 : t <= stops[2] ? 1 : 2;
+  const k = Math.max(0, Math.min(1, (t - stops[i]) / (stops[i + 1] - stops[i])));
+  return GRAD[i].map((value, channel) => value + (GRAD[i + 1][channel] - value) * k);
 }
 
 class Canvas {

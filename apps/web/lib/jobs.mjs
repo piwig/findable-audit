@@ -2,7 +2,7 @@
 //
 // Single-process, behind nginx: state lives in memory and resets on restart.
 // Bounded two ways so it cannot grow without limit under abuse:
-//   - TTL: a job older than ttlMs is treated as absent and pruned.
+//   - TTL: running work expires quickly; finished reports get ttlMs to be read.
 //   - maxJobs: on overflow the oldest (Map insertion order) job is evicted.
 //
 // Job shape (contract): { id, url, lang, kind, urls, ipHash, maxPages, reports,
@@ -21,7 +21,8 @@
 import { randomUUID } from 'node:crypto';
 
 export function createJobStore(opts = {}) {
-  const ttlMs = opts.ttlMs ?? 180_000;
+  const ttlMs = opts.ttlMs ?? 30 * 60_000;
+  const runningTtlMs = opts.runningTtlMs ?? opts.ttlMs ?? 180_000;
   const maxJobs = opts.maxJobs ?? 500;
   /** @type {Map<string, any>} */
   const jobs = new Map();
@@ -42,6 +43,7 @@ export function createJobStore(opts = {}) {
       html: null,
       error: null,
       createdAt: Date.now(),
+      completedAt: null,
     };
     jobs.set(job.id, job);
     prune();
@@ -51,16 +53,22 @@ export function createJobStore(opts = {}) {
   function get(id, now = Date.now()) {
     const job = jobs.get(id);
     if (!job) return undefined;
-    if (now - job.createdAt >= ttlMs) { jobs.delete(id); return undefined; }
+    if (expired(job, now)) { jobs.delete(id); return undefined; }
     return job;
   }
 
   function setProgress(id, progress) { const j = jobs.get(id); if (j) j.progress = progress; }
-  function finish(id, { report, html, reports }) { const j = jobs.get(id); if (j) { j.status = 'done'; j.report = report; j.html = html; if (reports !== undefined) j.reports = reports; } }
-  function fail(id, code, message) { const j = jobs.get(id); if (j) { j.status = 'error'; j.error = { code, message }; } }
+  function finish(id, { report, html, reports }) { const j = jobs.get(id); if (j) { j.status = 'done'; j.completedAt = Date.now(); j.report = report; j.html = html; if (reports !== undefined) j.reports = reports; } }
+  function fail(id, code, message) { const j = jobs.get(id); if (j) { j.status = 'error'; j.completedAt = Date.now(); j.error = { code, message }; } }
+
+  function expired(job, now) {
+    return job.completedAt === null
+      ? now - job.createdAt >= runningTtlMs
+      : now - job.completedAt >= ttlMs;
+  }
 
   function prune(now = Date.now()) {
-    for (const [id, j] of jobs) if (now - j.createdAt >= ttlMs) jobs.delete(id);
+    for (const [id, j] of jobs) if (expired(j, now)) jobs.delete(id);
     while (jobs.size > maxJobs) {
       const oldest = jobs.keys().next().value;
       if (oldest === undefined) break;

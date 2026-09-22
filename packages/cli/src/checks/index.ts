@@ -54,7 +54,7 @@ import {
 } from './performance-cwv.js';
 import { httpProtocol, tlsVersion, cdnEdgeCache } from './transport.js';
 import { entityGraphConnectivity } from './entity-graph.js';
-import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary } from './geo-advanced.js';
+import { freshnessCoherence, hedgingRate, answerUnits, chunkBoundary, tableCaption, sourcesSection, ambiguousDates } from './geo-advanced.js';
 import { chunkRetrievalSim, injectionHygiene } from './geo-retrieval.js';
 import { agentUsability } from './agentic.js';
 import { agentStandardsSignals } from './agent-standards.js';
@@ -72,7 +72,7 @@ export function buildChecks(opts: { indexnowKey?: string; agentStandards?: boole
     llmsTxt, llmsTxtLint, llmsFullTxt, contentWithoutJs, csrContentParity, contentDepth, contentLeadAnswer, answerHeadings,
     extractableStructure, contentFreshness, contentAuthorEeat, outboundCitations, contentUniqueness,
     aboutContact, wellKnownAiJson, contentFeed, imagesAlt,
-    freshnessCoherence, hedgingRate, answerUnits, chunkBoundary,
+    freshnessCoherence, hedgingRate, answerUnits, chunkBoundary, tableCaption, sourcesSection, ambiguousDates,
     chunkRetrievalSim, injectionHygiene, agentUsability,
     jsonLd, jsonLdEntity, schemaCoverage, sitemapCheck, indexnowCheck(opts.indexnowKey),
     titleDescription, canonical, openGraph, twitterCard, httpsCheck, viewport,

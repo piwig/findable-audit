@@ -19,7 +19,7 @@ describe('runAudit', () => {
     const srv = await serveFixture(path.join(fixtures, 'llm-good'));
     closers.push(srv.close);
     const report = await runAudit(srv.url, buildChecks());
-    expect(report.results).toHaveLength(148);
+    expect(report.results).toHaveLength(151);
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThanOrEqual(100);
     const skipped = report.results.filter((r) => r.status === 'skip');
@@ -44,7 +44,7 @@ describe('runAudit', () => {
     // consistent-help skips too: llm-good only samples the homepage (< 2 pages to compare).
     // social-proof skips: no NAP-relevant LocalBusiness subtype is declared on this fixture.
     expect(skipped.map((r) => r.id).sort()).toEqual([
-      'alt-descriptive', 'anchor-target-profile', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links',
+      'alt-descriptive', 'ambiguous-dates', 'anchor-target-profile', 'answer-headings', 'answer-units', 'asset-caching', 'broken-internal-links',
       'broken-subresources', 'canonical-resolves', 'cdn-edge-cache', 'chunk-boundary', 'chunk-retrieval-sim', 'consistent-help', 'content-author-eeat',
       'content-freshness', 'content-uniqueness', 'cwv-assessment', 'cwv-cls', 'cwv-inp', 'cwv-lcp',
       'cwv-ttfb', 'extractable-structure', 'figure-caption', 'form-labels', 'freshness-coherence', 'hedging-rate',
@@ -55,7 +55,7 @@ describe('runAudit', () => {
       'redirect-hygiene', 'rich-result-eligibility', 'robots-wellformed', 'sameas-verified', 'schema-coverage', 'sd-article',
       'sd-breadcrumb', 'sd-faq', 'sd-graph-integrity', 'sd-localbusiness', 'sd-organization', 'sd-page-entity',
       'sd-product', 'sd-speakable', 'sd-special-types', 'sd-video', 'sd-website-searchaction', 'sitemap-index-limits', 'sitemap-lastmod',
-      'sitemap-orphans', 'sitemap-urls-valid', 'social-proof', 'tls-version', 'topical-focus', 'trailing-slash', 'unique-titles',
+      'sitemap-orphans', 'sitemap-urls-valid', 'social-proof', 'sources-section', 'table-caption', 'tls-version', 'topical-focus', 'trailing-slash', 'unique-titles',
       'www-consolidation',
     ]);
   });

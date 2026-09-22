@@ -341,20 +341,22 @@ describe('cloudflare-ai-defaults', () => {
     const bare: typeof c = { ...c, fetch: async () => null };
     expect((await cloudflareAiDefaults.run(bare)).status).toBe('skip');
   });
-  it('warns with the future-dated message before 2026-09-15 behind cf-ray', async () => {
+  it('reports observed Cloudflare presence with account policies unknown', async () => {
     cloudflareClock.now = () => BEFORE;
     const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { 'cf-ray': '8f1a2b3c4d5e6f70-CDG' } } });
     const r = await cloudflareAiDefaults.run(c);
     expect(r.status).toBe('warn');
-    expect(r.message).toContain('become blocked by default on 2026-09-15');
+    expect(r.message).toContain('account policies are unknown');
+    expect(r.message).not.toContain('blocked by default');
     expect(r.fix).toContain('AI Crawl Control');
   });
-  it('warns with the past-dated message after the switch, detected via server header', async () => {
+  it('does not infer account settings from the date or server header', async () => {
     cloudflareClock.now = () => AFTER;
     const c = stubCtx({ '/': { contentType: 'text/html', body: '<html></html>', headers: { server: 'Cloudflare' } } });
     const r = await cloudflareAiDefaults.run(c);
     expect(r.status).toBe('warn');
-    expect(r.message).toContain('blocked by default since 2026-09-15');
+    expect(r.message).toContain('account policies are unknown');
+    expect(r.message + r.fix).not.toMatch(/blocked by default|allow.*GPTBot/);
   });
   it('flags Content Signals in robots.txt behind Cloudflare as non-binding (A33)', async () => {
     cloudflareClock.now = () => BEFORE;

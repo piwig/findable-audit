@@ -1,20 +1,20 @@
 # findable-audit check guide
 
-findable-audit scores a site out of 100 across **149 checks in 8 families**.
+The findable-audit catalogue contains **152 checks in 8 families**. The default run includes **151**; the experimental agent-standards diagnostic is opt-in and unscored.
 
-**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 149 checks, **111 are measured and 38 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
+**Measured or heuristic.** Every check declares what its verdict rests on. A **measured** check grades against something outside this project — an RFC, a W3C/WHATWG spec, WCAG, schema.org, or a threshold Google publishes: two people reading the same response agree. A **heuristic** check grades against a bar *we* chose — a word count, a lexicon, a ratio, a notion of "reads like a direct answer": reasonable people can disagree, and the verified research says effectiveness varies by site. Reports badge the heuristic ones so you can weigh them accordingly, and the JSON carries `evidence` on every result. Of the 152 checks, **111 are measured and 41 heuristic**. This guide documents every check: what it verifies, why it matters for search and AI answer engines, and how to fix a failure.
 
 **Families & weights** (the family subscore is combined into the overall score using these weights):
 
 | Family | Weight | Checks |
 |---|---|---:|
-| AI crawler access | 0.16 | 9 |
-| Answer-engine content | 0.18 | 21 |
-| Structured data & metadata | 0.15 | 23 |
+| AI crawler access | 0.16 | 15 |
+| Answer-engine content | 0.18 | 26 |
+| Structured data & metadata | 0.15 | 25 |
 | Technical SEO | 0.15 | 29 |
 | On-page & content | 0.12 | 14 |
 | Performance & Core Web Vitals | 0.10 | 21 |
-| Accessibility | 0.07 | 9 |
+| Accessibility | 0.07 | 11 |
 | Security & trust | 0.07 | 11 |
 
 **Grade:** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
@@ -75,9 +75,9 @@ The gate: if crawlers are blocked or the page is `noindex`, nothing else matters
 **Fix:** Review any CDN/WAF/bot-management rule that blocks PerplexityBot or OAI-SearchBot — an edge block hides the site from live AI answers even when robots.txt allows them.
 
 ### `cloudflare-ai-defaults` (3 pts)
-**Verifies:** Whether the site is served through Cloudflare, from the response headers of the homepage (`cf-ray`, or `server: cloudflare`). If it is, the check emits a dated warning: Cloudflare blocks AI crawlers **by default from 2026-09-15**, so a proxied site that never opened AI Crawl Control can drop out of AI answers on that date with no config change of its own. Not behind Cloudflare → pass; homepage unreachable → skip.
-**Why:** The default policy is an account-side switch this crawl cannot read, so the only honest verdict behind Cloudflare is a dated reminder — before the switch date as preparation, after it as urgency. The empirical probes (`ai-serving-parity`, `ai-crawler-reachability`) tell you what happens today; this check tells you what changes on the announced date.
-**Fix:** In the Cloudflare dashboard, open AI Crawl Control and explicitly allow the AI crawlers you want (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) instead of relying on the default policy, then re-run the audit.
+**Verifies:** Cloudflare presence from homepage response headers. Provider presence is measured; account settings are unknown. Behind Cloudflare → advisory warning; absent → pass; unreachable → skip.
+**Why:** Search, Agent and Training policies depend on the domain and page settings. Headers alone cannot prove a crawler is blocked. See [Cloudflare bot policies](https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/).
+**Fix:** Review AI Crawl Control and Configure AI bot policies, keeping Search, Agent and Training choices separate. Use the serving-parity/reachability probes as observations, not proof of all account settings.
 
 ### `pay-per-crawl` (2 pts)
 **Verifies:** The homepage status and headers for pay-per-crawl signals: an HTTP 402 Payment Required response, or `crawler-price` / `crawler-exact-price` / `crawler-max-price` / `crawler-charged` pricing headers (Cloudflare Pay Per Crawl and similar schemes). A 402 fails; pricing headers on served content warn; no signals pass. Homepage unreachable → skip.
@@ -209,6 +209,21 @@ The GEO heart: is the answer actually extractable, dated, authored, and quotable
 **Verifies:** On substantial pages (≥150 words), flags DOM structures that fall apart when the page is split into retrieval chunks: long tables (>10 rows) without header cells, FAQ answers detached from their question by decorative markup, and 3+-item lists orphaned from any title. Warns (never fails). Nested lists are exempt.
 **Why:** Retrieval pipelines chunk a page and lose the context outside each chunk. A headerless table row, an answer far from its question, or an untitled list reaches the model stripped of the meaning that sat around it.
 **Fix:** Give long tables `<thead>`/`<th>` headers, keep FAQ answers directly under their question, and title every list.
+
+### `table-caption` (2 pts)
+**Verifies:** *(skip if no sampled table has ≥3 rows)* Looks for tables in the main content that carry no `<caption>`, `aria-label` or heading right before them. Advisory: warn max.
+**Why:** A retrieval chunk that keeps a table row but not its title cannot say what the numbers compare, so the passage is never cited.
+**Fix:** Give every table a `<caption>` (or `aria-label`) naming what it compares.
+
+### `sources-section` (2 pts)
+**Verifies:** *(skip if no pillar page ≥300 words)* Checks each pillar page for a « Sources » / « References » heading followed by at least one link to another site. Advisory: warn max.
+**Why:** Answer engines favour passages whose claims can be traced to a named source; a page that cites nothing is quoted with less confidence, or not at all.
+**Fix:** End each pillar page with a « Sources » heading followed by the outbound links that back its claims (claim → evidence → source).
+
+### `ambiguous-dates` (2 pts)
+**Verifies:** *(skip if no substantial page ≥150 words)* Flags numeric-only dates (dd/mm/yyyy, mm-dd-yy…) on pages where no month is ever spelled out. Advisory: warn max.
+**Why:** 02/03/2026 is 2 March in Paris and 3 February in Boston: a model that guesses wrong quotes a wrong date under your name.
+**Fix:** Write dates with the month in letters (« 28 février 2026 ») and add `<time datetime="2026-02-28">`.
 
 ### `chunk-retrieval-sim` (4 pts)
 **Verifies:** *(skip if no pillar page ≥300 words)* Cuts each pillar page into ~512-token windows at block boundaries — the way a retrieval pipeline would — and measures how many of those windows still stand on their own. A window survives when it carries a topic anchor (a number or a named entity, counting the heading trail a retriever prepends) **and** opens without pointing back at the previous window (*it, this, cela, celui-ci…*) or at a discourse connector. Passes at ≥70% survivors; warns below (never fails).
@@ -718,9 +733,9 @@ Semantics that double as extraction signals.
 **Fix:** Add a `title` to each iframe.
 
 ### `rgaa-eaa-deadline` (2 pts)
-**Verifies:** Basic accessibility signals already measured elsewhere in this family (declared `<html lang>`, semantic landmarks, non-empty image `alt`) are free of deficiency on the sampled pages (warn if any page is missing one).
-**Why:** Since 2025-06-28 the European Accessibility Act has made RGAA v4.1 mandatory in France for private companies with more than 10 employees, with fines up to EUR 50,000 per non-compliant service, renewable every 6 months. A low accessibility score is a live legal exposure for those companies, not just an SEO/UX nicety.
-**Fix:** Fix the accessibility checks flagged fail/warn in this family (`html-lang`, `landmarks`, `alt-descriptive`…).
+**Verifies:** Declared HTML language, semantic landmarks and presence of image alt attributes on sampled pages. This is a technical warning, not a legal or compliance verdict.
+**Why:** Accessibility obligations concern specified products and services, with exemptions; they cannot be determined from these HTML checks or an employee-count assumption. See [Service Public guidance](https://entreprendre.service-public.gouv.fr/actualites/A18669).
+**Fix:** Correct the observed barriers, arrange a broader accessibility review, and assess applicable obligations separately.
 
 ### `consistent-help` (2 pts)
 **Verifies:** *(skip if fewer than 2 sampled pages)* A help mechanism (`mailto:`/`tel:` link, or a contact/support/FAQ link) is present on all sampled pages or on none (warn if present on some and missing on others).

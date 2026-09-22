@@ -1,20 +1,20 @@
 # Guide des checks findable-audit
 
-findable-audit note un site sur 100 à travers **149 checks répartis en 8 familles**.
+Le catalogue de findable-audit contient **152 checks répartis en 8 familles**. Une exécution par défaut en comprend **151** ; le diagnostic expérimental des standards agents est facultatif et non noté.
 
-**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 149 checks, **111 sont mesurés et 38 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
+**Mesuré ou heuristique.** Chaque check déclare ce sur quoi repose son verdict. Un check **mesuré** évalue par rapport à quelque chose d'extérieur au projet — une RFC, une spec W3C/WHATWG, WCAG, schema.org, ou un seuil publié par Google : deux personnes lisant la même réponse sont d'accord. Un check **heuristique** évalue par rapport à une barre que *nous* avons choisie — un nombre de mots, un lexique, un ratio, l'idée qu'un texte « répond directement » : on peut raisonnablement en discuter, et la recherche vérifiée dit que l'effet varie selon les sites. Les rapports marquent les heuristiques pour que vous les pondériez en conséquence, et le JSON porte `evidence` sur chaque résultat. Sur les 152 checks, **111 sont mesurés et 41 heuristiques**. Ce guide documente chaque check : ce qu'il vérifie, pourquoi c'est important pour les moteurs de recherche et de réponse IA, et comment corriger un échec.
 
 **Familles et poids** (le sous-score d'une famille est combiné au score global selon ces poids) :
 
 | Famille | Poids | Checks |
 |---|---|---:|
-| Accès crawlers IA | 0,16 | 9 |
-| Contenu pour moteurs de réponse | 0,18 | 21 |
-| Données structurées et métadonnées | 0,15 | 23 |
+| Accès crawlers IA | 0,16 | 15 |
+| Contenu pour moteurs de réponse | 0,18 | 26 |
+| Données structurées et métadonnées | 0,15 | 25 |
 | SEO technique | 0,15 | 29 |
 | On-page et contenu | 0,12 | 14 |
 | Performance et Core Web Vitals | 0,10 | 21 |
-| Accessibilité | 0,07 | 9 |
+| Accessibilité | 0,07 | 11 |
 | Sécurité et confiance | 0,07 | 11 |
 
 **Note (grade) :** `A` ≥ 90 · `B` ≥ 80 · `C` ≥ 70 · `D` ≥ 60 · `F` < 60.
@@ -83,9 +83,9 @@ Nuance utile (d'après la doc Perplexity) : PerplexityBot est le crawler *d'inde
 **Corriger :** Passez en revue toute règle de CDN/WAF/gestion de robots qui bloque PerplexityBot ou OAI-SearchBot — un blocage en périphérie masque le site dans les réponses des IA en direct même quand le robots.txt les autorise.
 
 ### `cloudflare-ai-defaults` (3 pts)
-**Vérifie :** Si le site est servi via Cloudflare, d'après les en-têtes de réponse de la page d'accueil (`cf-ray`, ou `server: cloudflare`). Si oui, le check émet un avertissement daté : Cloudflare bloque les crawlers IA **par défaut à partir du 15/09/2026** ; un site proxifié qui n'a jamais ouvert AI Crawl Control peut donc disparaître des réponses IA à cette date sans le moindre changement de sa configuration. Hors Cloudflare → réussite ; accueil injoignable → ignoré.
-**Pourquoi :** La politique par défaut est un réglage côté compte que ce crawl ne peut pas lire ; le seul verdict honnête derrière Cloudflare est donc un rappel daté — avant l'échéance en préparation, après en urgence. Les sondes empiriques (`ai-serving-parity`, `ai-crawler-reachability`) disent ce qui se passe aujourd'hui ; ce check dit ce qui change à la date annoncée.
-**Corriger :** Dans le tableau de bord Cloudflare, ouvrez AI Crawl Control et autorisez explicitement les crawlers IA voulus (GPTBot, ClaudeBot, PerplexityBot, OAI-SearchBot…) au lieu de compter sur la politique par défaut, puis relancez l'audit.
+**Vérifie :** La présence de Cloudflare dans les en-têtes de l’accueil. Le fournisseur est observé ; les réglages du compte sont inconnus. Cloudflare présent → avertissement de vérification ; absent → réussite ; accueil injoignable → ignoré.
+**Pourquoi :** Les politiques Search, Agent et Training dépendent du domaine et des pages. Les seuls en-têtes ne prouvent aucun blocage. Voir la [documentation Cloudflare](https://developers.cloudflare.com/bots/additional-configurations/block-ai-bots/).
+**Corriger :** Vérifiez AI Crawl Control et Configure AI bot policies, en distinguant Search, Agent et Training. Les sondes de parité et d’accès sont des observations, pas une lecture complète des réglages du compte.
 
 ### `pay-per-crawl` (2 pts)
 **Vérifie :** Le statut et les en-têtes de la page d'accueil à la recherche de signaux pay-per-crawl : une réponse HTTP 402 Payment Required, ou des en-têtes de tarification `crawler-price` / `crawler-exact-price` / `crawler-max-price` / `crawler-charged` (Cloudflare Pay Per Crawl et dispositifs similaires). Un 402 fait échouer ; des en-têtes de tarification sur un contenu servi déclenchent un avertissement ; aucun signal → réussite. Accueil injoignable → ignoré.
@@ -217,6 +217,21 @@ Le cœur du GEO : la réponse est-elle réellement extractible, datée, signée 
 **Vérifie :** Sur les pages substantielles (≥150 mots), signale les structures DOM qui se disloquent lorsque la page est découpée en fragments de retrieval : tableaux longs (>10 lignes) sans cellules d'en-tête, réponses de FAQ détachées de leur question par du balisage décoratif, et listes de 3+ éléments orphelines de tout titre. Avertit (n'échoue jamais). Les listes imbriquées sont exemptées.
 **Pourquoi :** Les pipelines de retrieval découpent la page et perdent le contexte situé en dehors de chaque fragment. Une ligne de tableau sans en-tête, une réponse éloignée de sa question ou une liste sans titre parvient au modèle dépouillée du sens qui l'entourait.
 **Corriger :** Donnez aux tableaux longs des en-têtes `<thead>`/`<th>`, gardez les réponses de FAQ directement sous leur question, et titrez chaque liste.
+
+### `table-caption` (2 pts)
+**Vérifie :** *(ignoré si aucun tableau échantillonné n'a ≥3 lignes)* Cherche les tableaux du contenu principal sans `<caption>`, `aria-label` ni titre juste avant. Indicatif : avertissement au maximum.
+**Pourquoi :** Un fragment de retrieval qui garde une ligne de tableau mais pas son titre ne sait plus ce que comparent les chiffres : le passage n'est jamais cité.
+**Corriger :** Donnez à chaque tableau un `<caption>` (ou `aria-label`) qui nomme ce qu'il compare.
+
+### `sources-section` (2 pts)
+**Vérifie :** *(ignoré s'il n'y a aucune page pilier ≥300 mots)* Vérifie sur chaque page pilier la présence d'un titre « Sources » / « Références » suivi d'au moins un lien vers un autre site. Indicatif : avertissement au maximum.
+**Pourquoi :** Les moteurs de réponse privilégient les passages dont les affirmations remontent à une source nommée ; une page qui ne cite rien est reprise avec moins de confiance, ou pas du tout.
+**Corriger :** Terminez chaque page pilier par un titre « Sources » suivi des liens sortants qui étayent ses affirmations (affirmation → preuve → source).
+
+### `ambiguous-dates` (2 pts)
+**Vérifie :** *(ignoré s'il n'y a aucune page substantielle ≥150 mots)* Signale les dates uniquement numériques (jj/mm/aaaa, mm-jj-aa…) sur les pages où aucun mois n'est écrit en lettres. Indicatif : avertissement au maximum.
+**Pourquoi :** 02/03/2026 est le 2 mars à Paris et le 3 février à Boston : un modèle qui devine mal cite une date fausse sous votre nom.
+**Corriger :** Écrivez les dates avec le mois en lettres (« 28 février 2026 ») et ajoutez `<time datetime="2026-02-28">`.
 
 ### `chunk-retrieval-sim` (4 pts)
 **Vérifie :** *(ignoré s'il n'y a aucune page pilier ≥300 mots)* Découpe chaque page pilier en fenêtres d'environ 512 tokens aux frontières de blocs — comme le ferait un pipeline de retrieval — et mesure combien de ces fenêtres tiennent encore seules. Une fenêtre survit si elle porte un ancrage thématique (un nombre ou une entité nommée, en comptant le fil d'intertitres qu'un moteur préfixe) **et** si elle commence sans renvoyer à la fenêtre précédente (*cela, celui-ci, it, this…*) ni à un connecteur de discours. Passe à ≥70 % de survivantes ; avertit en dessous (n'échoue jamais).
@@ -726,9 +741,9 @@ Une sémantique qui sert aussi de signal d'extraction.
 **Corriger :** Ajoutez un `title` à chaque iframe.
 
 ### `rgaa-eaa-deadline` (2 pts)
-**Vérifie :** Les signaux d'accessibilité de base déjà mesurés ailleurs dans cette famille (`<html lang>` déclaré, repères sémantiques, `alt` non vide sur les images) sont sans défaillance sur les pages échantillonnées (avertissement si une page en manque un).
-**Pourquoi :** Depuis le 28/06/2025, l'European Accessibility Act rend le RGAA v4.1 obligatoire en France pour les entreprises privées de plus de 10 salariés, avec des amendes jusqu'à 50 000 EUR par service non conforme, renouvelables tous les 6 mois. Pour ces entreprises, un score d'accessibilité faible est une exposition légale bien réelle, pas seulement un confort SEO/UX.
-**Corriger :** Corrigez les checks d'accessibilité en échec/avertissement de cette famille (`html-lang`, `landmarks`, `alt-descriptive`…).
+**Vérifie :** La langue HTML déclarée, les repères sémantiques et la présence des attributs alt sur les images échantillonnées. Avertissement technique, sans conclusion juridique ou de conformité.
+**Pourquoi :** Les obligations concernent certains produits et services et comportent des exemptions ; elles ne se déduisent ni de ces contrôles HTML ni du seul effectif salarié. Voir [Service Public](https://entreprendre.service-public.gouv.fr/actualites/A18669).
+**Corriger :** Corrigez les obstacles observés, prévoyez une revue d’accessibilité plus large et évaluez séparément les obligations applicables.
 
 ### `consistent-help` (2 pts)
 **Vérifie :** *(ignoré si moins de 2 pages échantillonnées)* Un moyen d'aide (lien `mailto:`/`tel:`, ou lien contact/support/FAQ) est présent sur toutes les pages échantillonnées ou sur aucune (avertissement s'il est présent sur certaines et absent sur d'autres).

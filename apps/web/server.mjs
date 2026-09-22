@@ -39,6 +39,7 @@ import { t } from './lib/i18n.mjs';
 import { OG_IMAGE_PNG, TOUCH_ICON_PNG } from './lib/og-image.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
+import { baselineInput } from './lib/baseline-input.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -99,7 +100,7 @@ const rateLimiter = createRateLimiter({ limit: RATE_LIMIT, windowMs: RATE_WINDOW
 
 let inFlight = 0; // current number of running audits.
 const cache = createResultCache({ ttlMs: CACHE_TTL_MS, maxEntries: CACHE_MAX_ENTRIES });
-const jobs = createJobStore({ ttlMs: 180_000, maxJobs: 500 });
+const jobs = createJobStore({ ttlMs: 30 * 60_000, runningTtlMs: 180_000, maxJobs: 500 });
 
 // Usage-stats store (JSONL, best-effort). DATA_DIR defaults to apps/web/data/,
 // created lazily on the first append. The hashing salt is resolved once, lazily.
@@ -128,54 +129,52 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
-const PAGE_STYLE = `
+const FONT_STYLE = `
+  @font-face { font-family: Geist; font-style: normal; font-weight: 100 900; font-display: swap; src: url('/fonts/geist-latin.woff2') format('woff2'); }
+  @font-face { font-family: Bricolage; font-style: normal; font-weight: 200 800; font-display: swap; src: url('/fonts/bricolage-grotesque-latin.woff2') format('woff2'); }
+`;
+const FONT_FILES = new Map(['geist-latin.woff2', 'bricolage-grotesque-latin.woff2'].map((name) =>
+  [`/fonts/${name}`, readFileSync(new URL(`./public/fonts/${name}`, import.meta.url))]));
+
+const PAGE_STYLE = `${FONT_STYLE}
   :root {
-    color-scheme: light dark;
-    --bg: #fff; --ink: #1a1a1a; --title: #1c2230; --muted: #555; --faint: #777;
-    --soft: #7a8290; --line: #e5e5e5; --hair: #eef1f3; --field: #ccc;
-    --panel: #fff; --panel-2: #f8faf9; --track: #eee;
+    color-scheme: light;
+    --bg: #fff; --ink: #2a2447; --title: #211c38; --muted: #5a5387; --faint: #6e6890;
+    --soft: #6e6890; --line: #e2e0ef; --hair: #ece9f5; --field: #9c97bf;
+    --panel: #fff; --panel-2: #f6f5fc; --track: #e2e0ef;
+    --brand: #2653c4; --brand-hover: #5c34a8;
     --good: #1a7f37; --good-hover: #166a2e; --bad: #b42318; --bad-bg: #fdf3f2;
-    --good-bg: #e7f4ec; --chip-bg: #f0f2f4;
-    --grad: linear-gradient(100deg,#3bbf6b,#1a7f37 55%,#0f766e);
-    --shadow: 0 1px 2px rgb(20 60 40 / .05), 0 10px 26px -14px rgb(20 60 40 / .16);
-  }
-  /* L7: a dark theme, same tokens, no second stylesheet and no JS toggle —
-     the OS preference is the switch. Status colours are lifted in luminosity
-     to keep 4.5:1 on the dark surface. */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14171a; --ink: #e9ecef; --title: #f2f5f7; --muted: #b3bcc4; --faint: #8d97a0;
-      --soft: #97a1ab; --line: #2b3138; --hair: #242a30; --field: #39414a;
-      --panel: #1a1e22; --panel-2: #1f2429; --track: #2b3138;
-      --good: #4fbf74; --good-hover: #6bd08c; --bad: #f3796f; --bad-bg: #38191a;
-      --good-bg: #16301f; --chip-bg: #242a30;
-      --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 26px -14px rgb(0 0 0 / .7);
-    }
+    --good-bg: #e7f4ec; --chip-bg: #f6f5fc;
+    --grad: linear-gradient(100deg,#e0569e,#7c4fd8 35%,#3d7bf0 68%,#2fb6d9);
+    --grad-deep: linear-gradient(100deg,#b23a72,#5c34a8 35%,#2653c4 68%,#17708a);
+    --shadow: 0 1px 2px rgb(58 46 120 / .05), 0 20px 48px -24px rgb(124 79 216 / .25);
   }
   * { box-sizing: border-box; }
-  body { font: 16px/1.6 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  body { font: 16px/1.6 Geist, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     color: var(--ink); background: var(--bg); margin: 0; padding: 3rem 1.5rem; }
   main { max-width: 640px; margin: 0 auto; }
   main.wide { max-width: 1060px; }
+  h1, h2, h3, .brand-name { font-family: Bricolage, Geist, system-ui, sans-serif; }
   h1 { font-size: 1.8rem; margin: 0 0 .35rem; }
   p.lead { color: var(--muted); margin: 0 0 2rem; }
   form { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 1rem; }
   input[type=url], input[type=text] { flex: 1 1 18rem; min-width: 0; font-size: 1rem;
     padding: .6rem .7rem; border: 1px solid var(--field); border-radius: 6px;
     color: var(--ink); background: var(--panel); }
-  input:focus { outline: 2px solid var(--good); outline-offset: 1px; border-color: var(--good); }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
+  input:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
   button { font-size: 1rem; font-weight: 600; padding: .6rem 1.2rem; border: 0; border-radius: 6px;
-    background: var(--good); color: #fff; cursor: pointer; }
-  button:hover { background: var(--good-hover); }
+    background: var(--grad-deep); color: #fff; cursor: pointer; }
+  button:hover { filter: brightness(1.08); }
   .hint { color: var(--faint); font-size: .85rem; margin: 0 0 2rem; }
   .err { border-left: 3px solid var(--bad); background: var(--bad-bg); padding: .75rem 1rem; border-radius: 0 6px 6px 0; }
   .err h1 { color: var(--bad); font-size: 1.2rem; }
-  a { color: var(--good); }
+  a { color: var(--brand); }
   footer { margin-top: 3rem; color: var(--faint); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
   .progress { height: 8px; background: var(--track); border-radius: 999px; overflow: hidden; margin: 0 0 1rem; }
-  .bar { height: 100%; width: 0; background: var(--good); transition: width .3s ease; }
+  .bar { height: 100%; width: 0; background: var(--grad-deep); transition: width .3s ease; }
   .lang-switch { font-size: .85rem; color: var(--faint); margin: 0 0 1.5rem; }
-  .lang-switch a { color: var(--good); text-decoration: none; }
+  .lang-switch a { color: var(--brand); text-decoration: none; }
   .lang-switch a:hover { text-decoration: underline; }
   .lang-switch [aria-current] { font-weight: 600; color: var(--ink); }
   .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 1.75rem; }
@@ -190,8 +189,8 @@ const PAGE_STYLE = `
   .ld-h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
   /* L4: the primary CTA now wears the brand green. It used to be near-black,
      which reads as a secondary — or disabled — button next to a green accent. */
-  .ld-cta { position: relative; overflow: hidden; background: var(--good); }
-  .ld-cta::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: var(--grad); }
+  .ld-cta { position: relative; overflow: hidden; background: var(--grad-deep); min-height: 48px; }
+  .ld-cta::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: var(--grad-deep); }
   .ld-cta:hover::before { opacity: 1; }
   .ld-cta > span { position: relative; }
   .ld-sec { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--hair); }
@@ -208,7 +207,7 @@ const PAGE_STYLE = `
   .modes { display: flex; gap: .3rem; margin: 0 0 .8rem; }
   .modes a { font-size: .85rem; font-weight: 700; text-decoration: none; color: var(--muted);
     padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); }
-  .modes a:hover { color: var(--ink); border-color: var(--good); }
+  .modes a:hover { color: var(--ink); border-color: var(--brand); }
   .pane-compare { display: none; }
   .hero-left:has(#compare:target) .pane-compare { display: block; }
   .hero-left:has(#compare:target) .pane-single { display: none; }
@@ -237,8 +236,8 @@ const PAGE_STYLE = `
   .ld-dev { list-style: none; padding: 0; margin: 0; display: grid; gap: .35rem; }
   .ld-dev li { font-size: .88rem; color: var(--muted); }
   .ld-dev a { font-weight: 600; }
-  .ld-proof { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--good);
-    background: var(--good-bg); padding: .6rem .85rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0 0; }
+  .ld-proof { font-size: .88rem; color: var(--muted); border-left: 3px solid var(--brand);
+    background: var(--panel-2); padding: .6rem .85rem; border-radius: 0 8px 8px 0; margin: 1.25rem 0 0; }
 
   /* --- the three axes (L6) --- */
   .ld-axes { list-style: none; margin: 0; padding: 0; display: grid;
@@ -249,7 +248,7 @@ const PAGE_STYLE = `
   .ld-axis span { color: var(--soft); font-size: .82rem; line-height: 1.35; }
   details.ld-fold { margin-top: 1rem; }
   details.ld-fold > summary { cursor: pointer; color: var(--muted); font-size: .88rem; font-weight: 600; width: fit-content; }
-  details.ld-fold > summary:hover { color: var(--good); }
+  details.ld-fold > summary:hover { color: var(--brand); }
   details.ld-fold[open] > summary { margin-bottom: .8rem; }
 
   /* --- the report preview: same shapes and tokens as the real report --- */
@@ -290,7 +289,7 @@ const PAGE_STYLE = `
   .ld-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
   @media (max-width: 560px) { .ld-steps { grid-template-columns: 1fr; } }
   .ld-step { display: flex; gap: .7rem; align-items: flex-start; font-size: .88rem; color: var(--muted); }
-  .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: var(--grad); }
+  .ld-step .n { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; color: #fff; font: 800 12px/1 system-ui; display: flex; align-items: center; justify-content: center; background: var(--grad-deep); }
   .ld-step b { color: var(--title); display: block; font-size: .92rem; }
   .ld-rule { height: 3px; border: 0; border-radius: 999px; margin: 2rem 0 0; background: var(--grad); }
   /* Mobile: tighter top padding, and a full-width stacked form (input + CTA). */
@@ -303,18 +302,31 @@ const PAGE_STYLE = `
     .ld-h1 { max-width: none; }
     .topbar { margin-bottom: 1.5rem; }
   }
-`;
+  .brand-signature { display: block; font: 500 .7rem/1.3 Geist, system-ui; color: var(--muted); letter-spacing: .01em; }
+  .brand-lockup { display: inline-block; }
+  .brand-lockup > .brand-signature { padding-left: 45px; }
+  .site-nav { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .85rem; }
+  .site-nav a { text-decoration: none; padding: .5rem 0; }
+  .ld-form label { display: block; font-size: .85rem; font-weight: 600; margin: .65rem 0 .25rem; }
+  .pv-source { padding: .8rem 1.1rem; margin: 0; font-size: .76rem; color: var(--muted); overflow-wrap: anywhere; background: var(--panel-2); }
+  .pv-score { width: 76px; height: 76px; }
+  .hero-right { padding-top: .25rem; }
+  .ld-h1 .g { background: var(--grad-deep); background-clip: text; -webkit-background-clip: text; }
+  .modes a { min-height: 44px; display: inline-flex; align-items: center; }
+  @supports not selector(:has(*)) { .pane-compare { display: block; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+`.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ');
 
 // findable-audit logomark: "Aube verte" gradient tile + white magnifier
 // (search / audit). Self-contained inline SVG — CSP-safe, no external asset.
 // One inline instance per page (the brand), so the gradient id never collides
 // with the /favicon.svg document (a separate resource).
-function logoMark(size = 26) {
+function logoMark(size = 26, id = 'faGrad') {
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`
-    + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
-    + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+    + `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">`
+    + '<stop offset="0" stop-color="#b23a72"/><stop offset=".35" stop-color="#5c34a8"/><stop offset=".68" stop-color="#2653c4"/><stop offset="1" stop-color="#17708a"/>'
     + '</linearGradient></defs>'
-    + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
+    + `<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#${id})"/>`
     + '<circle cx="13.5" cy="13.5" r="6.3" fill="none" stroke="#fff" stroke-width="2.5"/>'
     + '<line x1="18.3" y1="18.3" x2="24" y2="24" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'
     + '</svg>';
@@ -326,7 +338,7 @@ function logoMark(size = 26) {
 // stays crisp when the browser scales this document down to a 16px tab icon.
 const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="findable-audit">'
   + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
-  + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+  + '<stop offset="0" stop-color="#b23a72"/><stop offset=".35" stop-color="#5c34a8"/><stop offset=".68" stop-color="#2653c4"/><stop offset="1" stop-color="#17708a"/>'
   + '</linearGradient></defs>'
   + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
   + '<circle cx="13.5" cy="13.5" r="6.2" fill="none" stroke="#fff" stroke-width="3"/>'
@@ -334,9 +346,9 @@ const FAVICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"
   + '</svg>';
 
 // Brand header (logomark + wordmark), links to the language-scoped home.
-function brandHeader(lang) {
-  return `<a class="brand" href="/${encodeURIComponent(lang)}/" aria-label="findable-audit">`
-    + `${logoMark(26)}<span class="brand-name">findable<span class="g-dash">-</span>audit</span></a>`;
+function brandHeader(lang, slot = 'header') {
+  return `<span class="brand-lockup"><a class="brand" href="/${encodeURIComponent(lang)}/" aria-label="findable-audit">`
+    + `${logoMark(36, `faGrad-${slot}`)}<span class="brand-name">findable<span class="g-dash">-</span>audit</span></a><span class="brand-signature">${escapeHtml(t(lang).nav.by)}</span></span>`;
 }
 
 // --- Well-known discovery files (dogfooding our own GEO recommendations) ---
@@ -363,12 +375,12 @@ function robotsTxt() {
 // the corresponding copy changes — sitemap-lastmod wants real, distinct,
 // non-future values, never a synthetic build date).
 const SITE_PAGES = [
-  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-26T03:00:00+02:00' },
-  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-07-26T03:00:00+02:00' },
-  { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-26T03:00:00+02:00' },
-  { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-07-26T03:00:00+02:00' },
-  { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
-  { path: '/fr/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-07-24T15:30:00+02:00' },
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T08:30:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T08:30:00+02:00' },
+  { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
+  { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
+  { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-09-22T08:28:00+02:00' },
+  { path: '/fr/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-09-22T08:28:00+02:00' },
 ];
 
 // Same hand-maintained dates, reused as JSON-LD `dateModified` on every WebPage.
@@ -418,7 +430,7 @@ function llmsTxt() {
     '## Pages',
     `- [Run an audit (English)](${PUBLIC_ORIGIN}/en/): the audit form — paste a URL, get an A–F scorecard with a prioritized fix plan.`,
     `- [Lancer un audit (français)](${PUBLIC_ORIGIN}/fr/): le formulaire d’audit — collez une URL, obtenez une note A–F et un plan d’action.`,
-    `- [About the project](${PUBLIC_ORIGIN}/en/about/): what the 137 checks cover and how the 8 weighted families are scored.`,
+    `- [About the project](${PUBLIC_ORIGIN}/en/about/): what the ${buildChecks().length} checks cover and how the 8 weighted families are scored.`,
     `- [Contact the team](${PUBLIC_ORIGIN}/en/contact/): how to report bugs, propose checks or reach us securely.`,
     `- [Full content for LLMs](${PUBLIC_ORIGIN}/llms-full.txt): the complete check catalogue and tool documentation in one plain-text file.`,
     '',
@@ -427,7 +439,7 @@ function llmsTxt() {
     '',
     '## What it is not',
     '- Not an AI-answer monitor: it audits the *input* (your site), not the *output*',
-    '  of ChatGPT/Perplexity/Gemini. It predicts findability; it does not track mentions.',
+    '  of ChatGPT/Perplexity/Gemini. It reports technical prerequisites; it does not track mentions.',
     '',
   ].join('\n');
 }
@@ -474,7 +486,7 @@ function llmsFullTxt() {
     '',
     '## Using the web app',
     '',
-    `Open ${PUBLIC_ORIGIN}/en/ (or /fr/ for French), paste a public http(s) URL and submit. The audit streams its progress live, then renders the scorecard with every finding and its fix. Reports can be exported as Markdown, HTML or JSON, and the app can generate starter indexing files (robots.txt, llms.txt, sitemap.xml, JSON-LD stubs) from your results. Reports are ephemeral: they expire from the server a few minutes after completion. Internal, private and reserved addresses are refused. A compare mode audits your site next to up to two competitors, family by family.`,
+    `Open ${PUBLIC_ORIGIN}/en/ (or /fr/ for French), paste a public http(s) URL and submit. The audit streams its progress live, then renders the scorecard with every finding and its fix. Reports can be exported as Markdown, HTML or JSON, and the app can generate starter indexing files (robots.txt, llms.txt, sitemap.xml, JSON-LD stubs) from your results. ${en.result.expiry} Internal, private and reserved addresses are refused. A compare mode audits your site next to up to two competitors, family by family.`,
     '',
     '## Using the CLI',
     '',
@@ -514,8 +526,7 @@ function llmsFullTxt() {
 function aiJson() {
   return `${JSON.stringify({
     name: 'findable-audit',
-    description: 'Free, open-source SEO + GEO audit: checks whether search engines and AI crawlers '
-      + 'can reach, extract and cite a website, then grades it A–F across 8 weighted families.',
+    description: t('en').landing.description,
     url: `${PUBLIC_ORIGIN}/`,
     contact: `${REPO_URL}/issues`,
     license: 'MIT',
@@ -592,9 +603,9 @@ ${seo}
 </head>
 <body>
 <main${wide ? ' class="wide"' : ''}>
-<header class="topbar">${brandHeader(lang)}${renderLangSelector(lang)}</header>
+<header class="topbar">${brandHeader(lang)}<nav class="site-nav" aria-label="${escapeHtml(t(lang).nav.audit)}"><a href="/${lang}/#single">${escapeHtml(t(lang).nav.audit)}</a><a href="/${lang}/#compare">${escapeHtml(t(lang).nav.compare)}</a><a href="/${lang}/example-report/">${escapeHtml(t(lang).nav.example)}</a></nav>${renderLangSelector(lang)}</header>
 ${bodyHtml}
-<footer>findable-audit · <a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">source on GitHub</a> · <a href="https://www.npmjs.com/package/findable-audit">npm</a> · <a href="https://pb-ot.fr">PB OpenTech</a></footer>
+<footer>${brandHeader(lang, 'footer')}<p><a href="/${escapeHtml(lang)}/about/">${escapeHtml(t(lang).nav.about)}</a> · <a href="/${escapeHtml(lang)}/contact/">${escapeHtml(t(lang).nav.contact)}</a> · <a href="${REPO_URL}">${escapeHtml(t(lang).nav.source)}</a> · <a href="https://www.npmjs.com/package/findable-audit">npm</a> · <a href="https://pb-ot.fr">PB OpenTech</a></p></footer>
 </main>
 </body>
 </html>
@@ -639,8 +650,10 @@ function landingPage(lang = 'en') {
     `<li class="ld-axis"><b>${escapeHtml(a.n)}</b><span>${escapeHtml(a.q)}</span></li>`).join('');
   // A static preview of the real deliverable (L5): same shapes and tokens as
   // the report's verdict card, so it can never drift into a prettier lie.
-  const previewRows = s.previewPlan.map((r) =>
-    `<div class="pv-row"><span class="pv-chip">${escapeHtml(r.f)}</span><b>${escapeHtml(r.t)}</b><span class="pv-pts">${escapeHtml(r.p)}</span></div>`).join('');
+  const previewRows = ['pass', 'warn', 'fail', 'skip'].map((status) =>
+    `<div class="pv-row"><b>${escapeHtml(s.previewStatuses[status])}</b><span class="pv-count">${EXAMPLE_REPORT.results.filter((r) => r.status === status).length}</span></div>`).join('');
+  const previewSource = s.previewSource.replace('{host}', new URL(EXAMPLE_REPORT.url).host)
+    .replace('{date}', EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)).replace('{version}', EXAMPLE_REPORT.toolVersion);
   return shell(s.title, `
 <div class="hero2">
 <div class="hero-left">
@@ -653,7 +666,8 @@ function landingPage(lang = 'en') {
 </nav>
 <div class="pane pane-single" id="single">
 <form class="ld-form" method="get" action="/${lang}/audit">
-  <input type="url" name="url" placeholder="https://example.com" aria-label="${escapeHtml(s.urlLabel)}"
+  <label for="audit-url">${escapeHtml(s.urlLabel)}</label>
+  <input type="text" name="url" id="audit-url" inputmode="url" placeholder="example.com" aria-label="${escapeHtml(s.urlLabel)}"
     autocomplete="off" autocapitalize="off" spellcheck="false" required>
   <select class="ld-depth" name="pages" aria-label="${escapeHtml(s.depthLabel)}">${PAGE_CHOICES.map((n) =>
     `<option value="${n}"${n === MAX_PAGES ? ' selected' : ''}>${escapeHtml(s.depthOption(n))}</option>`).join('')}</select>${turnstileWidget}
@@ -666,9 +680,14 @@ function landingPage(lang = 'en') {
   <p class="ld-eyebrow">${escapeHtml(c.heading)}</p>
   <p class="lead" style="margin:.1rem 0 .8rem">${escapeHtml(c.lead)}</p>
   <form class="ld-form" method="get" action="/${lang}/compare/start">
-    <input type="url" name="url" placeholder="https://your-site.com" aria-label="${escapeHtml(c.urlLabel)}"
+    <label for="compare-url">${escapeHtml(c.urlLabel)}</label>
+    <input type="text" name="url" id="compare-url" inputmode="url" placeholder="example.com" aria-label="${escapeHtml(c.urlLabel)}"
       autocomplete="off" autocapitalize="off" spellcheck="false" required>
-    <input type="text" name="compare" placeholder="https://rival-1.com, https://rival-2.com" aria-label="${escapeHtml(c.competitorsLabel)}"
+    <label for="compare-url-1">${escapeHtml(c.competitorOne)}</label>
+    <input type="text" name="compare" id="compare-url-1" inputmode="url" placeholder="example.org" aria-label="${escapeHtml(c.competitorOne)}"
+      autocomplete="off" autocapitalize="off" spellcheck="false" required>
+    <label for="compare-url-2">${escapeHtml(c.competitorTwo)}</label>
+    <input type="text" name="compare2" id="compare-url-2" inputmode="url" placeholder="example.net" aria-label="${escapeHtml(c.competitorTwo)}"
       autocomplete="off" autocapitalize="off" spellcheck="false">${turnstileDiv}
     <button type="submit" class="ld-cta"><span>${escapeHtml(c.cta)}</span></button>
   </form>
@@ -680,16 +699,17 @@ function landingPage(lang = 'en') {
   <p class="ld-eyebrow">${escapeHtml(s.previewTitle)}</p>
   <div class="pv">
     <div class="pv-head">
-      <div class="pv-score">76</div>
+      <div class="pv-score">${EXAMPLE_REPORT.score}</div>
       <p class="pv-verdict">${escapeHtml(s.previewVerdict)}</p>
     </div>
     <div class="pv-axes">
-      ${s.axes.map((a, i) => `<div class="pv-ax"><b>${[92, 61, 84][i]}</b><span>${escapeHtml(a.n)}</span></div>`).join('\n      ')}
+      ${['ai-access', 'structured-data', 'technical-seo'].map((family, i) => `<div class="pv-ax"><b>${EXAMPLE_REPORT.familyScores.find((f) => f.family === family)?.score ?? '—'}</b><span>${escapeHtml(s.previewFamilies[i])}</span></div>`).join('\n      ')}
     </div>
     <div class="pv-plan">
       <p class="pv-plan-t">${escapeHtml(s.previewPlanTitle)}</p>
       ${previewRows}
     </div>
+    <p class="pv-source">${EXAMPLE_REPORT.score}/100 (${escapeHtml(EXAMPLE_REPORT.grade)}) · ${escapeHtml(previewSource)}</p>
   </div>
 </aside>
 </div>
@@ -741,17 +761,15 @@ function landingPage(lang = 'en') {
  */
 const EXAMPLE_REPORT = JSON.parse(
   readFileSync(new URL('./fixtures/example-report.json', import.meta.url), 'utf8'));
-const EXAMPLE_REPORT_DATE = new Date('2026-07-27T00:00:00Z');
+const EXAMPLE_REPORT_DATE = new Date(EXAMPLE_REPORT.generatedAt);
 
 function exampleReportPage(lang = 'en') {
-  const back = lang === 'fr' ? '← Retour à findable-audit' : '← Back to findable-audit';
-  const note = lang === 'fr'
-    ? `Rapport réel, figé : findable-audit audité par son propre moteur le ${EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)}.`
-    : `A real, frozen report: findable-audit audited by its own engine on ${EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)}.`;
+  const back = t(lang).result.exampleBack;
+  const note = t(lang).result.exampleNote.replace('{date}', EXAMPLE_REPORT_DATE.toISOString().slice(0, 10)).replace('{version}', EXAMPLE_REPORT.toolVersion);
   const banner = `<nav class="tocbar" style="position:static;border-bottom:0">`
     + `<a href="/${escapeHtml(lang)}/">${escapeHtml(back)}</a>`
     + `<span style="color:var(--muted);font-size:.82rem;margin-left:.6rem">${escapeHtml(note)}</span></nav>`;
-  return renderHtml(EXAMPLE_REPORT, EXAMPLE_REPORT_DATE, lang)
+  return withWebReportStyle(renderHtml(EXAMPLE_REPORT, EXAMPLE_REPORT_DATE, lang))
     .replace('</head>', '<meta name="robots" content="noindex, follow">\n</head>')
     .replace('<body>', `<body>\n${banner}`);
 }
@@ -761,9 +779,7 @@ function exampleReportPage(lang = 'en') {
 function landingMeta(lang) {
   // ≤160 chars, verb-led, no ALL-CAPS filler — mirrors what meta-description
   // (and serp-preview) reward.
-  const description = lang === 'fr'
-    ? 'Audit SEO + GEO gratuit et open source : vérifiez que les moteurs de recherche et les crawlers IA (GPTBot, ClaudeBot) trouvent et citent votre site. Note A–F.'
-    : 'Free, open-source SEO + GEO audit: check that search engines and AI crawlers (GPTBot, ClaudeBot) can find, extract and cite your site. Graded A–F.';
+  const description = t(lang).landing.description;
   const org = `${PUBLIC_ORIGIN}/#org`;
   const site = `${PUBLIC_ORIGIN}/#website`;
   const app = `${PUBLIC_ORIGIN}/#app`;
@@ -967,15 +983,45 @@ function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
 // packages/cli/src/generate/index.ts) plus the required bilingual warning.
 // Every link hits /audit/generate, which regenerates the file IN MEMORY on
 // each request — nothing is ever written to disk.
+const REPORT_CHROME_STYLE = `${FONT_STYLE}
+  body { font-family: Geist, system-ui, sans-serif; }
+  h1, h2, h3 { font-family: Bricolage, Geist, system-ui, sans-serif; }
+  .result-tools { max-width: 1080px; margin: 1rem auto 1.5rem; padding: 1.1rem; border: 1px solid #e2e0ef; border-radius: 16px; color: #2a2447; background: #f6f5fc; font: 14px/1.6 Geist, system-ui, sans-serif; }
+  .result-tools a { color: #2653c4; }
+  .result-tools .brand { display: inline-flex; align-items: center; gap: .65rem; text-decoration: none; margin-bottom: .8rem; }
+  .result-tools .brand-name { color: #211c38; font: 800 1.2rem Bricolage, system-ui; }
+  .result-tools .brand-signature { display: block; color: #6e6890; font-size: .72rem; }
+  .result-tools .brand-lockup { display: block; margin-bottom: .8rem; }
+  .result-tools .brand-lockup .brand { margin-bottom: 0; }
+  .result-tools .brand-signature { padding-left: 46px; }
+  .result-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .result-actions a { border: 1px solid #c3bfdb; border-radius: 9px; padding: .55rem .8rem; font-weight: 600; text-decoration: none; background: #fff; }
+  .result-actions a:first-of-type { background: linear-gradient(100deg,#b23a72,#5c34a8 35%,#2653c4 68%,#17708a); border-color: transparent; color: #fff; }
+  .result-tools .result-expiry { color: #5a5387; font-size: .8rem; margin: .7rem 0 1rem; }
+  .result-tools details { padding: .65rem 0; border-top: 1px solid #e2e0ef; }
+  .result-tools summary { cursor: pointer; font-weight: 600; }
+  .result-tools label { display: block; font-weight: 600; margin: .7rem 0 .3rem; }
+  .result-tools textarea, .result-tools input[type=file] { display: block; width: 100%; min-width: 0; background: #fff; color: #2a2447; border: 1px solid #9c97bf; border-radius: 8px; padding: .65rem; font: inherit; box-sizing: border-box; }
+  .result-tools textarea { font: .85rem/1.5 ui-monospace, monospace; }
+  .result-tools button { display: block; margin-top: .6rem; min-height: 44px; border: 0; border-radius: 8px; padding: .6rem 1rem; color: #fff; background: #2653c4; font: 600 .9rem Geist, system-ui; cursor: pointer; }
+  .result-tools form { display: block; }
+  .result-tools :focus-visible { outline: 3px solid #2653c4; outline-offset: 4px; }
+  .generated-links { display: flex; gap: .6rem 1rem; flex-wrap: wrap; overflow-wrap: anywhere; }
+  @media (max-width: 560px) { .result-tools { margin: .5rem 0 1rem; padding: .85rem; } .result-actions a { flex: 1 1 auto; text-align: center; } }
+  @media (prefers-reduced-motion: reduce) { .result-tools *, .result-tools *::before { transition: none !important; } }
+`;
+
+function withWebReportStyle(html) {
+  return html.replace('</head>', `<style>${REPORT_CHROME_STYLE}</style></head>`);
+}
+
 function generateFilesSection(jobId, lang) {
   const id = encodeURIComponent(jobId);
   const g = t(lang).generate;
   const links = EMITTED_FILES.map((f) =>
-    `<a href="/audit/generate?job=${id}&file=${encodeURIComponent(f.filename)}" style="color:#1a7f37">${escapeHtml(f.filename)}</a>`)
-    .join(' · ');
-  return '<p style="max-width:860px;margin:0 auto .75rem;font:14px -apple-system,Segoe UI,Roboto,sans-serif;color:#555">'
-    + `<strong>${escapeHtml(g.heading)}:</strong> ${links}<br>`
-    + `<span style="color:#b45309">${escapeHtml(g.note)}</span></p>`;
+    `<a href="/audit/generate?job=${id}&file=${encodeURIComponent(f.filename)}">${escapeHtml(f.filename)}</a>`)
+    .join('');
+  return `<details><summary>${escapeHtml(g.heading)}</summary><p>${escapeHtml(g.note)}</p><div class="generated-links">${links}</div></details>`;
 }
 
 // #59 (web): "bring your own baseline" — paste a previous `--report *.json`
@@ -988,16 +1034,13 @@ function generateFilesSection(jobId, lang) {
 function baselineFormSection(jobId, lang) {
   const b = t(lang).baseline;
   const action = `/${encodeURIComponent(lang)}/audit/diff?job=${encodeURIComponent(jobId)}`;
-  return '<details style="max-width:860px;margin:0 auto 1rem;font:14px -apple-system,Segoe UI,Roboto,sans-serif">'
-    + `<summary style="cursor:pointer;color:#1a7f37">${escapeHtml(b.summary)}</summary>`
-    + `<p style="color:#555;margin:.5rem 0">${escapeHtml(b.help)}</p>`
-    + `<form method="post" action="${action}" enctype="application/x-www-form-urlencoded">`
-    + `<textarea name="baseline" rows="6" required aria-label="${escapeHtml(b.label)}" `
-    + 'placeholder=\'{"url":"…","score":…,"results":[…]}\' '
-    + 'style="width:100%;font:12px ui-monospace,SFMono-Regular,Menlo,monospace;padding:.5rem;'
-    + 'border:1px solid #d7dcd7;border-radius:8px"></textarea>'
-    + `<button type="submit" style="margin-top:.5rem;padding:.45rem .9rem;border-radius:8px;`
-    + `border:1px solid #1a7f37;background:#1a7f37;color:#fff;cursor:pointer">${escapeHtml(b.cta)}</button>`
+  return '<details>'
+    + `<summary>${escapeHtml(b.summary)}</summary>`
+    + `<p id="baseline-help">${escapeHtml(b.help)}</p>`
+    + `<form method="post" action="${action}" enctype="multipart/form-data">`
+    + `<label for="baseline-file">${escapeHtml(b.fileLabel)}</label><input type="file" name="baselineFile" id="baseline-file" accept=".json,application/json" aria-describedby="baseline-help">`
+    + `<label for="baseline-text">${escapeHtml(b.label)}</label><textarea name="baseline" id="baseline-text" rows="6" aria-describedby="baseline-help" aria-label="${escapeHtml(b.label)}"></textarea>`
+    + `<button type="submit">${escapeHtml(b.cta)}</button>`
     + '</form></details>';
 }
 
@@ -1009,13 +1052,15 @@ function withResultChrome(reportHtml, jobId, lang) {
   const retry = escapeHtml(t(lang).progress.retry);
   const download = escapeHtml(t(lang).result.download);
   const home = `/${encodeURIComponent(lang)}/`;
-  const bar = '<p style="max-width:860px;margin:1rem auto .5rem;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
-    + `${download} <a href="/audit/export?job=${id}&format=md" style="color:#1a7f37">Markdown</a> · `
-    + `<a href="/audit/export?job=${id}&format=html" style="color:#1a7f37">HTML</a> · `
-    + `<a href="/audit/export?job=${id}&format=json" style="color:#1a7f37">JSON</a>`
-    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`
+  const bar = '<section class="result-tools">' + brandHeader(lang)
+    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/audit/export?job=${id}&format=html">HTML</a>`
+    + `<a href="/audit/export?job=${id}&format=md">Markdown</a>`
+    + `<a href="/audit/export?job=${id}&format=json">JSON</a>`
+    + `<a href="${home}">&larr; ${retry}</a></nav>`
+    + `<p class="result-expiry">${escapeHtml(t(lang).result.expiry)}</p>`
     + generateFilesSection(jobId, lang)
-    + baselineFormSection(jobId, lang);
+    + baselineFormSection(jobId, lang) + '</section>';
+  reportHtml = withWebReportStyle(reportHtml);
   const marker = '<body>';
   const idx = reportHtml.indexOf(marker);
   if (idx === -1) return bar + reportHtml;
@@ -1082,6 +1127,7 @@ async function auditUrl(url, { cwv = cwvActive() } = {}) {
     timeoutMs: FETCH_TIMEOUT_MS,
     maxPages: MAX_PAGES,
     blockPrivateHosts: true, // fetch-layer SSRF guard: every hop is revalidated.
+    includeAnswerMatrix: true,
     signal: ac.signal,
     includeEntityGraph: true, // attach report.entityGraph (cheap: already built internally) so /audit/generate's jsonld-stubs.json only stubs types actually absent from the site, mirroring the CLI's --emit (index.ts).
   };
@@ -1143,6 +1189,7 @@ async function executeAudit(job) {
     timeoutMs: FETCH_TIMEOUT_MS,
     maxPages,
     blockPrivateHosts: true,          // fetch-layer SSRF guard, unchanged.
+    includeAnswerMatrix: true,
     signal: ac.signal,
     onProgress: (ev) => jobs.setProgress(job.id, ev),
     includeEntityGraph: true, // attach report.entityGraph (cheap: already built internally) so /audit/generate's jsonld-stubs.json only stubs types actually absent from the site, mirroring the CLI's --emit (index.ts).
@@ -1343,10 +1390,10 @@ function progressPage(jobId, lang, nonce) {
   const body = `
 <h1>${escapeHtml(m.heading)}</h1>
 <p class="lead">${escapeHtml(m.lead)}</p>
-<div class="progress" role="progressbar" aria-live="polite" aria-label="${escapeHtml(m.heading)}">
+<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${escapeHtml(m.heading)}">
   <div id="bar" class="bar" style="width:0%"></div>
 </div>
-<p id="status" class="hint">${escapeHtml(m.phases.connect)}</p>
+<p id="status" class="hint" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(m.phases.connect)}</p>
 <noscript>
   <meta http-equiv="refresh" content="0; url=/audit/result?job=${id}">
   <p>${escapeHtml(m.noscript)} <a href="/audit/result?job=${id}">${escapeHtml(m.done)}</a></p>
@@ -1362,7 +1409,7 @@ function progressPage(jobId, lang, nonce) {
     try {
       var p = JSON.parse(e.data);
       if (status && LABELS[p.phase]) status.textContent = LABELS[p.phase];
-      if (bar && p.total) bar.style.width = Math.round(p.done / p.total * 100) + '%';
+      if (bar && p.total) { var percent = Math.max(0, Math.min(100, Math.round(p.done / p.total * 100))); bar.style.width = percent + '%'; bar.parentElement.setAttribute('aria-valuenow', percent); }
     } catch (_) {}
   });
   es.addEventListener('done', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job); });
@@ -1549,10 +1596,10 @@ function compareProgressPage(jobId, lang, nonce) {
   const body = `
 <h1>${escapeHtml(m.progressHeading)}</h1>
 <p class="lead">${escapeHtml(m.lead)}</p>
-<div class="progress" role="progressbar" aria-live="polite" aria-label="${escapeHtml(m.progressHeading)}">
+<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="${escapeHtml(m.progressHeading)}">
   <div id="bar" class="bar" style="width:0%"></div>
 </div>
-<p id="status" class="hint">${escapeHtml(m.progressHeading)}</p>
+<p id="status" class="hint" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(m.progressHeading)}</p>
 <noscript>
   <meta http-equiv="refresh" content="0; url=/compare/result?job=${id}">
   <p><a href="/compare/result?job=${id}">${escapeHtml(m.resultTitle)}</a></p>
@@ -1568,7 +1615,7 @@ function compareProgressPage(jobId, lang, nonce) {
     try {
       var p = JSON.parse(e.data);
       if (status && p.total) status.textContent = TPL.replace('{i}', p.done).replace('{n}', p.total);
-      if (bar && p.total) bar.style.width = Math.round(p.done / p.total * 100) + '%';
+      if (bar && p.total) { var percent = Math.max(0, Math.min(100, Math.round(p.done / p.total * 100))); bar.style.width = percent + '%'; bar.parentElement.setAttribute('aria-valuenow', percent); }
     } catch (_) {}
   });
   es.addEventListener('done', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job); });
@@ -1589,8 +1636,9 @@ async function handleCompareStart(req, res) {
 
   const ip = clientIp(req);
   const mainRaw = normalizeInput(parsed.searchParams.get('url') ?? '');
-  const competitorsRaw = (parsed.searchParams.get('compare') ?? '')
-    .split(',').map((s) => normalizeInput(s.trim())).filter(Boolean).slice(0, MAX_COMPARE_COMPETITORS);
+  // Keep comma-separated API links working, while the UI provides separate fields.
+  const competitorsRaw = [parsed.searchParams.get('compare') ?? '', parsed.searchParams.get('compare2') ?? '']
+    .flatMap((value) => value.split(',')).map((s) => normalizeInput(s.trim())).filter(Boolean).slice(0, MAX_COMPARE_COMPETITORS);
   if (mainRaw === '') { const e = t(lang).error.missingUrl; errHtml(e.title, e.message); return; }
 
   // Rate-limit: one token PER URL submitted (main + competitors), so a compare
@@ -1726,10 +1774,10 @@ function withCompareChrome(reportHtml, jobId, lang) {
   const retry = escapeHtml(t(lang).progress.retry);
   const download = escapeHtml(t(lang).result.download);
   const home = `/${encodeURIComponent(lang)}/`;
-  const bar = '<p style="max-width:960px;margin:1rem auto .5rem;font:15px -apple-system,Segoe UI,Roboto,sans-serif">'
-    + `${download} <a href="/compare/export?job=${id}&format=html" style="color:#1a7f37">HTML</a>`
-    + `&nbsp;&nbsp;|&nbsp;&nbsp;<a href="${home}" style="color:#1a7f37">&larr; ${retry}</a></p>`;
-  return injectAfterBody(reportHtml, bar);
+  const bar = '<section class="result-tools">' + brandHeader(lang)
+    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/compare/export?job=${id}&format=html">HTML</a>`
+    + `<a href="${home}">&larr; ${retry}</a></nav><p class="result-expiry">${escapeHtml(t(lang).result.expiry)}</p></section>`;
+  return injectAfterBody(withWebReportStyle(reportHtml), bar);
 }
 
 async function handleCompareExport(req, res, job) {
@@ -1791,7 +1839,7 @@ async function handleBaselineDiff(req, res) {
     send(res, 404, 'text/html; charset=utf-8', p.html);
     return;
   }
-  const raw = new URLSearchParams(body).get('baseline') ?? '';
+  const raw = baselineInput(body, req.headers['content-type'] ?? '');
   let baseline;
   try {
     baseline = JSON.parse(raw);
@@ -1979,6 +2027,10 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/llms-full.txt') {
     send(res, 200, 'text/plain; charset=utf-8', llmsFullTxt(), { 'cache-control': 'public, max-age=86400' });
+    return;
+  }
+  if (FONT_FILES.has(pathname)) {
+    send(res, 200, 'font/woff2', FONT_FILES.get(pathname), { 'cache-control': 'public, max-age=31536000' });
     return;
   }
   if (pathname === '/og.png' || pathname === '/apple-touch-icon.png') {

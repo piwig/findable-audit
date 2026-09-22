@@ -8,6 +8,7 @@ import { PREDICATES, type PredicateInput } from './predicates.js';
 import { extractSubjects, type Subject, type Zone } from './subjects.js';
 import { extractJsonLd, flatten, typesOf, NAP_REQUIRED_TYPES, isOrganizationType } from '../checks/jsonld.js';
 import type { Lang } from '../report/i18n.js';
+import { boundedText, evidenceHeading, type AnswerProof } from './evidence.js';
 
 // ---------------------------------------------------------------------------
 // The matrix: for every question the site's own declarations imply, does the crawled
@@ -36,6 +37,8 @@ export interface Cell {
   evidence: CellEvidence;
   /** Path of the page carrying the best evidence found, when there is any. */
   path?: string;
+  /** Actual bounded evidence, absent on missing cells and legacy reports. */
+  proof?: AnswerProof;
 }
 
 export interface AnswerMatrix {
@@ -123,14 +126,38 @@ function mentions(chunk: Chunk, label: string): boolean {
  * Page-scoped intents are exempt: "how do I reach a human" is answered by a `tel:` link,
  * not by a quotable sentence, so extractability does not apply to them.
  */
-function gradeExtractability(intent: IntentDef, chunk: Chunk, args: PredicateInput): { state: CellState; evidence: CellEvidence } {
-  if (intent.scope === 'page') return { state: 'covered', evidence: 'affordance' };
+function gradeExtractability(intent: IntentDef, chunk: Chunk, args: PredicateInput): { state: CellState; evidence: CellEvidence; proof?: AnswerProof } {
+  if (intent.scope === 'page') {
+    if (intent.id === 'identity') {
+      const nodes = flatten(extractJsonLd(args.page.body));
+      const node = nodes.find(n => (Array.isArray(n.sameAs) ? n.sameAs.length > 0 : typeof n.sameAs === 'string' && n.sameAs !== '')
+        || (typesOf(n).includes('Person') && typeof n.name === 'string' && n.name.trim())
+        || (n.author && typeof n.author === 'object' && typeof (n.author as Record<string, unknown>).name === 'string'));
+      const excerpt = node ? JSON.stringify({ '@type': node['@type'], name: node.name, sameAs: node.sameAs, author: node.author }) : undefined;
+      return { state: 'covered', evidence: 'markup', ...(excerpt ? { proof: { kind: 'markup', excerpt: boundedText(excerpt) } as AnswerProof } : {}) };
+    }
+    const root = parsePage(args.page);
+    const channel = root.querySelector('a[href^="tel:"], a[href^="mailto:"]');
+    const form = root.querySelectorAll('form').find(f => f.querySelector('button, input[type="submit"], input[type="image"]'));
+    const submit = form?.querySelector('button, input[type="submit"], input[type="image"]');
+    const excerpt = channel ? `${channel.textContent} ${channel.getAttribute('href')}`
+      : form ? `form method=${form.getAttribute('method') ?? 'get'}; ${submit?.textContent.trim() || submit?.getAttribute('aria-label') || 'submit'}` : undefined;
+    return { state: 'covered', evidence: 'affordance', ...(excerpt ? { proof: { kind: 'affordance', excerpt: boundedText(excerpt) } as AnswerProof } : {}) };
+  }
 
   const holds = (text: string) => PREDICATES[intent.id]({ ...args, chunk: { ...chunk, blocks: [text], text } });
 
   // If the predicate is still satisfied with no prose at all, the answer lives in the
   // markup. It is machine-readable by construction, so extractability does not apply.
-  if (holds('')) return { state: 'covered', evidence: 'markup' };
+  if (holds('')) {
+    const nodes = flatten(extractJsonLd(args.page.body));
+    const node = nodes.find(n => intent.id === 'hours' ? n.openingHoursSpecification !== undefined || n.openingHours !== undefined
+      : intent.id === 'process' ? typesOf(n).includes('HowTo') : false);
+    const excerpt = node ? JSON.stringify(intent.id === 'hours'
+      ? { openingHours: node.openingHours, openingHoursSpecification: node.openingHoursSpecification }
+      : node) : undefined;
+    return { state: 'covered', evidence: 'markup', ...(excerpt ? { proof: { kind: 'markup', excerpt: boundedText(excerpt) } as AnswerProof } : {}) };
+  }
 
   /**
    * An answer has to hold together in ONE unit: the evidence, the subject and — when the
@@ -153,15 +180,18 @@ function gradeExtractability(intent: IntentDef, chunk: Chunk, args: PredicateInp
 
   const anchored = hasFactAnchor([...chunk.headings, evidence].join(' '));
   const quotable = anchored && opensWithoutBackreference(evidence);
-  return { state: quotable ? 'covered' : 'weak', evidence: 'prose' };
+  return { state: quotable ? 'covered' : 'weak', evidence: 'prose', proof: {
+    kind: 'prose', excerpt: boundedText(evidence), heading: evidenceHeading(mainContent(args.page).root, evidence),
+  } };
 }
 
 function evaluate(
   intent: IntentDef, subject: Subject, zone: Zone | undefined, pages: FetchedResource[],
-): { state: CellState; evidence: CellEvidence; path?: string } {
+): { state: CellState; evidence: CellEvidence; path?: string; proof?: AnswerProof } {
   let best: CellState = 'missing';
   let bestEvidence: CellEvidence = 'none';
   let bestPath: string | undefined;
+  let bestProof: AnswerProof | undefined;
 
   for (const page of pages) {
     const mc = mainContent(page);
@@ -176,12 +206,12 @@ function evaluate(
 
       const graded = gradeExtractability(intent, chunk, args);
       if (RANK[graded.state] > RANK[best]) {
-        best = graded.state; bestEvidence = graded.evidence; bestPath = pathOf(page);
+        best = graded.state; bestEvidence = graded.evidence; bestPath = pathOf(page); bestProof = graded.proof;
       }
-      if (best === 'covered') return { state: best, evidence: bestEvidence, path: bestPath };
+      if (best === 'covered') return { state: best, evidence: bestEvidence, path: bestPath, proof: bestProof };
     }
   }
-  return { state: best, evidence: bestEvidence, path: bestPath };
+  return { state: best, evidence: bestEvidence, path: bestPath, proof: bestProof };
 }
 
 /**
@@ -201,7 +231,7 @@ export function buildAnswerMatrix(pages: FetchedResource[]): AnswerMatrix {
     for (const intent of intents) {
       const targets: (Zone | undefined)[] = intent.zoned ? (zones.length ? zones : []) : [undefined];
       for (const zone of targets) {
-        const { state, evidence, path } = evaluate(intent, subject, zone, pages);
+        const { state, evidence, path, proof } = evaluate(intent, subject, zone, pages);
         cells.push({
           subject,
           zone,
@@ -210,6 +240,7 @@ export function buildAnswerMatrix(pages: FetchedResource[]): AnswerMatrix {
           state,
           evidence,
           path,
+          ...(proof ? { proof } : {}),
         });
       }
     }

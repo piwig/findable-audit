@@ -80,15 +80,18 @@ export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en',
 }
 
 const COMPARE_STYLE = `
-  body { font: 15px/1.5 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #1a1a1a; background: #fff; margin: 0; padding: 2rem; max-width: 960px; }
+  :root { color-scheme: light; --ink: #211c38; --muted: #5a5387; --accent: #2653c4; --line: #dfdbea; --panel: #f6f5fc; }
+  body { font: 15px/1.6 Geist, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; margin: 0 auto; padding: 2rem; max-width: 960px; overflow-wrap: anywhere; }
+  h1,h2 { font-family: 'Bricolage Grotesque', Geist, Segoe UI, sans-serif; }
+  a { color: var(--accent); } :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
   h1 { font-size: 1.5rem; margin: 0 0 .25rem; } h2 { font-size: 1.1rem; margin: 1.5rem 0 .5rem; }
-  .meta { color: #666; font-size: .9rem; margin-bottom: 1rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1rem; }
   .cmp-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; min-width: 30rem; }
   th, td { padding: .5rem .6rem; border-bottom: 1px solid #eee; text-align: center; font-variant-numeric: tabular-nums; }
   th:first-child, td:first-child { text-align: left; }
   thead th { border-bottom: 2px solid #ddd; font-size: .85rem; color: #444; }
-  .you { color: #1a7f37; }
+  .you { color: var(--accent); }
   td.lead { font-weight: 800; }
   td.lead::after { content: " 🏆"; }
   .s.good { color: #1a7f37; } .s.ok { color: #9a6700; } .s.bad { color: #b42318; }
@@ -135,6 +138,7 @@ export function renderCompareHtml(reports: AuditReport[], now: Date = new Date()
 </head>
 <body>
 <h1>${esc(m.compareTitle)}</h1>
+<p class="meta">Findable · PB OpenTech</p>
 <div class="meta">${cols.map((c) => esc(c.host)).join(' · ')} — ${date}</div>
 ${renderCompareChart(reports, lang)}
 <div class="cmp-wrap"><table>

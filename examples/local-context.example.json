@@ -1,0 +1,17 @@
+{
+  "schema": "findable.local-context/1",
+  "business": {
+    "name": "Atelier Exemple",
+    "address": "Adresse professionnelle validée",
+    "phone": "Téléphone professionnel validé",
+    "hours": "Lun–Ven 09:00–18:00",
+    "googleBusinessProfile": "https://www.google.com/maps?cid=EXAMPLE"
+  },
+  "services": ["Service principal", "Service complémentaire"],
+  "areas": ["Commune principale", "Zone réellement desservie"],
+  "priorityQuestions": ["Question client à laquelle le site doit répondre"],
+  "competitors": [
+    { "name": "Concurrent pertinent", "website": "https://example.org/" }
+  ],
+  "verifiedAt": "2026-09-08"
+}

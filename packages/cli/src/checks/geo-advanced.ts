@@ -302,3 +302,125 @@ export const chunkBoundary: Check = {
       'Give long tables <thead>/<th> headers, keep FAQ answers directly under their question, and title every list — chunked retrieval loses distant context.');
   },
 };
+
+// ---------------------------------------------------------------------------
+// A162 — « citabilité documentaire » (FR checklists 2026: caption on every
+// table, a Sources section on pillar pages, dates that cannot be misread).
+// Advisory heuristics like QW2-QW4: warn max, never fail.
+// ---------------------------------------------------------------------------
+
+const MIN_TABLE_ROWS = 3;
+
+/** true when the table carries a name a chunk can keep: <caption>, aria-label(ledby) or a heading/figcaption right before it. */
+function tableIsTitled(table: HTMLElement): boolean {
+  if (table.querySelector('caption')?.textContent.trim()) return true;
+  if (table.getAttribute('aria-label')?.trim()) return true;
+  const labels = table.getAttribute('aria-labelledby')?.trim().split(/\s+/) ?? [];
+  if (labels.length > 0) {
+    let root = table;
+    while (root.parentNode) root = root.parentNode as HTMLElement;
+    const elements = root.querySelectorAll('[id]');
+    if (labels.every(id => elements.some(el => el.getAttribute('id') === id && el.textContent.trim()))) return true;
+  }
+  const prev = table.previousElementSibling;
+  const tag = tagOf(prev);
+  if (prev && (HEADING_TAGS.has(tag) || tag === 'FIGCAPTION')) return true;
+  const parent = table.parentNode as HTMLElement | null;
+  if (parent && tagOf(parent) === 'FIGURE' && parent.querySelector('figcaption')?.textContent.trim()) return true;
+  return false;
+}
+
+/** Untitled tables (>= 3 rows) in the page's main content. */
+function untitledTables(root: HTMLElement): number {
+  let n = 0;
+  for (const table of root.querySelectorAll('table')) {
+    if (table.querySelectorAll('tr').length < MIN_TABLE_ROWS) continue;
+    if (!tableIsTitled(table)) n += 1;
+  }
+  return n;
+}
+
+export const tableCaption: Check = {
+  id: 'table-caption', family: 'llm-content', evidence: 'heuristic', maxPoints: 2,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    const withTables = pages
+      .map((p) => ({ p, mc: mainContent(p) }))
+      .filter((x) => x.mc.root.querySelectorAll('table').some((t) => t.querySelectorAll('tr').length >= MIN_TABLE_ROWS));
+    if (withTables.length === 0) return makeResult(this, 'skip', 'no table with >=3 rows in the sampled main content');
+    const offenders: string[] = [];
+    for (const { p, mc } of withTables) {
+      const n = untitledTables(mc.root);
+      if (n > 0) offenders.push(`${pathOf(p)} (${n} untitled)`);
+    }
+    if (offenders.length === 0) return makeResult(this, 'pass', t`every table is titled on ${withTables.length} page(s)`);
+    return makeResult(this, 'warn', t`tables without <caption> on: ${offenderList(offenders)}`,
+      'Give every table a <caption> (or aria-label) naming what it compares — a chunked table row without its title is uncitable.');
+  },
+};
+
+const SOURCES_HEADING = /^(sources?|r[ée]f[ée]rences?|bibliographie|bibliography|pour aller plus loin|further reading|notes et r[ée]f[ée]rences)\b/i;
+
+/** true when a h2/h3 named « Sources »/« References » is followed, before the next heading, by at least one link to another host. */
+function hasSourcesSection(root: HTMLElement, host: string): boolean {
+  for (const h of root.querySelectorAll('h2, h3')) {
+    if (!SOURCES_HEADING.test(h.textContent.replace(/\s+/g, ' ').trim())) continue;
+    let el = h.nextElementSibling;
+    while (el && !HEADING_TAGS.has(tagOf(el))) {
+      for (const a of [...(tagOf(el) === 'A' && el.hasAttribute('href') ? [el] : []), ...el.querySelectorAll('a[href]')]) {
+        try {
+          const u = new URL(a.getAttribute('href') ?? '', 'https://' + host + '/');
+          if (/^https?:$/.test(u.protocol) && u.hostname !== host) return true;
+        } catch { /* unparsable href: not a source */ }
+      }
+      el = el.nextElementSibling;
+    }
+  }
+  return false;
+}
+
+export const sourcesSection: Check = {
+  id: 'sources-section', family: 'llm-content', evidence: 'heuristic', maxPoints: 2,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    const pillars = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= PILLAR_WORDS);
+    if (pillars.length === 0) return makeResult(this, 'skip', 'no pillar pages (>=300 words) to evaluate');
+    const host = ctx.baseUrl.hostname;
+    const offenders = pillars.filter(({ mc }) => !hasSourcesSection(mc.root, host)).map(({ p }) => pathOf(p));
+    if (offenders.length === 0) return makeResult(this, 'pass', t`a Sources section with outbound links on ${pillars.length} pillar page(s)`);
+    return makeResult(this, 'warn', t`no Sources section on ${offenders.length}/${pillars.length} pillar page(s): ${offenderList(offenders)}`,
+      'End each pillar page with a « Sources » / « References » heading followed by the outbound links that back its claims (claim → evidence → source).');
+  },
+};
+
+/** dd/mm/yyyy, mm-dd-yy, dd.mm.yyyy… — a numeric date whose day and month can be swapped by a reader or a model. */
+const NUMERIC_DATE = /(?<![\d/.-])(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})(?!\d|[/.-]\d)/g;
+const MONTH_NAME = /\b(janv(?:ier)?|f[ée]v(?:rier)?|mars|avr(?:il)?|mai|juin|juil(?:let)?|ao[uû]t|sept(?:embre)?|oct(?:obre)?|nov(?:embre)?|d[ée]c(?:embre)?|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
+
+/** Count of numeric dd/mm/yyyy- or mm/dd/yyyy-style dates in a text (both fields ≤ 31, one of them a plausible month). */
+export function ambiguousDateCount(text: string): number {
+  let n = 0;
+  for (const m of text.matchAll(NUMERIC_DATE)) {
+    const x = Number(m[1]); const y = Number(m[2]);
+    if (x >= 1 && y >= 1 && x <= 31 && y <= 31 && (x <= 12 || y <= 12)) n += 1;
+  }
+  return n;
+}
+
+export const ambiguousDates: Check = {
+  id: 'ambiguous-dates', family: 'llm-content', evidence: 'heuristic', maxPoints: 2,
+  async run(ctx) {
+    const pages = await pagesOf(ctx);
+    const scored = pages.map((p) => ({ p, mc: mainContent(p) })).filter((x) => x.mc.wordCount >= SUBSTANTIAL_WORDS);
+    if (scored.length === 0) return makeResult(this, 'skip', 'no substantial pages (>=150 words) to evaluate');
+    const offenders: string[] = [];
+    for (const { p, mc } of scored) {
+      const n = ambiguousDateCount(mc.text);
+      // A page that also spells months out is telling the reader the convention; only all-numeric pages are ambiguous.
+      if (n > 0 && !MONTH_NAME.test(mc.text)) offenders.push(`${pathOf(p)} (${n})`);
+    }
+    if (offenders.length === 0) return makeResult(this, 'pass', t`no ambiguous numeric-only dates on ${scored.length} page(s)`);
+    return makeResult(this, 'warn', t`numeric-only dates (dd/mm/yyyy) on: ${offenderList(offenders)}`,
+      'Write dates with the month in letters (« 28 février 2026 », "28 February 2026") and add <time datetime="2026-02-28"> — 02/03 reads as two different days in Paris and in Boston.');
+  },
+};

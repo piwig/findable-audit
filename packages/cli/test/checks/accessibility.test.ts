@@ -183,12 +183,12 @@ describe('rgaa-eaa-deadline', () => {
     const res = await rgaaEaaDeadline.run(ctx);
     expect(res.status).toBe('pass');
   });
-  it('warns with the dated RGAA/EAA message when a page has a basic deficiency', async () => {
+  it('warns about technical barriers without inferring a legal obligation or fine', async () => {
     const ctx = ctxFromPages([page('/', '<!doctype html><html><body><p>no lang, no landmarks</p></body></html>')]);
     const res = await rgaaEaaDeadline.run(ctx);
     expect(res.status).toBe('warn');
-    expect(res.message).toMatch(/2025-06-28/);
-    expect(res.message).toMatch(/RGAA v4\.1/);
+    expect(res.message).toContain('legal applicability and compliance are not assessed');
+    expect(res.message + res.fix).not.toMatch(/mandatory|50.?000|10 employees/i);
   });
   it('warns when an image is missing its alt attribute', async () => {
     const ctx = ctxFromPages([page('/', '<!doctype html><html lang="en"><body>'

@@ -5,9 +5,11 @@
 [![license](https://img.shields.io/npm/l/findable-audit)](https://github.com/piwig/findable-audit/blob/main/LICENSE)
 
 **SEO & GEO audit CLI: is your site findable by search engines *and* by AI assistants?**
-149 checks across 8 weighted families — AI crawler access, answer-engine content,
+A catalogue of 152 checks across 8 weighted families — AI crawler access, answer-engine content,
 structured data, technical SEO, on-page, performance & Core Web Vitals, accessibility,
 security & trust — scored `/100` with an A–F grade and a prioritized fix list.
+
+The default audit runs **151** checks; the catalogue also includes one optional, unscored agent-standards diagnostic. HTML reports show the sample scope, bounded answer evidence and internal-link candidates requiring review. `--local-plan` checks supplied priority questions lexically against the sampled HTML, without predicting rankings or citations.
 
 ```bash
 npx findable-audit https://your-site.com
@@ -72,6 +74,7 @@ Node ≥ 22, zero configuration. The crawler stays polite: same-origin only, a
 | `--submit` + `--indexnow-key <key>` | Notify IndexNow (Bing, Yandex, Seznam, Naver) of the audited URLs. Opt-in, and only once the key file on your site proves you own it. |
 | `--entity-graph <file>` | Export the JSON-LD entity graph (`.json` / `.dot` / `.mmd`). |
 | `--answers <file>` | The **answer matrix**: the questions your own declarations imply, and whether a crawled page holds a passage that answers each one *and stands on its own* when a model is handed it in isolation. `.json` or Markdown. |
+| `--local-context <file.json>` + `--local-plan <file>` | Crosses a locally supplied, versioned business context with the audit to write a local-readiness plan. It never signs in to or fetches Google Business Profile, Search Console, Semrush, or competitor accounts. |
 | `--summary <file>` | The one-screen version for whoever decides: score, verdict, three axes, the three highest-gain fixes and what they are worth. `.html` or Markdown. |
 | `--verify-profiles` / `--check-outbound` | The **only** two capabilities that fetch anything outside the audited origin — profile back-links, and outbound-link liveness. Both opt-in, both bounded, neither implies the other. Without them the audit touches nothing but your own site. |
 | `--cwv` [`--psi-key <key>`] | Opt into Core Web Vitals via PageSpeed Insights. |
@@ -106,7 +109,7 @@ findable:
 
 - **Web UI** (`apps/web`): dependency-free Node server, the same engine, self-hostable.
 - **Claude Code plugin**: three skills that run an audit and turn it into a fix plan.
-- **Check guide**: every one of the 149 checks documented — what it verifies, why it
+- **Check guide**: every one of the 152 checks documented — what it verifies, why it
   matters, how to fix it — in [English](https://github.com/piwig/findable-audit/blob/main/docs/guide.md)
   and [French](https://github.com/piwig/findable-audit/blob/main/docs/guide.fr.md).
 

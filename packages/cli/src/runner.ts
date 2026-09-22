@@ -1,6 +1,6 @@
 import { Crawler } from './crawler.js';
 import { samplePages } from './sampler.js';
-import type { Check, CheckResult, Family } from './types.js';
+import type { Check, CheckResult, Family, PageSample } from './types.js';
 import { makeResult } from './types.js';
 import { pathOf } from './checks/aggregate.js';
 import { computeScore, type Grade, type FamilyScore } from './scoring.js';
@@ -9,6 +9,16 @@ import { buildAnswerMatrix, type AnswerMatrix } from './answers/matrix.js';
 import { buildEntityGraph, type EntityGraph } from './report/entity-graph.js';
 import { mapProbes } from './checks/concurrency.js';
 import { extractPageMeta, type PageMeta } from './page-meta.js';
+import { evaluatePriorityQuestions, type PriorityAnswer } from './local/questions.js';
+import { buildLinkOpportunities, type LinkOpportunity } from './links/opportunities.js';
+
+export interface SampleCoverage {
+  sampled: number;
+  maxPages: number;
+  limitReached: boolean;
+  source: PageSample['source'];
+  exhaustive: false;
+}
 
 /**
  * How many checks may be in flight at once. Higher than the request gate on
@@ -52,6 +62,9 @@ export interface AuditReport {
   answerMatrix?: AnswerMatrix;
   /** Per-page title/description/h1 extracted from the sampled HTML (#A22). Optional so old audit.json still parses. */
   pageMeta?: PageMeta[];
+  sampleCoverage?: SampleCoverage;
+  priorityAnswers?: PriorityAnswer[];
+  linkOpportunities?: LinkOpportunity[];
 }
 
 export interface AuditOptions {
@@ -88,6 +101,8 @@ export interface AuditOptions {
   /** Build the answer matrix and attach it to the report. Off by default: it is an
    *  artifact the caller asks for, not something every audit needs to pay for. */
   includeAnswerMatrix?: boolean;
+  /** Explicit operator questions; lexical matching only, no external query. */
+  priorityQuestions?: string[];
   /**
    * Best-effort progress callback for a live UI (e.g. the web app's SSE stream).
    * Wrapped in try/catch by the runner: it never throws into the audit and never
@@ -185,8 +200,10 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
     url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results,
     psi: crawler.psi, generatedAt: new Date().toISOString(),
     pageMeta: extractPageMeta(crawler.sample.pages),
+    sampleCoverage: { sampled: sampledPages.length, maxPages: pageCap, limitReached: sampledPages.length >= pageCap, source: crawler.sample.source, exhaustive: false },
+    ...(opts.priorityQuestions ? { priorityAnswers: evaluatePriorityQuestions(crawler.sample.pages, opts.priorityQuestions) } : {}),
     ...(opts.includeEntityGraph ? { entityGraph: crawler.entityGraph } : {}),
-    ...(opts.includeAnswerMatrix ? { answerMatrix: buildAnswerMatrix(crawler.sample.pages) } : {}),
+    ...(opts.includeAnswerMatrix ? { answerMatrix: buildAnswerMatrix(crawler.sample.pages), linkOpportunities: buildLinkOpportunities(crawler.sample.pages, crawler.baseUrl) } : {}),
   };
 }
 

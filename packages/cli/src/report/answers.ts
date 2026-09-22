@@ -1,5 +1,6 @@
 import type { AnswerMatrix, Cell, CellState } from '../answers/matrix.js';
 import type { Lang } from './i18n.js';
+import { markdownText } from './safe-text.js';
 
 // ---------------------------------------------------------------------------
 // The answer matrix as a file artifact: `--answers <file>`, .json or anything else
@@ -86,7 +87,7 @@ export function renderAnswersJson(matrix: AnswerMatrix, ctx: AnswersContext): st
 }
 
 function escapePipes(s: string): string {
-  return s.replace(/\|/g, '\\|');
+  return markdownText(s);
 }
 
 /** Best state a subject reached for an intent, collapsing the zone variants of one question. */
@@ -104,7 +105,7 @@ function collapse(cells: Cell[]): Map<string, CellState> {
 export function renderAnswersMarkdown(matrix: AnswerMatrix, ctx: AnswersContext): string {
   const t = COPY[ctx.lang];
   const out: string[] = [`# ${t.title}`, '', t.provenance, ''];
-  out.push(t.sample(ctx.sampledPages.length, ctx.sampledPages.join(', ')), '');
+  out.push(t.sample(ctx.sampledPages.length, ctx.sampledPages.map(markdownText).join(', ')), '');
   if (ctx.capped) out.push(t.capped, '');
 
   if (matrix.cells.length === 0) {
@@ -132,8 +133,18 @@ export function renderAnswersMarkdown(matrix: AnswerMatrix, ctx: AnswersContext)
   const missing = matrix.cells.filter((c) => c.state === 'missing');
   out.push(`## ${t.missingTitle}`, '');
   if (missing.length === 0) out.push(t.none, '');
-  else for (const c of missing) out.push(`- ${c.question}`);
+  else for (const c of missing) out.push(`- ${markdownText(c.question)}`);
   out.push('');
+
+  const proven = matrix.cells.filter(c => c.proof);
+  if (proven.length > 0) {
+    out.push(ctx.lang === 'fr' ? '## Preuves relevées' : '## Observed evidence', '');
+    for (const c of proven) {
+      out.push(`- **${markdownText(c.question)}** — ${markdownText(c.path ?? '')} (${c.proof!.kind})`,
+        ...(c.proof!.heading ? [`  ${markdownText(c.proof!.heading)}`] : []),
+        `  ${markdownText(c.proof!.excerpt)}`, '');
+    }
+  }
 
   return out.join('\n');
 }

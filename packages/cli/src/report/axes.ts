@@ -147,7 +147,7 @@ const VERDICT_TEXT: Record<Lang, {
       'An assistant that tries to read you is turned away at the door: robots.txt blocks a crawler that fetches pages at citation time. Until that is lifted, nothing else on this page can help.',
     nothingMeasured: 'Nothing measurable was returned for this site.',
     excellent:
-      'Crawlers reach your pages, understand what they read, and the page holds up on its own — nothing structural stands in the way of being cited.',
+      'The sampled pages show strong results on the checks performed. This does not guarantee indexing, rankings or AI citations; review the remaining findings and the sample scope.',
     reachable: {
       weak: 'Crawlers struggle to reach your pages at all: access rules and technical SEO are the bottleneck. Start there — every other finding assumes the page can be fetched.',
       mid: 'Crawlers get in, but not everywhere: a few access and technical-SEO signals still send them down the wrong path.',
@@ -166,7 +166,7 @@ const VERDICT_TEXT: Record<Lang, {
       'Un assistant qui essaie de vous lire est refusé à la porte : le robots.txt bloque un robot qui va chercher les pages au moment de citer. Tant que ce point n’est pas levé, rien d’autre sur cette page ne peut aider.',
     nothingMeasured: 'Aucune mesure exploitable n’a été obtenue pour ce site.',
     excellent:
-      'Les robots atteignent vos pages, comprennent ce qu’ils lisent, et la page tient la route toute seule — rien de structurel ne s’oppose à ce que vous soyez cité.',
+      'Les pages échantillonnées obtiennent de bons résultats sur les contrôles réalisés. Cela ne garantit ni indexation, ni classement, ni citation IA ; examinez les constats restants et le périmètre de l’échantillon.',
     reachable: {
       weak: 'Les robots peinent simplement à atteindre vos pages : les règles d’accès et le SEO technique sont le goulot. Commencez par là — tout le reste suppose que la page puisse être récupérée.',
       mid: 'Les robots entrent, mais pas partout : quelques signaux d’accès et de SEO technique les envoient encore sur la mauvaise piste.',

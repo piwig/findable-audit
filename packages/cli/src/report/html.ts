@@ -12,6 +12,7 @@ import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg, renderImpac
 import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
 import type { Effort } from './effort.js';
 import { renderSparklineSvg, checkTransitions, type HistoryEntry } from './history.js';
+import { renderAnswerEvidence, renderAuditScope, renderEvidenceFilters, renderLinkOpportunities, ANSWER_EVIDENCE_STYLE } from './answer-evidence.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
@@ -24,7 +25,7 @@ const LANES: Effort[] = ['quick', 'moderate', 'involved'];
 const LANE_VISIBLE = 6;
 
 /**
- * findable-audit logomark: an "Aube verte" gradient tile with a white magnifier
+ * findable-audit logomark: PB OpenTech's Aube gradient with a white magnifier
  * (search / audit). Inline SVG so the report stays fully self-contained (no
  * external asset, no data URI). One instance per document → the gradient id is
  * safe. `aria-hidden` because the adjacent title already names the product.
@@ -32,7 +33,7 @@ const LANE_VISIBLE = 6;
 function logoMark(size = 24): string {
   return `<svg width="${size}" height="${size}" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`
     + '<defs><linearGradient id="faGrad" x1="0" y1="0" x2="1" y2="1">'
-    + '<stop offset="0" stop-color="#3bbf6b"/><stop offset=".55" stop-color="#1a7f37"/><stop offset="1" stop-color="#0f766e"/>'
+    + '<stop offset="0" stop-color="#b23a72"/><stop offset=".4" stop-color="#5c34a8"/><stop offset=".75" stop-color="#2653c4"/><stop offset="1" stop-color="#17708a"/>'
     + '</linearGradient></defs>'
     + '<rect x="1" y="1" width="30" height="30" rx="7" fill="url(#faGrad)"/>'
     + '<circle cx="13.5" cy="13.5" r="6.3" fill="none" stroke="#fff" stroke-width="2.5"/>'
@@ -62,44 +63,35 @@ function gradeClass(grade: string): string {
 /*
  * Styling notes for the three-layer redesign
  * -----------------------------------------
- * - Every colour goes through a custom property so the dark theme is one
- *   @media block, not a second stylesheet. The inline SVG charts read the same
- *   properties (see charts.ts), so a chart never fights its background.
+ * - PB OpenTech's light Aube palette uses custom properties shared with the
+ *   inline SVG charts (see charts.ts); status colours retain their meaning.
  * - The grade colour no longer tints the page: the verdict card is neutral and
  *   colour is spent only where it MEANS a status. A grade C report used to be
  *   amber from top to bottom, which made severity unreadable.
- * - Dark-theme status colours are lifted in luminosity to keep 4.5:1 on #14171a;
- *   the light values are unchanged.
  * - No JavaScript anywhere: every disclosure is a native <details>, so the
  *   report stays servable under the landing's `script-src 'none'` CSP.
  */
 const STYLE = `
   :root {
-    color-scheme: light dark;
-    --bg: #fff; --ink: #1a1a1a; --muted: #555; --faint: #888; --soft: #6b7280;
-    --line: #e5e5e5; --panel: #fbfbfb; --panel-line: #ececec; --track: #eee;
-    --chip-bg: #f0f0f0; --code-bg: #f5f5f5;
+    color-scheme: light;
+    --bg: #fff; --ink: #211c38; --muted: #5a5387; --faint: #6e6890; --soft: #6e6890; --accent: #2653c4;
+    --line: #dfdbea; --panel: #f6f5fc; --panel-line: #e8e3f1; --track: #e8e3f1;
+    --chip-bg: #ece9f5; --code-bg: #f6f5fc;
     --good: #1a7f37; --warn: #9a6700; --bad: #b42318;
     --good-bg: #e7f4ec; --warn-bg: #fbf1dd; --bad-bg: #fdecea; --neutral-bg: #eef0f2;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14171a; --ink: #e9ecef; --muted: #b3bcc4; --faint: #8d97a0; --soft: #9aa4ae;
-      --line: #2b3138; --panel: #1a1e22; --panel-line: #2b3138; --track: #2b3138;
-      --chip-bg: #242a30; --code-bg: #1f2429;
-      --good: #4fbf74; --warn: #d8a640; --bad: #f3796f;
-      --good-bg: #16301f; --warn-bg: #33280f; --bad-bg: #38191a; --neutral-bg: #242a30;
-    }
-  }
   * { box-sizing: border-box; }
-  body { font: 15px/1.5 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  body { font: 15px/1.6 Geist, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     color: var(--ink); background: var(--bg); margin: 0 auto; padding: 2rem; max-width: 880px; }
   h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
   .report-h1 { display: flex; align-items: center; gap: .55rem; }
   .report-h1 svg { display: block; flex: 0 0 auto; }
   h2 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; border-bottom: 1px solid var(--line); padding-bottom: .25rem; }
   .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1rem; }
-  a { color: var(--good); }
+  h1,h2,h3 { font-family: 'Bricolage Grotesque', Geist, Segoe UI, sans-serif; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  section[id] { scroll-margin-top: 6rem; }
 
   /* --- sticky table of contents (R4): four anchors + the grade in recall --- */
   .tocbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center;
@@ -349,7 +341,7 @@ export function renderHtml(
       ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
     const fix = fixText && r.status !== 'pass' && r.status !== 'skip'
       ? `<div class="fix">${escapeHtml(fixText)}${link}</div>` : '';
-    return `<tr class="row">
+    return `<tr class="row" data-evidence="${r.evidence === 'heuristic' ? 'heuristic' : 'measured'}">
         <td class="st ${r.status}">${STATUS_LABEL[r.status]}</td>
         <td>
           <div class="row-head"><span class="ck-title">${escapeHtml(checkTitle(r.id, lang))}</span><code class="ck-id">${escapeHtml(r.id)}</code>${r.evidence === 'heuristic' ? `<span class="ck-ev" title="${escapeHtml(m.evidenceTip)}">${escapeHtml(m.evidenceHeuristic)}</span>` : ''}</div>
@@ -597,16 +589,18 @@ ${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${m.reportTitle} — ${escapeHtml(report.url)}</title>
-<style>${STYLE}</style>
+<style>${STYLE}${ANSWER_EVIDENCE_STYLE}</style>
 </head>
 <body>
 <h1 class="report-h1">${logoMark(26)}<span>${m.reportTitle}</span></h1>
 <div class="meta">${escapeHtml(report.url)} · ${date}</div>
+<p class="meta">Findable · PB OpenTech</p>
 <nav class="tocbar" aria-label="${escapeHtml(m.reportTitle)}">
   <a href="#verdict">${escapeHtml(m.nav.verdict)}</a>
   <a href="#plan">${escapeHtml(m.nav.plan)}</a>
   <a href="#cwv">${escapeHtml(m.nav.cwv)}</a>
   <a href="#detail">${escapeHtml(m.nav.detail)}</a>
+  ${report.answerMatrix ? `<a href="#answer-evidence">${lang === 'fr' ? 'Questions et preuves' : 'Questions and evidence'}</a>` : ''}
   <span class="toc-grade ${gradeClass(report.grade)}">${m.gradeLabel} ${escapeHtml(report.grade)}</span>
 </nav>
 <section id="verdict">
@@ -621,12 +615,16 @@ ${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `
 </header>
 <div class="axes">${axisTiles}</div>
 </section>
+${renderAuditScope(report, lang)}
 ${actionPlan}
+${renderAnswerEvidence(report, lang)}
+${renderLinkOpportunities(report, lang)}
 <div id="cwv">${cwvSection}</div>
 ${diff ? renderDiffHtmlSection(diff, lang) : ''}
 ${trendsSection}
 <section id="detail">
 <h2>${escapeHtml(m.detailTitle)}</h2>
+${renderEvidenceFilters(lang)}
 ${report.results.some((r) => r.evidence === 'heuristic')
     ? `<p class="ev-legend"><span class="ck-ev">${escapeHtml(m.evidenceHeuristic)}</span> ${escapeHtml(m.evidenceTip)}</p>`
     : ''}

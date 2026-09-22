@@ -82,3 +82,23 @@ test('finish without reports leaves the existing (empty) reports untouched', () 
   store.finish(job.id, { report: { score: 1 }, html: 'x' });
   assert.deepEqual(store.get(job.id).reports, []);
 });
+
+test('completed reports remain available for 30 minutes after completion, independent of crawl duration', () => {
+  const store = createJobStore();
+  const job = store.create({ url: 'https://example.com/', lang: 'fr' });
+  job.createdAt -= 170_000;
+  store.finish(job.id, { report: { score: 80 }, html: 'report' });
+  assert.ok(Number.isFinite(job.completedAt));
+  assert.equal(store.get(job.id, job.completedAt + 29 * 60_000), job);
+  assert.equal(store.get(job.id, job.completedAt + 30 * 60_000), undefined);
+});
+
+test('unfinished jobs retain a short bounded lifetime and completed jobs retain the capacity cap', () => {
+  const store = createJobStore({ maxJobs: 1 });
+  const old = store.create({ url: 'https://a.test/', lang: 'en' });
+  assert.equal(store.get(old.id, old.createdAt + 180_000), undefined);
+  const done = store.create({ url: 'https://b.test/', lang: 'en' });
+  store.finish(done.id, { report: {}, html: '' });
+  store.create({ url: 'https://c.test/', lang: 'en' });
+  assert.equal(store.get(done.id), undefined);
+});

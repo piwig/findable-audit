@@ -31,6 +31,9 @@
 //   result:   { download },  // label for the report's download bar; the "audit another site" link reuses progress.retry
 // }>
 
+import { buildChecks } from '../../../packages/cli/dist/checks/index.js';
+const CHECK_COUNT = buildChecks().length;
+
 export const WEB_MESSAGES = {
   en: {
     progress: {
@@ -61,24 +64,25 @@ export const WEB_MESSAGES = {
       reportNotReady: { title: 'Report not ready', message: 'That report is not available for download yet.' },
       captchaFailed: { title: 'Verification failed', message: 'We could not confirm you are human. Please try again.' },
       // #59: the pasted baseline is unusable (not JSON, or not a findable report).
-      badBaseline: { title: 'Not a findable-audit report', message: 'That paste is not a findable-audit JSON report. Run the CLI with --report audit.json (or use the JSON download above) and paste the whole file.' },
-      jobGone: { title: 'Report expired', message: 'That report is no longer in memory — reports are kept for a few minutes only. Run the audit again, then paste your baseline.' },
+      badBaseline: { title: 'Not a findable-audit report', message: 'This content is not a findable-audit JSON report. Choose an exported JSON file, or paste its complete contents.' },
+      jobGone: { title: 'Report expired', message: 'That report is no longer available. Completed reports are kept for up to 30 minutes, subject to server capacity. Run the audit again, then import your previous report.' },
       back: 'Audit another site',
     },
     landing: {
       title: 'SEO & AI findability audit, graded A–F — findable-audit',
+      description: 'Free, open-source SEO and GEO audit: assess crawler access, readable content and technical quality, with evidence and prioritized fixes.',
       eyebrow: 'Classic SEO + GEO (AI findability) · open source',
       h1Lead: 'Your ',
       h1Accent: 'SEO and your AI findability',
       h1Tail: ', graded A–F.',
-      lead: "Audit a website's search visibility — by classic search engines AND by AI crawlers (GPTBot, ClaudeBot, PerplexityBot…) — in a single pass, with a prioritized action plan.",
+      lead: 'Find what prevents search engines and AI search tools from accessing and using your pages. Get measured findings, their evidence, and a prioritized action plan.',
       urlLabel: 'Website URL',
       cta: 'Audit',
       // #60: crawl depth, bounded server-side (PAGE_CHOICES).
       depthLabel: 'Pages to audit',
       // #66: the depth is an intention, not a number.
-      depthOption: (n) => (n === 1 ? 'Homepage only — fast check' : n <= 3 ? `${n} pages — template audit` : `${n} pages — full sample`),
-      hint: 'Enter a public http(s) URL. Internal, private and reserved addresses are refused.',
+      depthOption: (n) => (n === 1 ? 'Homepage only — fast check' : n <= 3 ? `${n} pages — template audit` : `${n} pages — wider sample`),
+      hint: 'A domain or public URL is enough. No account needed. Audit a sample of up to 6 pages.',
       // Two modes, one form (L2): the tabs are <a href="#…"> + :target, so the
       // landing keeps `script-src 'none'`.
       modeSingle: 'One site',
@@ -92,18 +96,18 @@ export const WEB_MESSAGES = {
         { n: 'Usable', q: 'does the page hold up, for a human and for an agent?' },
       ],
       // L5: show the deliverable instead of describing it.
-      previewTitle: 'What you get',
-      previewVerdict: 'Crawlers reach your pages, but an AI assistant finds no structured identity: it can describe you, it cannot cite you.',
-      previewPlanTitle: 'Action plan · quick wins',
-      previewPlan: [
-        { f: 'AI access', t: 'The /llms.txt orientation file', p: '+10 pts' },
-        { f: 'Data', t: 'Identity grounded by sameAs links', p: '+2 pts' },
-      ],
+      previewTitle: 'A real report, before you start',
+      previewVerdict: 'Our own site, audited with Findable. This archived score describes the sampled pages at the time of the audit.',
+      previewPlanTitle: 'Findings in this report',
+      previewSource: 'Archived audit of {host} · {date} · engine {version}',
+      previewStatuses: { pass: 'Passed', warn: 'To review', fail: 'To fix', skip: 'Not applicable' },
+      previewFamilies: ['AI access', 'Structured data', 'Technical SEO'],
+      previewPlan: [],
       exampleLink: 'See a full example report',
       // L8: the strongest argument the product has, and it was written nowhere.
       // The number is asserted against the live engine by a dogfooding test.
-      proof: 'This site scores 99/100 (A) against its own engine — and the two remaining warnings are documented rather than hidden.',
-      familiesTitle: '8 weighted families · 137 checks',
+      proof: 'One auditable method. The checks, their evidence and their limits stay visible. A technical score does not measure mentions in AI answers.',
+      familiesTitle: `8 weighted families · ${CHECK_COUNT} checks`,
       familiesDetails: 'The detail of the 8 scoring families',
       families: ['AI access', 'Answer-engine content', 'Structured data', 'Technical SEO', 'On-page', 'Performance / CWV', 'Accessibility', 'Security'],
       howTitle: 'How it works',
@@ -118,7 +122,7 @@ export const WEB_MESSAGES = {
       // The site is also the distribution surface for the package: without this
       // section nobody landing here learns the CLI, the Action or the plugin exist.
       devTitle: 'Run it yourself, or in CI',
-      devLead: 'The same engine that just audited your site is an open-source CLI. No account, no key, nothing leaves your machine.',
+      devLead: 'The same engine is an open-source CLI. Run audits without an account and keep your reports on your machine.',
       devCmd: 'npx findable-audit https://your-site.com',
       // A one-line lead-in before the list: our own chunk-boundary check flags a
       // list whose preceding element is not a heading or a paragraph, and it
@@ -130,13 +134,14 @@ export const WEB_MESSAGES = {
       devSource: 'engine, web app and check guide — issues and pull requests welcome.',
       geoTitle: 'Why GEO matters',
       geoBody: [
-        'GEO (Generative Engine Optimization) is the practice of making a website findable, extractable and citable by AI assistants such as ChatGPT, Claude or Perplexity. These assistants answer questions directly, and they can only recommend sites their crawlers can reach, parse and trust. A site that blocks GPTBot, hides its content behind JavaScript or ships no structured data is invisible in AI answers — whatever its classic Google ranking.',
-        'findable-audit measures both dimensions in one pass: the crawl samples several pages, runs 137 checks across 8 weighted families, then returns an A–F grade with the exact fixes to apply first. Nothing to install, no account — and the engine is open source: the same checks power the CLI you can run in CI.',
+        'GEO (Generative Engine Optimization) concerns how search tools using AI can discover and use your content. Useful, accessible pages remain the foundation. Findable checks access, readable content, links and structured data; it does not measure or guarantee citations in an AI answer.',
+        'Training crawlers such as GPTBot have a different purpose from search crawlers and user-triggered retrieval. Blocking training is not the same as blocking AI search. Neither llms.txt nor a special schema format is required to appear in an AI answer; content advice remains guidance, with evidence and limits.',
+        `findable-audit samples several pages and runs ${CHECK_COUNT} checks across 8 weighted families. The report separates measured defects from content advice, then prioritizes fixes. The score describes this sample, not every page or actual AI citations. The same open-source engine is available in the CLI and CI.`,
       ],
       // Outbound citations to the crawler operators' own documentation: these are
       // the primary sources behind the AI-access family, and they are what our own
       // `outbound-citations` check asks every audited page to provide.
-      sourcesTitle: 'Crawler documentation',
+      sourcesTitle: 'Sources — crawler documentation',
       sources: [
         { label: 'OpenAI — GPTBot, OAI-SearchBot and ChatGPT-User', url: 'https://developers.openai.com/api/docs/bots' },
         { label: 'Anthropic — ClaudeBot and how site owners can block it', url: 'https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler' },
@@ -145,20 +150,25 @@ export const WEB_MESSAGES = {
       ],
     },
     nav: {
+      audit: 'Audit',
+      compare: 'Compare',
+      example: 'Example report',
+      by: 'by PB OpenTech',
+      source: 'Source on GitHub',
       about: 'About',
       contact: 'Contact',
     },
     about: {
       title: 'About findable-audit — open-source SEO + GEO audit',
-      description: 'What findable-audit checks and why: 137 SEO and GEO checks across 8 weighted families, how the A–F score works, and the open-source project behind it.',
+      description: `What findable-audit checks and why: ${CHECK_COUNT} SEO and GEO checks across 8 weighted families, how the A–F score works, and the open-source project behind it.`,
       h1: 'About findable-audit',
       // The FIRST paragraph is deliberately a short, self-contained answer
       // (40–320 chars): that is exactly what our own `content-lead-answer`
       // check rewards, and what an answer engine lifts as a definition.
       blocks: [
         { p: 'findable-audit is a free, open-source tool that measures how findable a website is — by classic search engines and by AI assistants such as ChatGPT, Claude and Perplexity.' },
-        { p: 'It answers one question: when someone searches for what you offer, can search engines and AI crawlers reach your pages, extract your content and cite you as a source?' },
-        { h2: 'What it checks', p: 'Each audit samples several pages of the target site and runs 137 checks grouped into 8 weighted families: AI access (robots directives for GPTBot, ClaudeBot and friends), answer-engine content (llms.txt, extractable server-rendered copy), structured data (JSON-LD entities, Open Graph), technical SEO (canonicals, redirects, sitemaps), on-page semantics (titles, headings, internal links), performance and Core Web Vitals, accessibility, and security headers.' },
+        { p: 'It answers one question: what verifiable obstacles prevent search engines and AI search tools from reaching and using the pages in your sample?' },
+        { h2: 'What it checks', p: `Each audit samples several pages and runs ${CHECK_COUNT} checks grouped into 8 weighted families: AI crawler access, answer-engine content, structured data, technical SEO, on-page semantics, performance and Core Web Vitals, accessibility, and security headers. Training robots and search robots have different purposes. Content heuristics are advisory; llms.txt is an experimental convention, not a requirement for AI visibility.` },
         { h2: 'How scoring works', p: 'Every check awards points and ships with a concrete, prioritized fix. Family scores are weighted into a single 0–100 score and an A–F grade, so two audits of the same site are directly comparable over time — the CLI can even fail a CI build when a deploy regresses the score.' },
         { h2: 'Open source', p: 'The engine is MIT-licensed and dependency-light. The same check catalogue powers this web app, a command-line tool and a CI gate. This site is audited with its own engine — dogfooding keeps the recommendations honest.' },
       ],
@@ -183,11 +193,11 @@ export const WEB_MESSAGES = {
         },
         {
           q: 'How is GEO different from SEO?',
-          a: 'SEO optimizes for ranked links on a results page. GEO optimizes for being reached, extracted and cited inside an AI answer. findable-audit scores both in one pass, because a single crawl answers both questions.',
+          a: 'SEO concerns search results; GEO concerns how AI search uses sources. They share foundations: accessible, useful and clearly presented content. Findable measures technical prerequisites and reports content guidance. A crawl cannot prove that an assistant will mention or cite a site.',
         },
         {
           q: 'What do you keep about the sites I audit?',
-          a: 'The report itself is ephemeral and expires from the server a few minutes after the audit ends. One minimal usage record per audit is kept: the URL and its domain, the score, the grade, the eight family sub-scores, a timestamp and a salted hash of the IP address. Page contents and findings are never stored.',
+          a: 'The report is available for up to 30 minutes after completion, subject to server capacity. One minimal usage record per audit is kept: the URL and its domain, the score, the grade, the eight family sub-scores, a timestamp and a salted hash of the IP address. Page contents and findings are never stored.',
         },
         {
           q: 'Can I run findable-audit in continuous integration?',
@@ -195,7 +205,7 @@ export const WEB_MESSAGES = {
         },
       ],
       // Outbound citations to the peer-reviewed work the tool's priorities rest on.
-      sourcesHeading: 'Research this tool builds on',
+      sourcesHeading: 'Sources and research',
       sources: [
         { label: 'GEO: Generative Engine Optimization (KDD 2024) — arXiv 2311.09735', url: 'https://arxiv.org/abs/2311.09735' },
         { label: 'C-SEO Bench: content rewriting is largely ineffective — arXiv 2506.11097', url: 'https://arxiv.org/abs/2506.11097' },
@@ -208,7 +218,7 @@ export const WEB_MESSAGES = {
       h1: 'Contact',
       blocks: [
         { p: 'findable-audit is developed in the open on GitHub. The fastest way to reach the team — for a bug, a question or a new-check proposal — is to open an issue on the repository; issues are read in both French and English. You do not need an account on this site: there is nothing to sign up for, and both the web app and the CLI are free to use.' },
-        { h2: 'Report a bug', p: 'Include the audited URL, the grade you got and, if possible, the exported Markdown or JSON report. Audits are ephemeral: reports expire from the server a few minutes after they finish, so attach the export itself rather than a link to it.' },
+        { h2: 'Report a bug', p: 'Include the audited URL, the grade you got and, if possible, the exported Markdown or JSON report. Reports are available for up to 30 minutes after completion, subject to server capacity: attach the export itself rather than a temporary link.' },
         { h2: 'Security reports', p: 'For a security issue in the tool or in this site, please use the contact listed in our security.txt policy below rather than a public issue.' },
       ],
       linksHeading: 'Links',
@@ -224,6 +234,10 @@ export const WEB_MESSAGES = {
     result: {
       // Punctuation is baked in (locale-dependent): EN uses a plain colon…
       download: 'Download:',
+      expiry: 'Available for up to 30 minutes after completion, subject to server capacity. Download a copy to keep your findings.',
+      actionsLabel: 'Report actions',
+      exampleBack: 'Back to Findable',
+      exampleNote: 'Archived report · {date} · engine {version}. A measured example, not a current audit.',
     },
     generate: {
       heading: 'Generate indexing files',
@@ -232,8 +246,9 @@ export const WEB_MESSAGES = {
     // #59: compare this audit with a previous one the reader already has.
     baseline: {
       summary: 'Compare with a previous audit',
-      help: 'Paste a previous JSON report (the JSON download above, or a CLI --report audit.json). It is diffed and rendered on the spot — nothing is stored.',
+      help: 'Choose a previous Findable JSON report or paste it below (2 MB maximum). A selected file takes priority. It is compared immediately and is not stored.',
       label: 'Previous audit, as JSON',
+      fileLabel: 'Import a JSON report',
       cta: 'Show the diff',
     },
     compare: {
@@ -243,6 +258,8 @@ export const WEB_MESSAGES = {
       lead: 'Audit your site next to up to two competitors — see where you lead and where you trail, family by family.',
       urlLabel: 'Your URL',
       competitorsLabel: 'Competitor URLs (comma-separated, up to 2)',
+      competitorOne: 'First competitor',
+      competitorTwo: 'Second competitor (optional)',
       cta: 'Compare',
       hint: 'Public http(s) URLs. Core Web Vitals are skipped in compare mode to keep it fast.',
       progressTitle: 'Comparison in progress',
@@ -281,24 +298,25 @@ export const WEB_MESSAGES = {
       reportNotReady: { title: 'Rapport pas encore prêt', message: "Ce rapport n'est pas encore disponible au téléchargement." },
       captchaFailed: { title: 'Vérification échouée', message: "Nous n'avons pas pu confirmer que vous n'êtes pas un robot. Veuillez réessayer." },
       // #59 : la baseline collée est inutilisable (pas du JSON, ou pas un rapport findable).
-      badBaseline: { title: "Ce n’est pas un rapport findable-audit", message: "Ce collage n’est pas un rapport JSON findable-audit. Lancez la CLI avec --report audit.json (ou utilisez le téléchargement JSON ci-dessus) et collez le fichier entier." },
-      jobGone: { title: 'Rapport expiré', message: "Ce rapport n’est plus en mémoire — les rapports ne sont gardés que quelques minutes. Relancez l’audit, puis collez votre baseline." },
+      badBaseline: { title: "Ce n’est pas un rapport findable-audit", message: 'Ce contenu n’est pas un rapport JSON findable-audit. Choisissez un fichier JSON exporté ou collez son contenu complet.' },
+      jobGone: { title: 'Rapport expiré', message: "Ce rapport n’est plus disponible. Les rapports terminés sont gardés jusqu’à 30 minutes, selon la capacité du serveur. Relancez l’audit, puis importez votre précédent rapport." },
       back: 'Auditer un autre site',
     },
     landing: {
       title: 'Audit SEO & findabilité IA, noté A–F — findable-audit',
+      description: 'Audit SEO et GEO gratuit : examinez l’accès des robots, le contenu lisible et la qualité technique, avec des preuves et des corrections priorisées.',
       eyebrow: 'SEO classique + GEO (findabilité IA) · open source',
       h1Lead: 'Votre ',
       h1Accent: 'SEO et votre findabilité IA',
       h1Tail: ', notés A–F.',
-      lead: "Auditez le référencement d'un site — par les moteurs de recherche classiques ET par les crawlers IA (GPTBot, ClaudeBot, PerplexityBot…) — en une passe, avec un plan d'action priorisé.",
+      lead: 'Repérez ce qui empêche les moteurs de recherche et les outils de recherche IA d’accéder à vos pages et d’exploiter leur contenu. Obtenez des constats mesurés, leurs preuves et un plan de correction priorisé.',
       urlLabel: 'URL du site',
       cta: 'Auditer',
       // #60 : profondeur de crawl, bornée côté serveur (PAGE_CHOICES).
       depthLabel: 'Pages à auditer',
       // #66 : la profondeur est une intention, pas un nombre.
-      depthOption: (n) => (n === 1 ? 'Page d’accueil seule — vérification rapide' : n <= 3 ? `${n} pages — audit de gabarits` : `${n} pages — échantillon complet`),
-      hint: 'Entrez une URL http(s) publique. Les adresses internes, privées ou réservées sont refusées.',
+      depthOption: (n) => (n === 1 ? 'Page d’accueil seule — vérification rapide' : n <= 3 ? `${n} pages — audit de gabarits` : `${n} pages — échantillon élargi`),
+      hint: 'Un domaine ou une URL publique suffit. Sans compte. Analyse d’un échantillon de 6 pages maximum.',
       // Deux modes, un seul formulaire (L2) : les onglets sont des <a href="#…">
       // + :target, la landing garde donc sa CSP `script-src 'none'`.
       modeSingle: 'Un site',
@@ -312,18 +330,18 @@ export const WEB_MESSAGES = {
         { n: 'Utilisable', q: 'la page tient-elle la route, pour un humain et pour un agent ?' },
       ],
       // L5 : montrer le livrable au lieu de le décrire.
-      previewTitle: 'Ce que vous obtenez',
-      previewVerdict: 'Les robots atteignent vos pages, mais un assistant IA n’y trouve pas de fiche d’identité structurée : il peut vous décrire, pas vous citer.',
-      previewPlanTitle: 'Plan d’action · rapide',
-      previewPlan: [
-        { f: 'Accès IA', t: 'Le fichier d’orientation /llms.txt', p: '+10 pts' },
-        { f: 'Données', t: 'Identité ancrée par des liens sameAs', p: '+2 pts' },
-      ],
+      previewTitle: 'Un vrai rapport, avant de commencer',
+      previewVerdict: 'Notre propre site, audité avec Findable. Ce score archivé décrit les pages échantillonnées au moment de la mesure.',
+      previewPlanTitle: 'Constats de ce rapport',
+      previewSource: 'Audit archivé de {host} · {date} · moteur {version}',
+      previewStatuses: { pass: 'Réussis', warn: 'À examiner', fail: 'À corriger', skip: 'Non applicables' },
+      previewFamilies: ['Accès IA', 'Données structurées', 'SEO technique'],
+      previewPlan: [],
       exampleLink: 'Voir un rapport d’exemple complet',
       // L8 : l'argument le plus fort du produit, écrit nulle part jusqu'ici.
       // Le chiffre est vérifié contre le moteur réel par un test de dogfooding.
-      proof: 'Ce site obtient 99/100 (A) avec son propre moteur — et les deux avertissements restants sont documentés plutôt que masqués.',
-      familiesTitle: '8 familles pondérées · 137 vérifications',
+      proof: 'Une méthode vérifiable. Les contrôles, leurs preuves et leurs limites restent visibles. Un score technique ne mesure pas les mentions dans les réponses IA.',
+      familiesTitle: `8 familles pondérées · ${CHECK_COUNT} vérifications`,
       familiesDetails: 'Le détail des 8 familles de score',
       families: ['Accès IA', 'Contenu pour moteurs de réponse', 'Données structurées', 'SEO technique', 'On-page', 'Performance / CWV', 'Accessibilité', 'Sécurité'],
       howTitle: 'Comment ça marche',
@@ -339,7 +357,7 @@ export const WEB_MESSAGES = {
       // Le site est aussi la surface de distribution du paquet : sans cette section,
       // personne qui arrive ici n'apprend que la CLI, l'Action et le plugin existent.
       devTitle: 'À lancer soi-même, ou en CI',
-      devLead: 'Le moteur qui vient d’auditer votre site est une CLI open source. Sans compte, sans clé, et rien ne quitte votre machine.',
+      devLead: 'Le même moteur est une CLI open source. Lancez vos audits sans compte et conservez vos rapports sur votre machine.',
       devCmd: 'npx findable-audit https://votre-site.com',
       devList: 'Le même moteur, empaqueté de quatre façons :',
       devNpm: 'le paquet publié, sous licence MIT — à installer globalement ou à lancer avec npx.',
@@ -348,13 +366,14 @@ export const WEB_MESSAGES = {
       devSource: 'moteur, application web et guide des checks — issues et pull requests bienvenues.',
       geoTitle: 'Pourquoi le GEO compte',
       geoBody: [
-        'Le GEO (Generative Engine Optimization) consiste à rendre un site trouvable, extractible et citable par les assistants IA comme ChatGPT, Claude ou Perplexity. Ces assistants répondent directement aux questions, et ne peuvent recommander que les sites que leurs crawlers atteignent, comprennent et jugent fiables. Un site qui bloque GPTBot, cache son contenu derrière du JavaScript ou n’expose aucune donnée structurée est invisible dans les réponses IA — quel que soit son classement Google classique.',
-        'findable-audit mesure les deux dimensions en une seule passe : le crawl échantillonne plusieurs pages, exécute 137 vérifications réparties en 8 familles pondérées, puis rend une note A–F avec les corrections à appliquer en premier. Rien à installer, pas de compte — et le moteur est open source : les mêmes vérifications alimentent la CLI utilisable en CI.',
+        'Le GEO (Generative Engine Optimization) concerne la découverte et l’utilisation de vos contenus par les outils de recherche IA. Des pages utiles et accessibles restent la base. Findable contrôle l’accès, le contenu lisible, les liens et les données structurées ; il ne mesure ni ne garantit les citations dans une réponse IA.',
+        'Les robots d’entraînement comme GPTBot ont un rôle différent des robots de recherche et des visites déclenchées par un utilisateur. Bloquer l’entraînement ne revient pas à bloquer la recherche IA. Ni llms.txt ni un format de schéma particulier ne sont requis pour apparaître dans une réponse IA ; les conseils de contenu restent accompagnés de leurs preuves et limites.',
+        `findable-audit échantillonne plusieurs pages et exécute ${CHECK_COUNT} vérifications réparties en 8 familles pondérées. Le rapport distingue les défauts mesurés des conseils de contenu, puis classe les corrections. Le score décrit cet échantillon, pas toutes les pages ni les citations IA réelles. Le même moteur open source est disponible en CLI et en CI.`,
       ],
       // Citations sortantes vers la documentation des opérateurs de crawlers :
       // ce sont les sources primaires de la famille « accès IA », et c'est
       // exactement ce que notre check `outbound-citations` demande à toute page.
-      sourcesTitle: 'Documentation des crawlers',
+      sourcesTitle: 'Sources — documentation des robots',
       sources: [
         { label: 'OpenAI — GPTBot, OAI-SearchBot et ChatGPT-User', url: 'https://developers.openai.com/api/docs/bots' },
         { label: 'Anthropic — ClaudeBot et comment le bloquer', url: 'https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler' },
@@ -363,20 +382,25 @@ export const WEB_MESSAGES = {
       ],
     },
     nav: {
+      audit: 'Auditer',
+      compare: 'Comparer',
+      example: 'Exemple de rapport',
+      by: 'par PB OpenTech',
+      source: 'Code sur GitHub',
       about: 'À propos',
       contact: 'Contact',
     },
     about: {
       title: 'À propos de findable-audit — audit SEO + GEO open source',
-      description: 'Ce que findable-audit vérifie et pourquoi : 137 contrôles SEO et GEO en 8 familles pondérées, le fonctionnement de la note A–F et le projet open source.',
+      description: `Ce que findable-audit vérifie et pourquoi : ${CHECK_COUNT} contrôles SEO et GEO en 8 familles pondérées, le fonctionnement de la note A–F et le projet open source.`,
       h1: 'À propos de findable-audit',
       // Le PREMIER paragraphe est volontairement une réponse courte et
       // autoportante (40–320 caractères) : c'est exactement ce que récompense
       // notre check `content-lead-answer`, et ce qu'un moteur de réponse extrait.
       blocks: [
         { p: 'findable-audit est un outil gratuit et open source qui mesure la findabilité d’un site web — par les moteurs de recherche classiques et par les assistants IA comme ChatGPT, Claude ou Perplexity.' },
-        { p: 'Il répond à une question : quand quelqu’un cherche ce que vous proposez, les moteurs et les crawlers IA peuvent-ils atteindre vos pages, extraire votre contenu et vous citer comme source ?' },
-        { h2: 'Ce qui est vérifié', p: 'Chaque audit échantillonne plusieurs pages du site cible et exécute 137 contrôles regroupés en 8 familles pondérées : accès IA (directives robots pour GPTBot, ClaudeBot et consorts), contenu pour moteurs de réponse (llms.txt, contenu extractible rendu côté serveur), données structurées (entités JSON-LD, Open Graph), SEO technique (canonicals, redirections, sitemaps), sémantique on-page (titres, intertitres, liens internes), performance et Core Web Vitals, accessibilité, et en-têtes de sécurité.' },
+        { p: 'Il répond à une question : quels obstacles vérifiables empêchent les moteurs de recherche et les outils de recherche IA d’accéder aux pages de votre échantillon et d’en exploiter le contenu ?' },
+        { h2: 'Ce qui est vérifié', p: `Chaque audit échantillonne plusieurs pages et exécute ${CHECK_COUNT} contrôles en 8 familles pondérées : accès des robots IA, contenu pour moteurs de réponse, données structurées, SEO technique, sémantique on-page, performance et Core Web Vitals, accessibilité et sécurité. Les robots d’entraînement et de recherche ont des rôles distincts. Les heuristiques de contenu sont des conseils ; llms.txt reste une convention expérimentale, pas un prérequis de visibilité IA.` },
         { h2: 'Comment le score fonctionne', p: 'Chaque contrôle rapporte des points et vient avec une correction concrète et priorisée. Les scores par famille sont pondérés en un score unique sur 100 et une note A–F : deux audits du même site sont directement comparables dans le temps — la CLI peut même faire échouer un build CI quand un déploiement fait régresser le score.' },
         { h2: 'Open source', p: 'Le moteur est sous licence MIT, avec très peu de dépendances. Le même catalogue de contrôles alimente cette application web, un outil en ligne de commande et une gate CI. Ce site est audité avec son propre moteur — le dogfooding garde les recommandations honnêtes.' },
       ],
@@ -401,11 +425,11 @@ export const WEB_MESSAGES = {
         },
         {
           q: 'Quelle différence entre le GEO et le SEO ?',
-          a: 'Le SEO optimise le classement de liens sur une page de résultats. Le GEO optimise le fait d’être atteint, extrait et cité à l’intérieur d’une réponse IA. findable-audit note les deux en une passe, parce qu’un seul crawl répond aux deux questions.',
+          a: 'Le SEO concerne les résultats de recherche ; le GEO concerne l’utilisation des sources par la recherche IA. Ils partagent des bases : un contenu accessible, utile et clair. Findable mesure des prérequis techniques et formule des conseils. Un crawl ne prouve pas qu’un assistant mentionnera ou citera un site.',
         },
         {
           q: 'Que conservez-vous des sites que j’audite ?',
-          a: 'Le rapport lui-même est éphémère et expire du serveur quelques minutes après la fin de l’audit. Un enregistrement d’usage minimal est conservé par audit : l’URL et son domaine, le score, la note, les huit sous-scores par famille, un horodatage et une empreinte salée de l’adresse IP. Le contenu des pages et les résultats détaillés ne sont jamais stockés.',
+          a: 'Le rapport est disponible jusqu’à 30 minutes après la fin, selon la capacité du serveur. Un enregistrement d’usage minimal est conservé par audit : l’URL et son domaine, le score, la note, les huit sous-scores par famille, un horodatage et une empreinte salée de l’adresse IP. Le contenu des pages et les résultats détaillés ne sont jamais stockés.',
         },
         {
           q: 'Puis-je utiliser findable-audit en intégration continue ?',
@@ -413,7 +437,7 @@ export const WEB_MESSAGES = {
         },
       ],
       // Citations sortantes vers les travaux sur lesquels reposent nos priorités.
-      sourcesHeading: 'La recherche derrière l’outil',
+      sourcesHeading: 'Sources et recherche',
       sources: [
         { label: 'GEO : Generative Engine Optimization (KDD 2024) — arXiv 2311.09735', url: 'https://arxiv.org/abs/2311.09735' },
         { label: 'C-SEO Bench : réécrire le contenu est largement inefficace — arXiv 2506.11097', url: 'https://arxiv.org/abs/2506.11097' },
@@ -426,7 +450,7 @@ export const WEB_MESSAGES = {
       h1: 'Contact',
       blocks: [
         { p: 'findable-audit est développé en public sur GitHub. Le moyen le plus rapide de joindre l’équipe — pour un bug, une question ou une proposition de contrôle — est d’ouvrir une issue sur le dépôt ; les issues sont lues en français comme en anglais. Aucun compte n’est nécessaire sur ce site : il n’y a rien à créer, et l’application web comme la CLI sont gratuites.' },
-        { h2: 'Signaler un bug', p: 'Indiquez l’URL auditée, la note obtenue et, si possible, l’export Markdown ou JSON du rapport. Les audits sont éphémères : les rapports expirent du serveur quelques minutes après leur fin — joignez donc l’export lui-même plutôt qu’un lien.' },
+        { h2: 'Signaler un bug', p: 'Indiquez l’URL auditée, la note obtenue et, si possible, l’export Markdown ou JSON du rapport. Les rapports sont disponibles jusqu’à 30 minutes après la fin, selon la capacité du serveur : joignez l’export lui-même plutôt qu’un lien temporaire.' },
         { h2: 'Signalements de sécurité', p: 'Pour un problème de sécurité dans l’outil ou sur ce site, utilisez le contact indiqué dans notre politique security.txt ci-dessous plutôt qu’une issue publique.' },
       ],
       linksHeading: 'Liens',
@@ -442,6 +466,10 @@ export const WEB_MESSAGES = {
     result: {
       // …FR puts a non-breaking space before the colon (French typography).
       download: 'Télécharger :',
+      expiry: 'Disponible jusqu’à 30 minutes après la fin, selon la capacité du serveur. Téléchargez une copie pour conserver vos résultats.',
+      actionsLabel: 'Actions du rapport',
+      exampleBack: 'Retour à Findable',
+      exampleNote: 'Rapport archivé · {date} · moteur {version}. Un exemple mesuré, pas un audit actuel.',
     },
     generate: {
       heading: 'Générer les fichiers d’indexation',
@@ -450,8 +478,9 @@ export const WEB_MESSAGES = {
     // #59 : comparer cet audit avec un précédent que le lecteur possède déjà.
     baseline: {
       summary: 'Comparer avec un audit précédent',
-      help: 'Collez un rapport JSON précédent (le téléchargement JSON ci-dessus, ou un --report audit.json de la CLI). Il est comparé et affiché sur-le-champ — rien n’est conservé.',
+      help: 'Choisissez un précédent rapport JSON Findable ou collez-le ci-dessous (2 Mo maximum). Le fichier choisi est prioritaire. Il est comparé immédiatement, sans être conservé.',
       label: 'Audit précédent, en JSON',
+      fileLabel: 'Importer un rapport JSON',
       cta: 'Afficher l’écart',
     },
     compare: {
@@ -461,6 +490,8 @@ export const WEB_MESSAGES = {
       lead: 'Auditez votre site à côté de deux concurrents maximum — voyez où vous menez et où vous êtes devancé, famille par famille.',
       urlLabel: 'Votre URL',
       competitorsLabel: 'URL concurrentes (séparées par des virgules, 2 max)',
+      competitorOne: 'Premier concurrent',
+      competitorTwo: 'Second concurrent (facultatif)',
       cta: 'Comparer',
       hint: 'URL http(s) publiques. Les Core Web Vitals sont ignorés en mode comparaison pour rester rapide.',
       progressTitle: 'Comparaison en cours',
