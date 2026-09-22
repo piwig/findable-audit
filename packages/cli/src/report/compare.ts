@@ -18,7 +18,13 @@ function scoreClass(s: number): string { return s >= 80 ? 'good' : s >= 60 ? 'ok
  */
 export interface CompareRenderOptions { cwvNote?: boolean }
 
-interface Column { host: string; you: boolean; score: number; grade: string; fam: Map<Family, number>; }
+interface Column { host: string; you: boolean; score: number; grade: string; fam: Map<Family, number>; pages: number; applicable: number; }
+
+function scopeLabels(lang: Lang) {
+  return lang === 'fr'
+    ? { pages: 'Pages examinées', applicable: 'Contrôles applicables', note: 'Comparaison des échantillons examinés : les pages et les contrôles applicables peuvent différer selon le site. Le meilleur score observé ne prouve pas une meilleure visibilité, un classement ou des citations.' }
+    : { pages: 'Pages examined', applicable: 'Applicable checks', note: 'Comparison of examined samples: pages and applicable checks may differ by site. The highest observed score does not establish better visibility, rankings or citations.' };
+}
 
 function columns(reports: AuditReport[]): Column[] {
   return reports.map((r, i) => ({
@@ -27,6 +33,8 @@ function columns(reports: AuditReport[]): Column[] {
     score: r.score,
     grade: r.grade,
     fam: new Map(r.familyScores.map((f) => [f.family, f.score])),
+    pages: r.sampledPages.length,
+    applicable: r.results.filter((c) => c.status !== 'skip').length,
   }));
 }
 
@@ -61,6 +69,9 @@ export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en',
   const fams = familiesOf(cols, lang);
   const header = ['', ...cols.map((c) => `${c.host}${c.you ? ` (${m.compareYou})` : ''}`)];
   const lines: string[] = [`## ${m.compareTitle}`, '', `| ${header.join(' | ')} |`, `|${header.map(() => '---').join('|')}|`];
+  const scope = scopeLabels(lang);
+  lines.push(`| ${scope.pages} | ${cols.map((c) => c.pages).join(' | ')} |`);
+  lines.push(`| ${scope.applicable} | ${cols.map((c) => c.applicable).join(' | ')} |`);
   // overall row
   const leaderScore = Math.max(...cols.map((c) => c.score));
   lines.push(`| **${m.compareOverall}** | ${cols.map((c) => `${c.score === leaderScore ? '**' : ''}${c.score}/100 ${c.grade}${c.score === leaderScore ? '** 🏆' : ''}`).join(' | ')} |`);
@@ -71,6 +82,7 @@ export function renderCompareMarkdown(reports: AuditReport[], lang: Lang = 'en',
     lines.push(`| ${labels[fam]} | ${vals.map((v) => (v == null ? '—' : `${v === best ? '**' : ''}${v}${v === best ? '**' : ''}`)).join(' | ')} |`);
   }
   if (opts.cwvNote !== false) lines.push('', `_${m.compareCwvNote}_`);
+  lines.push('', scope.note);
   lines.push('');
   const g = gaps(cols, fams, labels, m);
   lines.push(`### ${m.compareGapsTitle}`, '');
@@ -115,6 +127,9 @@ export function renderCompareHtml(reports: AuditReport[], now: Date = new Date()
   const date = now.toISOString().slice(0, 10);
   const leaderScore = Math.max(...cols.map((c) => c.score));
   const headCells = cols.map((c) => `<th class="${c.you ? 'you' : ''}">${esc(c.host)}${c.you ? ` (${esc(m.compareYou)})` : ''}</th>`).join('');
+  const scope = scopeLabels(lang);
+  const scopeRows = `<tr><td>${esc(scope.pages)}</td>${cols.map((c) => `<td>${c.pages}</td>`).join('')}</tr>`
+    + `<tr><td>${esc(scope.applicable)}</td>${cols.map((c) => `<td>${c.applicable}</td>`).join('')}</tr>`;
   const overall = `<tr><td><b>${esc(m.compareOverall)}</b></td>${cols.map((c) =>
     `<td class="s ${scoreClass(c.score)}${c.score === leaderScore ? ' lead' : ''}">${c.score}/100 · ${esc(c.grade)}</td>`).join('')}</tr>`;
   const famRows = fams.map((fam) => {
@@ -143,8 +158,9 @@ export function renderCompareHtml(reports: AuditReport[], now: Date = new Date()
 ${renderCompareChart(reports, lang)}
 <div class="cmp-wrap"><table>
 <thead><tr><th></th>${headCells}</tr></thead>
-<tbody>${overall}${famRows}</tbody>
+<tbody>${scopeRows}${overall}${famRows}</tbody>
 </table></div>
+<p class="comparison-scope">${esc(scope.note)}</p>
 ${opts.cwvNote !== false ? `<p class="cwv-note">${esc(m.compareCwvNote)}</p>\n` : ''}<h2>${esc(m.compareGapsTitle)}</h2>
 ${gapsHtml}
 <footer>${esc(m.footer)}</footer>
@@ -164,6 +180,9 @@ export function renderCompareTerminal(reports: AuditReport[], lang: Lang = 'en',
   const pad = (s: string, n: number) => s.length >= n ? s : s + ' '.repeat(n - s.length);
   const lines: string[] = [m.compareTitle, ''];
   lines.push(pad('', w) + cols.map((c) => pad(`${c.host}${c.you ? ` (${m.compareYou})` : ''}`, colW)).join(''));
+  const scope = scopeLabels(lang);
+  lines.push(pad(scope.pages, w) + cols.map((c) => pad(String(c.pages), colW)).join(''));
+  lines.push(pad(scope.applicable, w) + cols.map((c) => pad(String(c.applicable), colW)).join(''));
   const leaderScore = Math.max(...cols.map((c) => c.score));
   lines.push(pad(m.compareOverall, w) + cols.map((c) => pad(`${c.score}/100 ${c.grade}${c.score === leaderScore ? ' *' : ''}`, colW)).join(''));
   for (const fam of fams) {
@@ -173,6 +192,7 @@ export function renderCompareTerminal(reports: AuditReport[], lang: Lang = 'en',
     lines.push(pad(labels[fam], w) + vals.map((v) => pad(v == null ? '—' : `${v}${v === best ? ' *' : ''}`, colW)).join(''));
   }
   if (opts.cwvNote !== false) lines.push('', m.compareCwvNote);
+  lines.push('', scope.note);
   const g = gaps(cols, fams, labels, m);
   lines.push('', m.compareGapsTitle + ':');
   if (g.length === 0) lines.push('  ' + m.compareNoGaps);

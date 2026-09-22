@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
-import { createRequire } from 'node:module';
+import { TOOL_VERSION } from './version.js';
+import { validateBaseline } from './report/baseline.js';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { buildChecks } from './checks/index.js';
@@ -284,7 +285,7 @@ function reportFormatFor(file: string): ReportFormat {
 }
 
 if (values.version) {
-  console.log(createRequire(import.meta.url)('../package.json').version);
+  console.log(TOOL_VERSION);
   process.exit(0);
 }
 
@@ -497,22 +498,24 @@ if (emitProbesFile !== undefined && emitProbesFile.trim() === '') {
 }
 
 let baseline: AuditReport | undefined;
+let baselineError: string | undefined;
 if (values.baseline !== undefined) {
-  let parsedBaseline: unknown;
   try {
-    parsedBaseline = JSON.parse(readFileSync(values.baseline, 'utf8'));
+    const parsedBaseline: unknown = JSON.parse(readFileSync(values.baseline, 'utf8'));
+    const validated = validateBaseline(parsedBaseline, targetUrl);
+    if (validated.ok) baseline = validated.report;
+    else baselineError = validated.reason === 'different-site'
+      ? `baseline "${values.baseline}" belongs to a different site than ${targetUrl}`
+      : `"${values.baseline}" is not a valid audit report (expected a findable-audit --report *.json file)`;
   } catch (err) {
-    console.error(`findable-audit: cannot read baseline "${values.baseline}": ${(err as Error).message}`);
-    process.exit(2);
+    baselineError = `cannot read baseline "${values.baseline}": ${(err as Error).message}`;
   }
-  const b = parsedBaseline as Partial<AuditReport>;
-  if (!b || typeof b.score !== 'number' || !Array.isArray(b.results) || !Array.isArray(b.familyScores)) {
-    console.error(`findable-audit: "${values.baseline}" is not a valid audit report (expected a findable-audit --report *.json file)`);
-    process.exit(2);
-  }
-  baseline = b as AuditReport;
 }
 
+if (baselineError) {
+  console.error(`findable-audit: ${baselineError}`);
+  process.exitCode = 2;
+} else {
 // The HTML report draws the entity graph (#58), so it needs the graph attached
 // — same rule as --entity-graph and --emit. Decided before the audit because
 // the default report targets (md + html) are known up front. A JSON-only run
@@ -596,7 +599,6 @@ try {
   const auditOpts = { onProgress, timeoutMs, maxPages, userAgent, cwv: values.cwv, psiKey, psiStrategy: psiStrategy as 'mobile' | 'desktop', verifyProfiles: values['verify-profiles'], checkOutbound: values['check-outbound'], includeEntityGraph: entityGraphFile !== undefined || emitDir !== undefined || htmlReportWanted, includeAnswerMatrix: answersFile !== undefined || htmlReportWanted, priorityQuestions: localContext?.priorityQuestions };
   note(`auditing ${targetUrl} (up to ${maxPages} page${maxPages === 1 ? '' : 's'}, timeout ${timeoutMs}ms)…`);
   const report = await runAudit(targetUrl, checks, auditOpts);
-  report.toolVersion = createRequire(import.meta.url)('../package.json').version;
 
   // --baseline: diff the fresh report against a prior audit.json.
   const diff: ReportDiff | undefined = baseline ? diffReports(report, baseline) : undefined;
@@ -854,6 +856,7 @@ try {
   } else {
     throw err;
   }
+}
 }
 }
 }

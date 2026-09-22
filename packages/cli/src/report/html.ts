@@ -134,7 +134,7 @@ const STYLE = `
   .top-fixes .ap-sev { display: inline-block; margin-right: .35rem; top: 0; }
   .viz-scatter { margin: .9rem 0 0; }
   .viz-scatter h3 { margin: 0 0 .3rem; font-size: .85rem; color: var(--muted); }
-  .viz-scatter svg { width: 100%; height: auto; display: block; }
+  .viz-scatter svg { width: 100%; max-width: 35rem; height: auto; display: block; }
   .lane { margin: 1.1rem 0 0; }
   .lane-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap;
     border-bottom: 1px solid var(--line); padding-bottom: .3rem; }

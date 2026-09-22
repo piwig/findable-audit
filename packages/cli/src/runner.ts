@@ -1,4 +1,5 @@
 import { Crawler } from './crawler.js';
+import { TOOL_VERSION } from './version.js';
 import { samplePages } from './sampler.js';
 import type { Check, CheckResult, Family, PageSample } from './types.js';
 import { makeResult } from './types.js';
@@ -198,7 +199,7 @@ export async function runAudit(url: string, checks: Check[], opts: AuditOptions 
   const sampledPages = crawler.sample.pages.map(pathOf);
   return {
     url: crawler.baseUrl.toString(), score, grade, familyScores, sampledPages, results,
-    psi: crawler.psi, generatedAt: new Date().toISOString(),
+    psi: crawler.psi, generatedAt: new Date().toISOString(), toolVersion: TOOL_VERSION,
     pageMeta: extractPageMeta(crawler.sample.pages),
     sampleCoverage: { sampled: sampledPages.length, maxPages: pageCap, limitReached: sampledPages.length >= pageCap, source: crawler.sample.source, exhaustive: false },
     ...(opts.priorityQuestions ? { priorityAnswers: evaluatePriorityQuestions(crawler.sample.pages, opts.priorityQuestions) } : {}),

@@ -157,11 +157,13 @@ const SCATTER_EFFORTS: Effort[] = ['quick', 'moderate', 'involved'];
 export function renderImpactEffortScatter(points: ScatterPoint[], lang: Lang): string {
   if (points.length === 0) return '';
   const m = messages(lang);
-  const width = 560;
-  const height = 260;
+  // A phone renders this inside ~300px. The old 560-unit canvas reduced
+  // 11px lane labels to 6px; keep the chart readable without horizontal scroll.
+  const width = 360;
+  const height = 220;
   const padL = 34;
   const padR = 16;
-  const padT = 14;
+  const padT = 30;
   const padB = 34;
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
@@ -194,7 +196,14 @@ export function renderImpactEffortScatter(points: ScatterPoint[], lang: Lang): s
     const x = padL + i * laneW;
     const rule = i > 0 ? `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>` : '';
     const cx = laneCenterX(effort);
-    return `${rule}<text x="${cx}" y="${height - 10}" text-anchor="middle" font-family="${FONT}" font-size="11" fill="${MUTED}">${esc(m.effortLabel[effort])}</text>`;
+    return `${rule}<text x="${cx}" y="${height - 10}" text-anchor="middle" font-family="${FONT}" font-size="14" fill="${MUTED}">${esc(m.effortLabel[effort])}</text>`;
+  }).join('\n');
+
+  const scale = [maxImpact, maxImpact / 2, 0].map((value, index) => {
+    const y = yOf(value);
+    const text = index === 0 ? `${value} ${m.pts}` : String(value);
+    return `<line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="${TRACK}" stroke-width="1"/>`
+      + `<text x="0" y="${y - 8}" font-family="${FONT}" font-size="13" fill="${MUTED}">${esc(text)}</text>`;
   }).join('\n');
 
   const label = m.impactEffortLabel(points.length);
@@ -203,6 +212,7 @@ export function renderImpactEffortScatter(points: ScatterPoint[], lang: Lang): s
 <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>
 <line x1="${padL}" y1="${padT + plotH}" x2="${width - padR}" y2="${padT + plotH}" stroke="${TRACK}" stroke-width="1"/>
 ${laneLines}
+${scale}
 ${dots}
 </svg>`;
 }

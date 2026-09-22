@@ -3,7 +3,7 @@ import https from 'node:https';
 import net from 'node:net';
 import dns from 'node:dns';
 import zlib from 'node:zlib';
-import { createRequire } from 'node:module';
+import { TOOL_VERSION } from './version.js';
 import type { CrawlContext, FetchedResource, PageSample, FetchChainResult, FetchHop } from './types.js';
 import type { PsiResult } from './perf/psi.js';
 import { isBlockedAddress } from './ssrf.js';
@@ -84,9 +84,7 @@ function readNodeBody(res: http.IncomingMessage): Promise<string> {
  * What every audited site sees in its access log. Read from package.json rather than
  * written by hand: the literal said `0.1` for ten releases because nothing kept it in step.
  */
-export const DEFAULT_UA = `findable-audit/${
-  (createRequire(import.meta.url)('../package.json') as { version: string }).version
-} (+https://github.com/piwig/findable-audit)`;
+export const DEFAULT_UA = `findable-audit/${TOOL_VERSION} (+https://github.com/piwig/findable-audit)`;
 
 /** Default policy: only the scheme-default port (empty) or the two web ports. */
 function defaultAllowedPort(port: string): boolean {

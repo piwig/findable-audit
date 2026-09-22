@@ -365,9 +365,32 @@ so canonical, Open Graph, sitemap and robots URLs are correct.
 | `TURNSTILE_SITE_KEY` | *(unset)* | Cloudflare Turnstile public site key → enables the CAPTCHA widget. See [Cloudflare Turnstile](#cloudflare-turnstile-optional-captcha) below. |
 | `TURNSTILE_SECRET_KEY` | *(unset)* | Cloudflare Turnstile secret key, used server-side only for `siteverify`. Required alongside `TURNSTILE_SITE_KEY` to enable the gate. |
 
-### Known follow-ups
+### Audit recovery and release verification — 2026-09-22
 
-- `errorPage()` (plain HTML error page, used by the async 2B routes) and
-  `localizedErrorPage()` (introduced in the 2C i18n landing work) are
-  intentionally kept as two separate functions for now. Unify them once 2C
-  lands so every error path is localized through one code path.
+The hero keeps the grade range `A–F.` together at narrow widths without reducing
+the surrounding type. Its visible wording and screen-reader reading order stay
+unchanged in both languages.
+
+Human-facing result and download errors share one localized error renderer.
+Expired jobs return **404**, explain the 30-minute retention limit and link to a
+new audit. Explicit `/en` or `/fr` takes precedence over the browser language;
+progress and download links retain the selected language after the job expires.
+URL rejection messages use the existing SSRF guard's stable error codes. The
+validation rules remain in that guard.
+
+Baseline imports use the CLI's shared `validateBaseline` contract. Invalid
+nested values, out-of-range scores and another hostname return **400** with a
+link back to the current report. Historical reports without version metadata
+remain accepted; a path change or an HTTP-to-HTTPS change on the same hostname
+is allowed. The uploaded content is never saved to the job or the store.
+
+Release smoke checks now wait up to ten minutes for the **exact tagged npm
+version**, with individually bounded registry requests and a 20-minute job
+timeout. If unavailable, readiness fails explicitly before any install. This
+addresses 0.12.0's roughly three-minute registry propagation delay.
+
+Validation for this change: CLI rebuild, **275 web tests passed** with an
+isolated temporary `DATA_DIR`; readiness Bash syntax plus simulated delayed
+availability (eighth probe), persistent absence and wrong-version responses.
+The simulations make no registry requests. Browser layout review and the real
+published-package smoke run are separate release checks.

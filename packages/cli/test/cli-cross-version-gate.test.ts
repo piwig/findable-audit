@@ -34,12 +34,12 @@ function runCli(args: string[]): Promise<{ code: number; stderr: string }> {
 }
 
 /** A baseline nobody can beat, so the gate would always trip if it were applied. */
-function writeBaseline(toolVersion?: string): string {
+function writeBaseline(url: string, toolVersion?: string): string {
   const dir = mkdtempSync(path.join(tmpdir(), 'findable-xver-'));
   workdirs.push(dir);
   const file = path.join(dir, 'baseline.json');
   writeFileSync(file, JSON.stringify({
-    url: 'https://ex.com/', score: 100, grade: 'A',
+    url, score: 100, grade: 'A',
     familyScores: [{ family: 'ai-access', score: 100, weight: 0.2, earned: 20, max: 20 }],
     sampledPages: ['/'], results: [], toolVersion,
   }));
@@ -51,7 +51,7 @@ describe('--fail-on-regression across findable-audit versions', () => {
     const srv = await serveFixture(path.join(fixtures, 'mini'));
     closers.push(srv.close);
     const { code, stderr } = await runCli([
-      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline('0.0.1'), '--fail-on-regression',
+      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(srv.url, '0.0.1'), '--fail-on-regression',
     ]);
     expect(code).toBe(0);
     expect(stderr).toContain('0.0.1');
@@ -62,7 +62,7 @@ describe('--fail-on-regression across findable-audit versions', () => {
     const srv = await serveFixture(path.join(fixtures, 'mini'));
     closers.push(srv.close);
     const { code } = await runCli([
-      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline('0.0.1'),
+      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(srv.url, '0.0.1'),
       '--fail-on-regression', '--allow-cross-version',
     ]);
     expect(code).toBe(1);
@@ -74,7 +74,7 @@ describe('--fail-on-regression across findable-audit versions', () => {
     const srv = await serveFixture(path.join(fixtures, 'mini'));
     closers.push(srv.close);
     const { code } = await runCli([
-      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(version), '--fail-on-regression',
+      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(srv.url, version), '--fail-on-regression',
     ]);
     expect(code).toBe(1);
   });
@@ -83,7 +83,7 @@ describe('--fail-on-regression across findable-audit versions', () => {
     const srv = await serveFixture(path.join(fixtures, 'mini'));
     closers.push(srv.close);
     const { code } = await runCli([
-      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(undefined), '--fail-on-regression',
+      srv.url, '--no-report', '--min-score', '0', '--baseline', writeBaseline(srv.url), '--fail-on-regression',
     ]);
     expect(code).toBe(1);
   });

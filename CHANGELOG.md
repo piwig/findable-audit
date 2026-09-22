@@ -7,6 +7,28 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.12.1 — 2026-09-22
+
+- Every engine report now records its version, including reports created by the web app.
+- Baseline imports validate the fields used by comparisons and reject another hostname
+  with a recoverable error. Legacy reports without version metadata remain supported.
+- Comparisons show both URLs, sample sizes and applicable checks, with explicit notices
+  when versions or scope differ. The score and check weights are unchanged.
+- The HTML action chart has legible mobile labels and a visible points scale.
+- Web errors preserve French/English and offer a recovery link; the grade range stays
+  together on small screens. Release smoke tests wait up to ten minutes for the exact
+  npm version instead of failing during normal registry propagation.
+
+## 0.12.0 — 2026-09-22
+
+- Evidence excerpts, audit scope, priority-question coverage and conservative internal
+  link opportunities make findings easier to verify; they do not measure AI citations.
+- PB OpenTech's Aube styling, report evidence filters, clearer input fields, JSON file
+  import and accessible progress improve the web experience. Completed reports remain
+  available for up to 30 minutes, within the server's bounded storage capacity.
+- SEO/GEO explanations distinguish technical measurements from editorial advice and
+  avoid claims of guaranteed ranking or citation gains.
+
 ## 0.11.0 - 2026-08-02
 
 ### Added

@@ -84,6 +84,7 @@ jobs:
   # which is the kind of step that gets skipped exactly once.
   smoke:
     needs: publish
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -94,16 +95,37 @@ jobs:
         with:
           node-version: '22'
 
+      # 0.12.0 needed about three minutes to appear. A missing version must
+      # fail here clearly, rather than falling through to npx's ETARGET.
+      - name: Wait for the exact published version
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DEADLINE=$((SECONDS + 600))
+          READY=false
+          while [ "$SECONDS" -lt "$DEADLINE" ]; do
+            REMAINING=$((DEADLINE - SECONDS))
+            if [ "$REMAINING" -le 0 ]; then break; fi
+            FETCH_TIMEOUT=$((REMAINING < 15 ? REMAINING * 1000 : 15000))
+            AVAILABLE=$(npm view "findable-audit@$VERSION" version \
+              --registry=https://registry.npmjs.org --prefer-online \
+              --fetch-retries=0 --fetch-timeout="$FETCH_TIMEOUT" 2>/dev/null) || AVAILABLE=''
+            if [ "$AVAILABLE" = "$VERSION" ]; then READY=true; break; fi
+            echo "waiting for findable-audit@$VERSION on npm ($((DEADLINE - SECONDS))s remaining)"
+            REMAINING=$((DEADLINE - SECONDS))
+            if [ "$REMAINING" -gt 0 ]; then sleep "$((REMAINING < 15 ? REMAINING : 15))"; fi
+          done
+          if [ "$READY" != true ]; then
+            echo "::error::findable-audit@$VERSION is still unavailable on npm after 10 minutes. Publication may have succeeded; check the registry before rerunning the smoke job. No install was attempted."
+            exit 1
+          fi
+          echo "findable-audit@$VERSION is available on npm"
+
       - name: Install the published version and run it
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          # The registry needs a moment to serve a brand-new version.
-          for i in 1 2 3 4 5 6; do
-            if npm view "findable-audit@$VERSION" version >/dev/null 2>&1; then break; fi
-            echo "waiting for findable-audit@$VERSION to appear on the registry ($i)"
-            sleep 10
-          done
           OUT=$(npx -y "findable-audit@$VERSION" --version)
           echo "installed: $OUT"
           [ "$OUT" = "$VERSION" ] || { echo "--version printed '$OUT', expected '$VERSION'" >&2; exit 1; }

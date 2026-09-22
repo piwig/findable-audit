@@ -25,6 +25,7 @@ import { renderJson } from '../../packages/cli/dist/report/json.js';
 import { renderMarkdown } from '../../packages/cli/dist/report/markdown.js';
 import { renderCompareHtml } from '../../packages/cli/dist/report/compare.js';
 import { diffReports } from '../../packages/cli/dist/report/diff.js';
+import { validateBaseline } from '../../packages/cli/dist/report/baseline.js';
 import { EMITTED_FILES } from '../../packages/cli/dist/generate/index.js';
 import { TRAINING_BOTS, CITATION_BOTS } from '../../packages/cli/dist/robots.js';
 
@@ -187,6 +188,7 @@ const PAGE_STYLE = `${FONT_STYLE}
   .ld-eyebrow::before { content: ""; width: 26px; height: 2px; border-radius: 2px; flex: 0 0 auto; background: var(--grad); }
   .ld-h1 { font-weight: 800; letter-spacing: -.02em; line-height: 1.06; color: var(--title); font-size: clamp(1.9rem, 1rem + 2.8vw, 2.9rem); margin: 0 0 .7rem; max-width: 20ch; }
   .ld-h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .ld-h1 .grade-range { white-space: nowrap; }
   /* L4: the primary CTA now wears the brand green. It used to be near-black,
      which reads as a secondary — or disabled — button next to a green accent. */
   .ld-cta { position: relative; overflow: hidden; background: var(--grad-deep); min-height: 48px; }
@@ -375,8 +377,8 @@ function robotsTxt() {
 // the corresponding copy changes — sitemap-lastmod wants real, distinct,
 // non-future values, never a synthetic build date).
 const SITE_PAGES = [
-  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T08:30:00+02:00' },
-  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T08:30:00+02:00' },
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:10:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:10:00+02:00' },
   { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-09-22T08:28:00+02:00' },
@@ -658,7 +660,7 @@ function landingPage(lang = 'en') {
 <div class="hero2">
 <div class="hero-left">
 <p class="ld-eyebrow">${escapeHtml(s.eyebrow)}</p>
-<h1 class="ld-h1">${escapeHtml(s.h1Lead)}<span class="g">${escapeHtml(s.h1Accent)}</span>${escapeHtml(s.h1Tail)}</h1>
+<h1 class="ld-h1">${escapeHtml(s.h1Lead)}<span class="g">${escapeHtml(s.h1Accent)}</span>${escapeHtml(s.h1Tail)}<span class="grade-range">${escapeHtml(s.h1Grade)}</span></h1>
 <p class="lead">${escapeHtml(s.lead)}</p>
 <nav class="modes" aria-label="${escapeHtml(s.axesTitle)}">
   <a class="m-single" href="#single">${escapeHtml(s.modeSingle)}</a>
@@ -951,31 +953,38 @@ ${interiorBlocks(c.blocks)}
   });
 }
 
-function errorPage(title, message, { status = 400, lang = 'en' } = {}) {
-  const back = escapeHtml(t(lang).error.back);
+function errorPage(title, message, { status = 400, lang = 'en', backHref = `/${lang}/`, backLabel = t(lang).error.back } = {}) {
   const body = `
 <div class="err">
 <h1>${escapeHtml(title)}</h1>
 <p>${escapeHtml(message)}</p>
 </div>
-<p><a href="/${encodeURIComponent(lang)}/">&larr; ${back}</a></p>
+<p><a href="${escapeHtml(backHref)}">&larr; ${escapeHtml(backLabel)}</a></p>
 `;
   return { status, html: shell(title, body, { lang }) };
 }
 
-// Localized 404 (and other job-lifecycle) error page: links back to the
-// lang-prefixed landing page rather than the "/" root redirect that
-// errorPage() uses.
+// All human-facing errors share the same localized rendering and recovery link.
 function localizedErrorPage(lang, title, message, { status = 404 } = {}) {
-  const back = escapeHtml(t(lang).error.back);
-  const body = `
-<div class="err">
-<h1>${escapeHtml(title)}</h1>
-<p>${escapeHtml(message)}</p>
-</div>
-<p><a href="/${lang}/">&larr; ${back}</a></p>
-`;
-  return { status, html: shell(title, body, { lang }) };
+  return errorPage(title, message, { status, lang });
+}
+
+function requestLang(req, fallback) {
+  const query = new URL(req.url, 'http://localhost').searchParams.get('lang');
+  return req.__lang ?? (query === 'en' || query === 'fr' ? query : null)
+    ?? fallback ?? negotiateLang(req.headers['accept-language']);
+}
+
+function sendExpiredReport(req, res, fallbackLang) {
+  const lang = requestLang(req, fallbackLang);
+  const e = t(lang).error.jobGone;
+  const page = localizedErrorPage(lang, e.title, e.message);
+  send(res, page.status, 'text/html; charset=utf-8', page.html);
+}
+
+function blockedUrlMessage(lang, err) {
+  const e = t(lang).error.urlNotAllowed;
+  return (err instanceof BlockedUrlError ? e.reasons[err.code] : null) ?? e.message;
 }
 
 // #55 (web): "generate indexing files" section — one download link per
@@ -1019,7 +1028,7 @@ function generateFilesSection(jobId, lang) {
   const id = encodeURIComponent(jobId);
   const g = t(lang).generate;
   const links = EMITTED_FILES.map((f) =>
-    `<a href="/audit/generate?job=${id}&file=${encodeURIComponent(f.filename)}">${escapeHtml(f.filename)}</a>`)
+    `<a href="/audit/generate?job=${id}&file=${encodeURIComponent(f.filename)}&lang=${lang}">${escapeHtml(f.filename)}</a>`)
     .join('');
   return `<details><summary>${escapeHtml(g.heading)}</summary><p>${escapeHtml(g.note)}</p><div class="generated-links">${links}</div></details>`;
 }
@@ -1053,9 +1062,9 @@ function withResultChrome(reportHtml, jobId, lang) {
   const download = escapeHtml(t(lang).result.download);
   const home = `/${encodeURIComponent(lang)}/`;
   const bar = '<section class="result-tools">' + brandHeader(lang)
-    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/audit/export?job=${id}&format=html">HTML</a>`
-    + `<a href="/audit/export?job=${id}&format=md">Markdown</a>`
-    + `<a href="/audit/export?job=${id}&format=json">JSON</a>`
+    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/audit/export?job=${id}&format=html&lang=${lang}">HTML</a>`
+    + `<a href="/audit/export?job=${id}&format=md&lang=${lang}">Markdown</a>`
+    + `<a href="/audit/export?job=${id}&format=json&lang=${lang}">JSON</a>`
     + `<a href="${home}">&larr; ${retry}</a></nav>`
     + `<p class="result-expiry">${escapeHtml(t(lang).result.expiry)}</p>`
     + generateFilesSection(jobId, lang)
@@ -1279,10 +1288,11 @@ function safeHost(urlHref) {
 async function handleExport(req, res, job, format) {
   await ensureStarted(job);
   const j = jobs.get(job.id);
-  if (!j) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+  if (!j) { sendExpiredReport(req, res, job.lang); return; }
   if (j.status !== 'done' || !j.report) {
-    const e = t(j.lang).error.reportNotReady;
-    const p = localizedErrorPage(j.lang, e.title, e.message, { status: 409 });
+    const lang = requestLang(req, j.lang);
+    const e = t(lang).error.reportNotReady;
+    const p = localizedErrorPage(lang, e.title, e.message, { status: 409 });
     send(res, p.status, 'text/html; charset=utf-8', p.html);
     return;
   }
@@ -1301,14 +1311,16 @@ async function handleExport(req, res, job, format) {
 // sitemap.xml, jsonld-stubs.json) from the job's in-memory report and stream
 // it as an attachment. CRITICAL: nothing is written to disk — the file body
 // is produced fresh by entry.build(report, {lang}) on every single request.
-// Unknown/expired job, an unfinished/failed job, or a `file` not present in
-// EMITTED_FILES all 404 (mirrors handleExport's unknown-job convention: a
-// plain-text 404, no page chrome, since this is a raw download endpoint).
+// Errors stay 404, with a localized recovery page instead of a dead download.
 async function handleGenerate(req, res, job) {
   await ensureStarted(job);
   const j = jobs.get(job.id);
-  if (!j || j.status !== 'done' || !j.report) {
-    send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.');
+  if (!j) { sendExpiredReport(req, res, job.lang); return; }
+  if (j.status !== 'done' || !j.report) {
+    const lang = requestLang(req, j.lang);
+    const e = t(lang).error.reportNotReady;
+    const p = localizedErrorPage(lang, e.title, e.message);
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
     return;
   }
 
@@ -1334,10 +1346,7 @@ async function handleResult(req, res, job) {
   const j = jobs.get(job.id);
   if (!j) {
     // Rare race: the job existed at dispatch time but is gone now (pruned).
-    // Fall back to the lang the caller already resolved for this job.
-    const nf = t(job.lang ?? 'en').error.notFound;
-    const p = localizedErrorPage(job.lang ?? 'en', nf.title, nf.message, { status: 404 });
-    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    sendExpiredReport(req, res, job.lang);
     return;
   }
 
@@ -1346,12 +1355,13 @@ async function handleResult(req, res, job) {
     return;
   }
   // Error (or the rare not-yet-terminal race): render a localized error page.
+  const lang = requestLang(req, j.lang);
   const code = j.error?.code ?? 'internal';
-  const cat = t(j.lang).error[code] ?? t(j.lang).error.internal;
+  const cat = t(lang).error[code] ?? t(lang).error.internal;
   const title = cat.title;
-  const message = j.error?.message ?? cat.message;
+  const message = cat.message;
   const status = statusForError(code);
-  const p = localizedErrorPage(j.lang, title, message, { status });
+  const p = localizedErrorPage(lang, title, message, { status });
   send(res, p.status, 'text/html; charset=utf-8', p.html);
 }
 
@@ -1395,8 +1405,8 @@ function progressPage(jobId, lang, nonce) {
 </div>
 <p id="status" class="hint" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(m.phases.connect)}</p>
 <noscript>
-  <meta http-equiv="refresh" content="0; url=/audit/result?job=${id}">
-  <p>${escapeHtml(m.noscript)} <a href="/audit/result?job=${id}">${escapeHtml(m.done)}</a></p>
+  <meta http-equiv="refresh" content="0; url=/audit/result?job=${id}&lang=${lang}">
+  <p>${escapeHtml(m.noscript)} <a href="/audit/result?job=${id}&lang=${lang}">${escapeHtml(m.done)}</a></p>
 </noscript>
 <script nonce="${nonce}">
 (function () {
@@ -1412,8 +1422,8 @@ function progressPage(jobId, lang, nonce) {
       if (bar && p.total) { var percent = Math.max(0, Math.min(100, Math.round(p.done / p.total * 100))); bar.style.width = percent + '%'; bar.parentElement.setAttribute('aria-valuenow', percent); }
     } catch (_) {}
   });
-  es.addEventListener('done', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job); });
-  es.addEventListener('error', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job); });
+  es.addEventListener('done', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job) + '&lang=${lang}'; });
+  es.addEventListener('error', function () { es.close(); window.location = '/audit/result?job=' + encodeURIComponent(job) + '&lang=${lang}'; });
 })();
 </script>
 `;
@@ -1462,10 +1472,8 @@ async function handleAuditStart(req, res) {
     url = await assertPublicUrl(normalized);
   } catch (err) {
     if (err instanceof BlockedUrlError) {
-      // Only the title is localized — err.message is the SSRF layer's own
-      // technical message and is kept as-is.
       const title = t(lang).error.urlNotAllowed.title;
-      const p = errorPage(title, err.message, { lang });
+      const p = errorPage(title, blockedUrlMessage(lang, err), { lang });
       send(res, p.status, 'text/html; charset=utf-8', p.html);
       return;
     }
@@ -1601,8 +1609,8 @@ function compareProgressPage(jobId, lang, nonce) {
 </div>
 <p id="status" class="hint" role="status" aria-live="polite" aria-atomic="true">${escapeHtml(m.progressHeading)}</p>
 <noscript>
-  <meta http-equiv="refresh" content="0; url=/compare/result?job=${id}">
-  <p><a href="/compare/result?job=${id}">${escapeHtml(m.resultTitle)}</a></p>
+  <meta http-equiv="refresh" content="0; url=/compare/result?job=${id}&lang=${lang}">
+  <p><a href="/compare/result?job=${id}&lang=${lang}">${escapeHtml(m.resultTitle)}</a></p>
 </noscript>
 <script nonce="${nonce}">
 (function () {
@@ -1618,8 +1626,8 @@ function compareProgressPage(jobId, lang, nonce) {
       if (bar && p.total) { var percent = Math.max(0, Math.min(100, Math.round(p.done / p.total * 100))); bar.style.width = percent + '%'; bar.parentElement.setAttribute('aria-valuenow', percent); }
     } catch (_) {}
   });
-  es.addEventListener('done', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job); });
-  es.addEventListener('error', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job); });
+  es.addEventListener('done', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job) + '&lang=${lang}'; });
+  es.addEventListener('error', function () { es.close(); window.location = '/compare/result?job=' + encodeURIComponent(job) + '&lang=${lang}'; });
 })();
 </script>
 `;
@@ -1660,7 +1668,7 @@ async function handleCompareStart(req, res) {
   try {
     mainUrl = await assertPublicUrl(mainRaw);
   } catch (err) {
-    errHtml(t(lang).error.urlNotAllowed.title, err instanceof BlockedUrlError ? err.message : 'Invalid URL');
+    errHtml(t(lang).error.urlNotAllowed.title, blockedUrlMessage(lang, err));
     return;
   }
 
@@ -1746,9 +1754,7 @@ async function handleCompareResult(req, res, job) {
   await ensureStarted(job);
   const j = jobs.get(job.id);
   if (!j) {
-    const nf = t(job.lang ?? 'en').error.notFound;
-    const p = localizedErrorPage(job.lang ?? 'en', nf.title, nf.message, { status: 404 });
-    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    sendExpiredReport(req, res, job.lang);
     return;
   }
   if (j.status === 'done' && j.html) {
@@ -1756,15 +1762,16 @@ async function handleCompareResult(req, res, job) {
     return;
   }
   // needMore is a compare-specific "error" surfaced as a friendly page.
+  const lang = requestLang(req, j.lang);
   if (j.error?.code === 'needMore') {
-    const c = t(j.lang).compare;
-    const p = localizedErrorPage(j.lang, c.needMoreTitle, c.needMore, { status: 400 });
+    const c = t(lang).compare;
+    const p = localizedErrorPage(lang, c.needMoreTitle, c.needMore, { status: 400 });
     send(res, p.status, 'text/html; charset=utf-8', p.html);
     return;
   }
   const code = j.error?.code ?? 'internal';
-  const cat = t(j.lang).error[code] ?? t(j.lang).error.internal;
-  const p = localizedErrorPage(j.lang, cat.title, j.error?.message ?? cat.message, { status: statusForError(code) });
+  const cat = t(lang).error[code] ?? t(lang).error.internal;
+  const p = localizedErrorPage(lang, cat.title, cat.message, { status: statusForError(code) });
   send(res, p.status, 'text/html; charset=utf-8', p.html);
 }
 
@@ -1775,7 +1782,7 @@ function withCompareChrome(reportHtml, jobId, lang) {
   const download = escapeHtml(t(lang).result.download);
   const home = `/${encodeURIComponent(lang)}/`;
   const bar = '<section class="result-tools">' + brandHeader(lang)
-    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/compare/export?job=${id}&format=html">HTML</a>`
+    + `<nav class="result-actions" aria-label="${escapeHtml(t(lang).result.actionsLabel)}"><strong>${download}</strong> <a href="/compare/export?job=${id}&format=html&lang=${lang}">HTML</a>`
     + `<a href="${home}">&larr; ${retry}</a></nav><p class="result-expiry">${escapeHtml(t(lang).result.expiry)}</p></section>`;
   return injectAfterBody(withWebReportStyle(reportHtml), bar);
 }
@@ -1783,7 +1790,14 @@ function withCompareChrome(reportHtml, jobId, lang) {
 async function handleCompareExport(req, res, job) {
   await ensureStarted(job);
   const j = jobs.get(job.id);
-  if (!j || j.status !== 'done' || !j.html) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or unfinished comparison.'); return; }
+  if (!j) { sendExpiredReport(req, res, job.lang); return; }
+  if (j.status !== 'done' || !j.html) {
+    const lang = requestLang(req, j.lang);
+    const e = t(lang).error.reportNotReady;
+    const p = localizedErrorPage(lang, e.title, e.message);
+    send(res, p.status, 'text/html; charset=utf-8', p.html);
+    return;
+  }
   const filename = `compare-${new Date().toISOString().slice(0, 10)}.html`;
   send(res, 200, 'text/html; charset=utf-8', j.html, { 'content-disposition': `attachment; filename="${filename}"` });
 }
@@ -1810,15 +1824,6 @@ function readBody(req, limit = MAX_BODY_BYTES) {
   });
 }
 
-/** Same shape guard as the CLI's --baseline (index.ts): enough to diff, no more. */
-function isAuditReport(value) {
-  return Boolean(value)
-    && typeof value === 'object'
-    && typeof value.score === 'number'
-    && Array.isArray(value.results)
-    && Array.isArray(value.familyScores);
-}
-
 /**
  * POST /{lang}/audit/diff?job=<id> — diff the job's report against a pasted
  * previous report and re-render it with the diff section. The baseline is used
@@ -1834,7 +1839,7 @@ async function handleBaselineDiff(req, res) {
   }
   const job = jobs.get(parsed.searchParams.get('job') ?? '');
   if (!job || job.status !== 'done' || !job.report) {
-    const e = t(lang).error.jobGone ?? t(lang).error.generic;
+    const e = t(lang).error.jobGone;
     const p = errorPage(e.title, e.message, { status: 404, lang });
     send(res, 404, 'text/html; charset=utf-8', p.html);
     return;
@@ -1846,13 +1851,17 @@ async function handleBaselineDiff(req, res) {
   } catch {
     baseline = undefined; // a paste that is not JSON is a user error, not a crash
   }
-  if (!isAuditReport(baseline)) {
-    const e = t(lang).error.badBaseline;
-    const p = errorPage(e.title, e.message, { status: 400, lang });
+  const validation = validateBaseline(baseline, job.report.url);
+  if (!validation.ok) {
+    const e = validation.reason === 'different-site' ? t(lang).error.differentBaseline : t(lang).error.badBaseline;
+    const p = errorPage(e.title, e.message, {
+      status: 400, lang, backHref: `/${lang}/audit/result?job=${encodeURIComponent(job.id)}`,
+      backLabel: t(lang).error.backToReport,
+    });
     send(res, 400, 'text/html; charset=utf-8', p.html);
     return;
   }
-  const diff = diffReports(job.report, baseline);
+  const diff = diffReports(job.report, validation.report);
   const html = renderHtml(job.report, undefined, lang, { collapsed: true, diff });
   send(res, 200, 'text/html; charset=utf-8', withResultChrome(html, job.id, lang));
 }
@@ -2067,13 +2076,7 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/audit/result') {
     const job = jobFromQuery(req);
-    if (!job) {
-      const lang = negotiateLang(req.headers['accept-language']);
-      const nf = t(lang).error.notFound;
-      const p = localizedErrorPage(lang, nf.title, nf.message, { status: 404 });
-      send(res, p.status, 'text/html; charset=utf-8', p.html);
-      return;
-    }
+    if (!job) { sendExpiredReport(req, res); return; }
     handleResult(req, res, job).catch((err) => {
       console.error('unhandled /audit/result error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
@@ -2088,7 +2091,7 @@ const server = http.createServer((req, res) => {
       return;
     }
     const job = jobFromQuery(req);
-    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    if (!job) { sendExpiredReport(req, res); return; }
     handleExport(req, res, job, format).catch((err) => {
       console.error('unhandled /audit/export error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
@@ -2097,7 +2100,7 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/audit/generate') {
     const job = jobFromQuery(req);
-    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    if (!job) { sendExpiredReport(req, res); return; }
     handleGenerate(req, res, job).catch((err) => {
       console.error('unhandled /audit/generate error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
@@ -2119,13 +2122,7 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/compare/result') {
     const job = jobFromQuery(req);
-    if (!job) {
-      const lang = negotiateLang(req.headers['accept-language']);
-      const nf = t(lang).error.notFound;
-      const p = localizedErrorPage(lang, nf.title, nf.message, { status: 404 });
-      send(res, p.status, 'text/html; charset=utf-8', p.html);
-      return;
-    }
+    if (!job) { sendExpiredReport(req, res); return; }
     handleCompareResult(req, res, job).catch((err) => {
       console.error('unhandled /compare/result error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');
@@ -2134,7 +2131,7 @@ const server = http.createServer((req, res) => {
   }
   if (pathname === '/compare/export') {
     const job = jobFromQuery(req);
-    if (!job) { send(res, 404, 'text/plain; charset=utf-8', 'Unknown or expired job.'); return; }
+    if (!job) { sendExpiredReport(req, res); return; }
     handleCompareExport(req, res, job).catch((err) => {
       console.error('unhandled /compare/export error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');

@@ -9,6 +9,8 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, CheckStatus, Family } from '../types.js';
 import type { Lang } from './i18n.js';
+import { markdownText } from './safe-text.js';
+import { sameBaselineSite } from './baseline.js';
 
 export interface CheckTransition {
   id: string;
@@ -51,6 +53,16 @@ export interface ReportDiff {
    * whether it is cross-version. Worth saying; not worth blocking a CI gate on.
    */
   baselineVersionUnknown: boolean;
+  currentVersionUnknown?: boolean;
+  baselineUrl?: string;
+  currentUrl?: string;
+  differentSite?: boolean;
+  sampledPagesChanged?: boolean;
+  applicableChecksChanged?: boolean;
+  baselinePageCount?: number;
+  currentPageCount?: number;
+  baselineApplicableCount?: number;
+  currentApplicableCount?: number;
 }
 
 // A skipped check contributes no score and is treated as absent for diffing.
@@ -65,6 +77,9 @@ export function diffReports(current: AuditReport, baseline: AuditReport): Report
   const curById = new Map(current.results.map((r) => [r.id, r]));
   const baseById = new Map(baseline.results.map((r) => [r.id, r]));
   const allIds = new Set([...curById.keys(), ...baseById.keys()]);
+  const applicable = (r: AuditReport) => r.results.filter((c) => c.status !== 'skip');
+  const signature = (r: AuditReport) => applicable(r).map((c) => `${c.id}:${c.family}:${c.maxPoints}`).sort().join('\n');
+  const pages = (r: AuditReport) => [...new Set(r.sampledPages ?? [])].sort().join('\n');
 
   const regressions: CheckTransition[] = [];
   const improvements: CheckTransition[] = [];
@@ -115,6 +130,16 @@ export function diffReports(current: AuditReport, baseline: AuditReport): Report
     currentToolVersion: current.toolVersion,
     crossVersion: Boolean(baseline.toolVersion && current.toolVersion && baseline.toolVersion !== current.toolVersion),
     baselineVersionUnknown: !baseline.toolVersion,
+    currentVersionUnknown: !current.toolVersion,
+    baselineUrl: baseline.url,
+    currentUrl: current.url,
+    differentSite: !sameBaselineSite(baseline.url, current.url),
+    sampledPagesChanged: pages(baseline) !== pages(current),
+    applicableChecksChanged: signature(baseline) !== signature(current),
+    baselinePageCount: baseline.sampledPages?.length,
+    currentPageCount: current.sampledPages?.length,
+    baselineApplicableCount: applicable(baseline).length,
+    currentApplicableCount: applicable(current).length,
   };
 }
 
@@ -129,7 +154,7 @@ interface DiffLabels {
 const LABELS: Record<Lang, DiffLabels> = {
   en: {
     title: 'Change vs baseline', baseline: 'baseline', overall: 'Overall score', family: 'Family',
-    regressions: 'Regressions', improvements: 'Improvements', added: 'New checks', removed: 'Dropped checks',
+    regressions: 'Regressions', improvements: 'Improvements', added: 'Newly applicable checks', removed: 'Checks no longer applicable',
     none: 'none', was: 'was',
     crossVersion: (from, to) =>
       `Baseline produced by findable-audit ${from}, this run by ${to}. Part of any change below may come from the scoring `
@@ -140,7 +165,7 @@ const LABELS: Record<Lang, DiffLabels> = {
   },
   fr: {
     title: 'Évolution vs référence', baseline: 'référence', overall: 'Score global', family: 'Famille',
-    regressions: 'Régressions', improvements: 'Améliorations', added: 'Nouveaux tests', removed: 'Tests disparus',
+    regressions: 'Régressions', improvements: 'Améliorations', added: 'Contrôles devenus applicables', removed: 'Contrôles devenus non applicables',
     none: 'aucun', was: 'était',
     crossVersion: (from, to) =>
       `Référence produite par findable-audit ${from}, ce rapport par ${to}. Une partie des écarts ci-dessous peut venir du modèle `
@@ -154,13 +179,46 @@ const LABELS: Record<Lang, DiffLabels> = {
 /**
  * A128 — one sentence saying that the two reports may not have been measured with
  * the same ruler. Returns null only when both versions are known and identical,
- * the one case where the deltas are purely about the site.
+ * Scope and applicability may still differ when versions are identical.
  */
 export function versionNotice(d: ReportDiff, lang: Lang = 'en'): string | null {
   const L = LABELS[lang];
   if (d.crossVersion) return L.crossVersion(d.baselineToolVersion!, d.currentToolVersion!);
-  if (d.baselineVersionUnknown) return L.unknownVersion;
+  const notices: string[] = [];
+  if (d.baselineVersionUnknown) notices.push(L.unknownVersion);
+  if (d.currentVersionUnknown) notices.push(lang === 'fr'
+    ? "La version du rapport actuel est inconnue : le modèle de score ne peut pas être comparé avec certitude."
+    : 'The current report has no tool version: the scoring model cannot be compared with certainty.');
+  if (notices.length) return notices.join(' ');
   return null;
+}
+
+/** Context qualifies the measured delta; it never alters the score or check results. */
+export function comparisonNotices(d: ReportDiff, lang: Lang = 'en'): string[] {
+  const fr = lang === 'fr';
+  const out: string[] = [];
+  const version = versionNotice(d, lang);
+  if (version) out.push(version);
+  if (d.differentSite) out.push(fr ? 'Les rapports portent sur des sites différents.' : 'The reports cover different sites.');
+  if (d.sampledPagesChanged) out.push(fr
+    ? 'Les pages échantillonnées diffèrent entre les deux rapports.' : 'The sampled pages differ between the two reports.');
+  if (d.applicableChecksChanged) out.push(fr
+    ? 'Les contrôles applicables diffèrent : un contrôle ignoré ne contribue pas au score.'
+    : 'The applicable checks differ: a skipped check does not contribute to the score.');
+  if (out.length) out.push(fr
+    ? "Ces écarts mesurés ne prouvent pas à eux seuls une amélioration ou une régression du site."
+    : 'These measured deltas do not establish a site improvement or regression on their own.');
+  return out;
+}
+
+function scopeLines(d: ReportDiff, lang: Lang): string[] {
+  const fr = lang === 'fr';
+  return [
+    `${fr ? 'Référence' : 'Baseline'}: ${d.baselineUrl ?? '—'}`,
+    `${fr ? 'Actuel' : 'Current'}: ${d.currentUrl ?? '—'}`,
+    `${fr ? 'Pages examinées (référence → actuel)' : 'Pages examined (baseline → current)'}: ${d.baselinePageCount ?? '—'} → ${d.currentPageCount ?? '—'}`,
+    `${fr ? 'Contrôles applicables (référence → actuel)' : 'Applicable checks (baseline → current)'}: ${d.baselineApplicableCount ?? '—'} → ${d.currentApplicableCount ?? '—'}`,
+  ];
 }
 
 function sign(n: number): string { return n > 0 ? `+${n}` : `${n}`; }
@@ -178,8 +236,8 @@ export function renderDiffTerminal(d: ReportDiff, lang: Lang = 'en'): string {
   const L = LABELS[lang];
   const lines: string[] = [];
   lines.push(`${L.title}: ${d.currentScore}/100 (${L.baseline} ${d.baselineScore}, ${sign(d.scoreDelta)})`);
-  const termNotice = versionNotice(d, lang);
-  if (termNotice) lines.push(`  ! ${termNotice}`);
+  lines.push(...scopeLines(d, lang));
+  lines.push(...comparisonNotices(d, lang).map((n) => `  ! ${n}`));
   for (const f of d.familyDeltas) {
     if (f.delta === null) continue;
     if (f.delta !== 0) lines.push(`  ${f.family}: ${f.current} (${sign(f.delta)})`);
@@ -192,7 +250,7 @@ export function renderDiffTerminal(d: ReportDiff, lang: Lang = 'en'): string {
   list(L.improvements, d.improvements);
   if (d.added.length) lines.push(`${L.added}: ${d.added.join(', ')}`);
   if (d.removed.length) lines.push(`${L.removed}: ${d.removed.join(', ')}`);
-  return lines.join('\n');
+  return lines.join('\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
 }
 
 export function renderDiffMarkdown(d: ReportDiff, lang: Lang = 'en'): string {
@@ -200,20 +258,20 @@ export function renderDiffMarkdown(d: ReportDiff, lang: Lang = 'en'): string {
   const lines: string[] = [];
   lines.push(`## ${L.title}`, '');
   lines.push(`**${L.overall}:** ${d.currentScore}/100 — ${L.baseline} ${d.baselineScore} (${sign(d.scoreDelta)})`, '');
-  const mdNotice = versionNotice(d, lang);
-  if (mdNotice) lines.push(`> ${mdNotice}`, '');
+  lines.push(...scopeLines(d, lang).map((n) => markdownText(n)), '');
+  for (const n of comparisonNotices(d, lang)) lines.push(`> ${markdownText(n)}`, '');
   lines.push(`| ${L.family} | ${L.baseline} | ${lang === 'fr' ? 'actuel' : 'current'} | Δ |`, '|---|---|---|---|');
   for (const f of d.familyDeltas) {
-    lines.push(`| ${f.family} | ${f.baseline ?? '—'} | ${f.current ?? '—'} | ${f.delta === null ? '—' : sign(f.delta)} |`);
+    lines.push(`| ${markdownText(f.family)} | ${f.baseline ?? '—'} | ${f.current ?? '—'} | ${f.delta === null ? '—' : sign(f.delta)} |`);
   }
   lines.push('');
   const block = (label: string, items: CheckTransition[]) => {
-    lines.push(`**${label}:** ${items.length ? items.map((t) => `\`${t.id}\``).join(', ') : L.none}`);
+    lines.push(`**${label}:** ${items.length ? items.map((t) => markdownText(t.id)).join(', ') : L.none}`);
   };
   block(L.regressions, d.regressions);
   block(L.improvements, d.improvements);
-  lines.push(`**${L.added}:** ${d.added.length ? d.added.map((i) => `\`${i}\``).join(', ') : L.none}`);
-  lines.push(`**${L.removed}:** ${d.removed.length ? d.removed.map((i) => `\`${i}\``).join(', ') : L.none}`);
+  lines.push(`**${L.added}:** ${d.added.length ? d.added.map(markdownText).join(', ') : L.none}`);
+  lines.push(`**${L.removed}:** ${d.removed.length ? d.removed.map(markdownText).join(', ') : L.none}`);
   return lines.join('\n');
 }
 
@@ -227,11 +285,12 @@ export function renderDiffHtmlSection(d: ReportDiff, lang: Lang = 'en'): string 
     `<tr><td>${esc(f.family)}</td><td>${f.baseline ?? '—'}</td><td>${f.current ?? '—'}</td>`
     + `<td>${f.delta === null ? '—' : deltaMark(f.delta)}</td></tr>`).join('');
   const idList = (items: string[]) => items.length ? items.map((i) => `<code>${esc(i)}</code>`).join(', ') : L.none;
-  const htmlNotice = versionNotice(d, lang);
+  const htmlNotice = comparisonNotices(d, lang).join(' ');
   return `<section class="diff" style="max-width:960px;margin:1.5rem auto;padding:1rem;border:1px solid #e2e8e2;border-radius:10px">`
     + `<h2 style="margin:0 0 .5rem">${esc(L.title)}</h2>`
     + `<p><strong>${esc(L.overall)}:</strong> ${d.currentScore}/100 — ${esc(L.baseline)} ${d.baselineScore} `
     + `(${deltaMark(d.scoreDelta)})</p>`
+    + `<p>${scopeLines(d, lang).map(esc).join('<br>')}</p>`
     + (htmlNotice
       ? `<p class="diff-version-notice" style="margin:.25rem 0 .75rem;padding:.6rem .8rem;border-left:3px solid #b45309;background:#fffbeb;color:#3f3f46">${esc(htmlNotice)}</p>`
       : '')

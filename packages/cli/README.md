@@ -68,7 +68,7 @@ Node ≥ 22, zero configuration. The crawler stays polite: same-origin only, a
 | `--report <file>` (repeatable) | Write exactly the named file(s); format by extension: `.html`, `.json`, `.sarif` (GitHub code-scanning), `.xml` (JUnit), `.svg` (README score badge), anything else Markdown. |
 | `--no-report` | Terminal output only. |
 | `--min-score <n>` | Exit `1` below this score — the CI floor. |
-| `--baseline <audit.json>` + `--fail-on-regression` | Diff against a prior `--report *.json` and exit `1` when the score drops. |
+| `--baseline <audit.json>` + `--fail-on-regression` | Diff against a prior `--report *.json` from the same hostname and exit `1` when the score drops. Invalid or foreign-site baselines exit `2`. |
 | `--compare <url2,url3>` | Side-by-side scorecard against competitors. |
 | `--emit <dir>` | Generate ready-to-deploy `robots.txt`, `llms.txt`, `llms-full.txt`, `.well-known/ai.json`, `sitemap.xml`, JSON-LD stubs (review before deploying). |
 | `--submit` + `--indexnow-key <key>` | Notify IndexNow (Bing, Yandex, Seznam, Naver) of the audited URLs. Opt-in, and only once the key file on your site proves you own it. |

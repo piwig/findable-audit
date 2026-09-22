@@ -17,7 +17,7 @@
 //   progress: { title, heading, lead, phases:{connect,sample,checks,cwv,score}, done, failed, noscript, retry },
 //   error:    { rateLimited, busy, timeout, unreachable, notFound, missingUrl, internal,
 //               captchaFailed },  // each {title,message} — captchaFailed added task 5 (#7 server-side gate)
-//             { urlNotAllowed },  // {title} only — the message is the SSRF layer's own technical BlockedUrlError.message, left untranslated
+//             { urlNotAllowed },  // title/message + reasons keyed by the SSRF guard's stable error codes
 //             { back },           // plain string — generic error-page back-link label
 //   landing:  { title, eyebrow, h1Lead, h1Accent, h1Tail, lead, urlLabel, cta, hint,
 //               familiesTitle, families:[8 strings], howTitle, steps:[{t,d} x3],
@@ -59,14 +59,28 @@ export const WEB_MESSAGES = {
       unreachable: { title: 'Site unreachable', message: 'Could not reach that site — it may be down or blocking automated requests.' },
       notFound: { title: 'Not found', message: 'No such page.' },
       missingUrl: { title: 'Missing URL', message: 'Please provide a URL to audit.' },
-      urlNotAllowed: { title: 'URL not allowed' },
+      urlNotAllowed: {
+        title: 'URL not allowed', message: 'Enter a valid public website address.',
+        reasons: {
+          'invalid-url': 'Enter a valid website address, such as https://example.com.',
+          'bad-scheme': 'Only HTTP and HTTPS addresses are accepted.',
+          credentials: 'Remove the username and password from the website address.',
+          'bad-port': 'Only the standard web ports 80 and 443 are accepted.',
+          'blocked-host': 'Local addresses cannot be audited. Enter a public website address.',
+          'blocked-ip': 'This address points to a private or reserved network and cannot be audited.',
+          'dns-fail': 'The website address could not be resolved. Check the domain name and try again.',
+          'dns-empty': 'No network address was found for this domain. Check the domain name and try again.',
+        },
+      },
       internal: { title: 'Something went wrong', message: 'Something went wrong while auditing that site.' },
       reportNotReady: { title: 'Report not ready', message: 'That report is not available for download yet.' },
       captchaFailed: { title: 'Verification failed', message: 'We could not confirm you are human. Please try again.' },
       // #59: the pasted baseline is unusable (not JSON, or not a findable report).
       badBaseline: { title: 'Not a findable-audit report', message: 'This content is not a findable-audit JSON report. Choose an exported JSON file, or paste its complete contents.' },
+      differentBaseline: { title: 'Report from another website', message: 'Choose a previous report for the same website. The hostname must match the current audit.' },
       jobGone: { title: 'Report expired', message: 'That report is no longer available. Completed reports are kept for up to 30 minutes, subject to server capacity. Run the audit again, then import your previous report.' },
       back: 'Audit another site',
+      backToReport: 'Return to the current report',
     },
     landing: {
       title: 'SEO & AI findability audit, graded A–F — findable-audit',
@@ -74,7 +88,8 @@ export const WEB_MESSAGES = {
       eyebrow: 'Classic SEO + GEO (AI findability) · open source',
       h1Lead: 'Your ',
       h1Accent: 'SEO and your AI findability',
-      h1Tail: ', graded A–F.',
+      h1Tail: ', graded ',
+      h1Grade: 'A–F.',
       lead: 'Find what prevents search engines and AI search tools from accessing and using your pages. Get measured findings, their evidence, and a prioritized action plan.',
       urlLabel: 'Website URL',
       cta: 'Audit',
@@ -293,14 +308,28 @@ export const WEB_MESSAGES = {
       unreachable: { title: 'Site injoignable', message: "Impossible de joindre ce site — il est peut-être hors ligne ou bloque les requêtes automatisées." },
       notFound: { title: 'Introuvable', message: "Cette page n'existe pas." },
       missingUrl: { title: 'URL manquante', message: 'Veuillez indiquer une URL à auditer.' },
-      urlNotAllowed: { title: 'URL non autorisée' },
+      urlNotAllowed: {
+        title: 'URL non autorisée', message: 'Indiquez une adresse de site public valide.',
+        reasons: {
+          'invalid-url': 'Indiquez une adresse de site valide, comme https://example.com.',
+          'bad-scheme': 'Seules les adresses HTTP et HTTPS sont acceptées.',
+          credentials: 'Retirez l’identifiant et le mot de passe de l’adresse du site.',
+          'bad-port': 'Seuls les ports web standards 80 et 443 sont acceptés.',
+          'blocked-host': 'Les adresses locales ne peuvent pas être auditées. Indiquez l’adresse d’un site public.',
+          'blocked-ip': 'Cette adresse pointe vers un réseau privé ou réservé et ne peut pas être auditée.',
+          'dns-fail': 'L’adresse du site n’a pas pu être résolue. Vérifiez le nom de domaine puis réessayez.',
+          'dns-empty': 'Aucune adresse réseau n’a été trouvée pour ce domaine. Vérifiez le nom de domaine puis réessayez.',
+        },
+      },
       internal: { title: 'Une erreur est survenue', message: "Une erreur est survenue lors de l'audit de ce site." },
       reportNotReady: { title: 'Rapport pas encore prêt', message: "Ce rapport n'est pas encore disponible au téléchargement." },
       captchaFailed: { title: 'Vérification échouée', message: "Nous n'avons pas pu confirmer que vous n'êtes pas un robot. Veuillez réessayer." },
       // #59 : la baseline collée est inutilisable (pas du JSON, ou pas un rapport findable).
       badBaseline: { title: "Ce n’est pas un rapport findable-audit", message: 'Ce contenu n’est pas un rapport JSON findable-audit. Choisissez un fichier JSON exporté ou collez son contenu complet.' },
+      differentBaseline: { title: 'Rapport d’un autre site', message: 'Choisissez un précédent rapport du même site. Le nom d’hôte doit correspondre à celui de l’audit actuel.' },
       jobGone: { title: 'Rapport expiré', message: "Ce rapport n’est plus disponible. Les rapports terminés sont gardés jusqu’à 30 minutes, selon la capacité du serveur. Relancez l’audit, puis importez votre précédent rapport." },
       back: 'Auditer un autre site',
+      backToReport: 'Revenir au rapport actuel',
     },
     landing: {
       title: 'Audit SEO & findabilité IA, noté A–F — findable-audit',
@@ -308,7 +337,8 @@ export const WEB_MESSAGES = {
       eyebrow: 'SEO classique + GEO (findabilité IA) · open source',
       h1Lead: 'Votre ',
       h1Accent: 'SEO et votre findabilité IA',
-      h1Tail: ', notés A–F.',
+      h1Tail: ', notés ',
+      h1Grade: 'A–F.',
       lead: 'Repérez ce qui empêche les moteurs de recherche et les outils de recherche IA d’accéder à vos pages et d’exploiter leur contenu. Obtenez des constats mesurés, leurs preuves et un plan de correction priorisé.',
       urlLabel: 'URL du site',
       cta: 'Auditer',

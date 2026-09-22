@@ -30,6 +30,75 @@ test('the preview is sourced from the dated report, without invented scores or g
   }
 });
 
+test('the grade range remains a single readable unit in both hero translations', async () => {
+  for (const lang of ['en', 'fr']) {
+    const html = await (await fetch(`${base}/${lang}/`)).text();
+    assert.match(html, /<span class="grade-range">A–F\.<\/span>/);
+    assert.match(html, /\.grade-range \{ white-space: nowrap; \}/);
+  }
+});
+
+test('explicit language wins for expired results and download errors, with a recovery link', async () => {
+  for (const lang of ['en', 'fr']) {
+    for (const route of ['audit/result', 'audit/export', 'audit/generate', 'compare/result', 'compare/export']) {
+      const response = await fetch(`${base}/${lang}/${route}?job=expired-review&format=html&file=robots.txt`, {
+        headers: { 'accept-language': lang === 'fr' ? 'en' : 'fr' },
+      });
+      assert.equal(response.status, 404);
+      const html = await response.text();
+      assert.match(html, new RegExp(`<html lang="${lang}"`));
+      assert.ok(html.includes(lang === 'fr' ? 'Rapport expiré' : 'Report expired'));
+      assert.match(html, new RegExp(`href="/${lang}/"`));
+    }
+  }
+});
+
+test('URL rejection messages are translated without changing the shared SSRF rules', async () => {
+  const before = jobs.size;
+  for (const [url, message] of [
+    ['ftp://example.com', 'Seules les adresses HTTP et HTTPS sont acceptées'],
+    ['http://127.0.0.1/', 'réseau privé ou réservé'],
+    ['https://user:password@example.com/', 'Retirez l’identifiant et le mot de passe'],
+  ]) {
+    for (const route of ['audit', 'compare/start']) {
+      const response = await fetch(`${base}/fr/${route}?url=${encodeURIComponent(url)}`);
+      assert.equal(response.status, 400);
+      const html = await response.text();
+      assert.ok(html.includes(message));
+      assert.doesNotMatch(html, /Unsupported scheme|Only http and https|user:password/);
+    }
+  }
+  assert.equal(jobs.size, before, 'URL rejection still happens before job creation');
+});
+
+test('download links retain the selected language after a real report expires', async () => {
+  const job = jobs.create({ url: fixture.url, lang: 'fr' });
+  jobs.finish(job.id, { report: fixture, html: '<html><body>REPORT</body></html>' });
+  const report = await (await fetch(`${base}/audit/result?job=${job.id}`)).text();
+  const link = /href="(\/audit\/export[^"]+format=json[^"]*)"/.exec(report)?.[1];
+  assert.ok(link, 'JSON export link is present');
+  jobs.get(job.id, job.completedAt + 30 * 60_000);
+  const response = await fetch(new URL(link, base), { headers: { 'accept-language': 'en' } });
+  assert.equal(response.status, 404);
+  assert.match(await response.text(), /<html lang="fr"/);
+});
+
+test('explicit language also translates failed audit and compare results', async () => {
+  for (const [kind, code, status, message] of [
+    ['audit', 'busy', 429, 'Serveur occupé'],
+    ['compare', 'needMore', 400, 'concurrent joignable'],
+  ]) {
+    const job = jobs.create({ url: fixture.url, lang: 'en', kind });
+    jobs.fail(job.id, code, 'Original English error');
+    const response = await fetch(`${base}/fr/${kind}/result?job=${job.id}`);
+    assert.equal(response.status, status);
+    const html = await response.text();
+    assert.match(html, /<html lang="fr"/);
+    assert.doesNotMatch(html, /Original English error/);
+    assert.ok(html.includes(message));
+  }
+});
+
 test('URL fields accept bare hosts and competitors have separate visible labels', async () => {
   const html = await (await fetch(`${base}/fr/`)).text();
   assert.match(html, /type="text"[^>]*name="url"/);

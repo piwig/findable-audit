@@ -28,6 +28,7 @@ describe('runAudit generatedAt', () => {
     const report = await runAudit(srv.url, buildChecks({ indexnowKey: 'testkey123' }));
     expect(typeof report.generatedAt).toBe('string');
     expect(Number.isNaN(Date.parse(report.generatedAt!))).toBe(false);
+    expect(report.toolVersion).toMatch(/^\d+\.\d+\.\d+/);
   });
 });
 

@@ -91,6 +91,37 @@ test('valid JSON that is not an audit report is refused the same way', async () 
   assert.equal(res.status, 400);
 });
 
+test('invalid nested values and impossible scores return 400 with a route back to the intact report', async () => {
+  const job = seedDone('fr');
+  for (const invalid of [
+    { ...BASELINE, results: [null] },
+    { ...BASELINE, familyScores: [null] },
+    { ...BASELINE, score: 200 },
+    { ...BASELINE, results: [{ ...BASELINE.results[0], points: 99 }] },
+  ]) {
+    const res = await post(`/fr/audit/diff?job=${job.id}`,
+      new URLSearchParams({ baseline: JSON.stringify(invalid) }).toString());
+    assert.equal(res.status, 400);
+    const html = await res.text();
+    assert.match(html, /Ce n’est pas un rapport findable-audit/);
+    assert.ok(html.includes(`href="/fr/audit/result?job=${job.id}"`));
+    assert.equal(jobs.get(job.id).report, CURRENT);
+  }
+});
+
+test('a baseline from another hostname is refused, but older reports and changed paths remain usable', async () => {
+  const job = seedDone();
+  const wrongSite = await post(`/en/audit/diff?job=${job.id}`,
+    new URLSearchParams({ baseline: JSON.stringify({ ...BASELINE, url: 'https://other.example/' }) }).toString());
+  assert.equal(wrongSite.status, 400);
+  assert.match(await wrongSite.text(), /same website/);
+  const legacy = { ...BASELINE, url: 'http://example.com/old-path' };
+  delete legacy.generatedAt;
+  const sameSite = await post(`/en/audit/diff?job=${job.id}`,
+    new URLSearchParams({ baseline: JSON.stringify(legacy) }).toString());
+  assert.equal(sameSite.status, 200);
+});
+
 test('an empty paste is refused', async () => {
   const job = seedDone();
   const res = await post(`/en/audit/diff?job=${job.id}`, new URLSearchParams({ baseline: '   ' }).toString());

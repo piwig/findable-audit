@@ -155,6 +155,15 @@ describe('renderImpactEffortScatter', () => {
     expect(svg).toContain('>Involved<');
   });
 
+  it('keeps mobile labels legible and gives recoverable points a visible scale', () => {
+    const svg = renderImpactEffortScatter(points, 'en');
+    expect(svg).toContain('viewBox="0 0 360 220"');
+    expect(svg).toContain('font-size="14"');
+    expect(svg).toContain('>10 pts</text>');
+    expect(svg).toContain('>5</text>');
+    expect(svg).toContain('>0</text>');
+  });
+
   it('dodges two points sharing the same lane and a close impact so neither hides the other', () => {
     const overlapping: ScatterPoint[] = [
       { id: 'a', label: 'A', impact: 5, effort: 'quick', status: 'fail' },
