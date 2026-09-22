@@ -81,6 +81,11 @@ export const WEB_MESSAGES = {
       jobGone: { title: 'Report expired', message: 'That report is no longer available. Completed reports are kept for up to 30 minutes, subject to server capacity. Run the audit again, then import your previous report.' },
       back: 'Audit another site',
       backToReport: 'Return to the current report',
+      questionLimit: { title: 'Check your questions', message: 'Enter up to 5 questions, with no more than 300 characters each. Use one line per question; blank lines and duplicates are ignored.' },
+      questionsPost: { title: 'Use the audit form', message: 'Visitor questions must be submitted through the form, not in the page address. Return to the audit form to enter them.' },
+      questionsUnsupported: { title: 'Questions require a single-site audit', message: 'Visitor questions are available for a single-site audit. Competitor comparisons and comparisons with a previous report do not support them yet.' },
+      auditBodyLarge: { title: 'Form too large', message: 'This form exceeds the allowed size. Use up to 5 short questions and a public website address.' },
+      auditBodyType: { title: 'Unsupported form format', message: 'Please submit the website address and optional questions through the audit form.' },
     },
     landing: {
       title: 'SEO & AI findability audit, graded A–F — findable-audit',
@@ -98,6 +103,10 @@ export const WEB_MESSAGES = {
       // #66: the depth is an intention, not a number.
       depthOption: (n) => (n === 1 ? 'Homepage only — fast check' : n <= 3 ? `${n} pages — template audit` : `${n} pages — wider sample`),
       hint: 'A domain or public URL is enough. No account needed. Audit a sample of up to 6 pages.',
+      questionsSummary: 'Check your visitors’ questions (optional)',
+      questionsLabel: 'What should a visitor find on your site?',
+      questionsHelp: 'One question per line, up to 5 questions of 300 characters each. For example: What are your prices? Where do you work? The report looks for matching words and passages in the sampled pages. It does not establish understanding, search rankings or AI citations.',
+      questionsPrivacy: 'Avoid confidential information. Questions remain with the report in server memory for up to 30 minutes, subject to capacity. They are excluded from shared caches and statistics, and included in downloaded reports. Available for single-site audits only.',
       // Two modes, one form (L2): the tabs are <a href="#…"> + :target, so the
       // landing keeps `script-src 'none'`.
       modeSingle: 'One site',
@@ -107,7 +116,7 @@ export const WEB_MESSAGES = {
       axesTitle: 'What a report answers',
       axes: [
         { n: 'Reachable', q: 'do crawlers get to the page at all?' },
-        { n: 'Understood', q: 'do they understand what they read?' },
+        { n: 'Readable', q: 'is useful content present in the HTML?' },
         { n: 'Usable', q: 'does the page hold up, for a human and for an agent?' },
       ],
       // L5: show the deliverable instead of describing it.
@@ -330,6 +339,11 @@ export const WEB_MESSAGES = {
       jobGone: { title: 'Rapport expiré', message: "Ce rapport n’est plus disponible. Les rapports terminés sont gardés jusqu’à 30 minutes, selon la capacité du serveur. Relancez l’audit, puis importez votre précédent rapport." },
       back: 'Auditer un autre site',
       backToReport: 'Revenir au rapport actuel',
+      questionLimit: { title: 'Vérifiez vos questions', message: 'Indiquez au maximum 5 questions de 300 caractères chacune, une par ligne. Les lignes vides et les doublons sont ignorés.' },
+      questionsPost: { title: 'Utilisez le formulaire d’audit', message: 'Les questions des visiteurs doivent être envoyées par le formulaire, sans figurer dans l’adresse de la page. Revenez au formulaire pour les saisir.' },
+      questionsUnsupported: { title: 'Questions réservées à l’audit simple', message: 'Les questions des visiteurs sont disponibles pour un audit simple. La comparaison avec des concurrents ou un précédent rapport ne les prend pas encore en charge.' },
+      auditBodyLarge: { title: 'Formulaire trop volumineux', message: 'Ce formulaire dépasse la taille autorisée. Utilisez au maximum 5 questions courtes et l’adresse d’un site public.' },
+      auditBodyType: { title: 'Format de formulaire non pris en charge', message: 'Envoyez l’adresse du site et les questions facultatives depuis le formulaire d’audit.' },
     },
     landing: {
       title: 'Audit SEO & findabilité IA, noté A–F — findable-audit',
@@ -347,6 +361,10 @@ export const WEB_MESSAGES = {
       // #66 : la profondeur est une intention, pas un nombre.
       depthOption: (n) => (n === 1 ? 'Page d’accueil seule — vérification rapide' : n <= 3 ? `${n} pages — audit de gabarits` : `${n} pages — échantillon élargi`),
       hint: 'Un domaine ou une URL publique suffit. Sans compte. Analyse d’un échantillon de 6 pages maximum.',
+      questionsSummary: 'Vérifier les questions de vos visiteurs (facultatif)',
+      questionsLabel: 'Que doit trouver un visiteur sur votre site ?',
+      questionsHelp: 'Une question par ligne, au maximum 5 questions de 300 caractères chacune. Par exemple : Quels sont vos tarifs ? Où intervenez-vous ? Le rapport repère des mots et passages concordants dans les pages examinées. Il ne prouve ni compréhension, ni position dans les moteurs, ni citation IA.',
+      questionsPrivacy: 'Évitez les informations confidentielles. Les questions restent avec le rapport en mémoire sur le serveur jusqu’à 30 minutes, selon sa capacité. Elles sont exclues des caches partagés et des statistiques, et incluses dans les rapports téléchargés. Réservé à l’audit simple.',
       // Deux modes, un seul formulaire (L2) : les onglets sont des <a href="#…">
       // + :target, la landing garde donc sa CSP `script-src 'none'`.
       modeSingle: 'Un site',
@@ -356,7 +374,7 @@ export const WEB_MESSAGES = {
       axesTitle: 'Ce qu’un rapport répond',
       axes: [
         { n: 'Trouvable', q: 'les robots arrivent-ils seulement jusqu’à la page ?' },
-        { n: 'Compréhensible', q: 'comprennent-ils ce qu’ils lisent ?' },
+        { n: 'Lisible', q: 'le contenu utile est-il présent dans le HTML ?' },
         { n: 'Utilisable', q: 'la page tient-elle la route, pour un humain et pour un agent ?' },
       ],
       // L5 : montrer le livrable au lieu de le décrire.

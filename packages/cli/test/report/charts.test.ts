@@ -145,12 +145,12 @@ describe('renderImpactEffortScatter', () => {
 
   it('gives every dot a native tooltip <title> naming the check, points and effort', () => {
     const svg = renderImpactEffortScatter(points, 'en');
-    expect(svg).toContain('<title>AI crawlers allowed — +10 pts (Quick win)</title>');
+    expect(svg).toContain('<title>AI crawlers allowed — +10 pts (Quick)</title>');
   });
 
   it('labels the three fixed effort lanes on the X axis', () => {
     const svg = renderImpactEffortScatter(points, 'en');
-    expect(svg).toContain('>Quick win<');
+    expect(svg).toContain('>Quick<');
     expect(svg).toContain('>Moderate<');
     expect(svg).toContain('>Involved<');
   });
@@ -179,7 +179,7 @@ describe('renderImpactEffortScatter', () => {
     const svg = renderImpactEffortScatter(points, 'en');
     expect(renderImpactEffortScatter(points, 'en')).toBe(svg);
     const fr = renderImpactEffortScatter(points, 'fr');
-    expect(fr).toContain('aria-label="Impact vs effort : 3 contrôles à corriger, positionnés selon les points récupérables et l&#39;effort estimé"');
+    expect(fr).toContain('aria-label="3 défauts constatés, selon les points des contrôles et l’effort estimé ; aucune projection du score global"');
   });
 });
 

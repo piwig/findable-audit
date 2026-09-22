@@ -41,6 +41,7 @@ import { OG_IMAGE_PNG, TOUCH_ICON_PNG } from './lib/og-image.mjs';
 import { negotiateLang, splitLangPrefix, DEFAULT_LANG } from './lib/lang.mjs';
 import { renderLangSelector } from './lib/lang-selector.mjs';
 import { baselineInput } from './lib/baseline-input.mjs';
+import { parsePriorityQuestions, MAX_QUESTION_BODY_BYTES } from './lib/priority-questions.mjs';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -225,6 +226,10 @@ const PAGE_STYLE = `${FONT_STYLE}
      document rendered with the captcha disabled. */
   .ld-form > div { margin: 0 0 .6rem; }
   .ld-form button { width: 100%; }
+  .visitor-questions { margin: .8rem 0; padding: .75rem; border: 1px solid var(--line); border-radius: 10px; }
+  .visitor-questions summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+  .visitor-questions textarea { width: 100%; min-width: 0; box-sizing: border-box; resize: vertical; padding: .65rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+  .visitor-questions .hint { margin: .5rem 0; font-size: .8rem; }
   /* #60: the depth select sits between the URL and the CTA, full width so the
      form keeps its single-column rhythm on a phone. */
   .ld-depth { width: 100%; display: block; margin: 0 0 .5rem; font: inherit; font-size: .92rem;
@@ -377,8 +382,8 @@ function robotsTxt() {
 // the corresponding copy changes — sitemap-lastmod wants real, distinct,
 // non-future values, never a synthetic build date).
 const SITE_PAGES = [
-  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:10:00+02:00' },
-  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:10:00+02:00' },
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:42:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:42:00+02:00' },
   { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-09-22T08:28:00+02:00' },
@@ -667,12 +672,19 @@ function landingPage(lang = 'en') {
   <a class="m-compare" href="#compare">${escapeHtml(s.modeCompare)}</a>
 </nav>
 <div class="pane pane-single" id="single">
-<form class="ld-form" method="get" action="/${lang}/audit">
+<form class="ld-form" method="post" action="/${lang}/audit">
   <label for="audit-url">${escapeHtml(s.urlLabel)}</label>
   <input type="text" name="url" id="audit-url" inputmode="url" placeholder="example.com" aria-label="${escapeHtml(s.urlLabel)}"
     autocomplete="off" autocapitalize="off" spellcheck="false" required>
   <select class="ld-depth" name="pages" aria-label="${escapeHtml(s.depthLabel)}">${PAGE_CHOICES.map((n) =>
-    `<option value="${n}"${n === MAX_PAGES ? ' selected' : ''}>${escapeHtml(s.depthOption(n))}</option>`).join('')}</select>${turnstileWidget}
+    `<option value="${n}"${n === MAX_PAGES ? ' selected' : ''}>${escapeHtml(s.depthOption(n))}</option>`).join('')}</select>
+  <details class="visitor-questions">
+    <summary>${escapeHtml(s.questionsSummary)}</summary>
+    <label for="priority-questions">${escapeHtml(s.questionsLabel)}</label>
+    <textarea id="priority-questions" name="priorityQuestions" rows="4" aria-describedby="questions-help questions-privacy" autocomplete="off"></textarea>
+    <p class="hint" id="questions-help">${escapeHtml(s.questionsHelp)}</p>
+    <p class="hint" id="questions-privacy">${escapeHtml(s.questionsPrivacy)}</p>
+  </details>${turnstileWidget}
   <button type="submit" class="ld-cta"><span>${escapeHtml(s.cta)}</span></button>
 </form>
 <a class="ld-example" href="/${lang}/example-report/">${escapeHtml(s.exampleLink)}</a>
@@ -1041,6 +1053,7 @@ function generateFilesSection(jobId, lang) {
 // diffed, rendered, and dropped. Nothing is stored, so the privacy promise on
 // the landing page ("we keep nothing") stays literally true.
 function baselineFormSection(jobId, lang) {
+  if (jobs.get(jobId)?.priorityQuestions?.length) return `<p>${escapeHtml(t(lang).error.questionsUnsupported.message)}</p>`;
   const b = t(lang).baseline;
   const action = `/${encodeURIComponent(lang)}/audit/diff?job=${encodeURIComponent(jobId)}`;
   return '<details>'
@@ -1183,7 +1196,8 @@ async function executeAudit(job) {
   // default keeps the bare-URL key, so it still shares with the sync path.
   const maxPages = job.maxPages ?? MAX_PAGES;
   const key = maxPages === MAX_PAGES ? job.url : `${job.url}#pages=${maxPages}`;
-  const cached = cache.get(key);
+  const personalized = job.priorityQuestions.length > 0;
+  const cached = personalized ? undefined : cache.get(key);
   if (cached !== undefined) {
     jobs.finish(job.id, { report: cached, html: renderHtml(cached, undefined, job.lang, { collapsed: true }) });
     return;
@@ -1197,6 +1211,7 @@ async function executeAudit(job) {
   const opts = {
     timeoutMs: FETCH_TIMEOUT_MS,
     maxPages,
+    ...(personalized ? { priorityQuestions: [...job.priorityQuestions] } : {}),
     blockPrivateHosts: true,          // fetch-layer SSRF guard, unchanged.
     includeAnswerMatrix: true,
     signal: ac.signal,
@@ -1209,7 +1224,7 @@ async function executeAudit(job) {
     // job.url, not `key`: the key may carry a #pages fragment that is a cache
     // discriminator, not part of the address to crawl.
     const report = await withTimeout(runAuditImpl(job.url, checks, opts), auditTimeout());
-    cache.set(key, report);
+    if (!personalized) cache.set(key, report);
     jobs.finish(job.id, { report, html: renderHtml(report, undefined, job.lang, { collapsed: true }) });
     recordAuditEvent(report, {
       kind: 'audit', lang: job.lang, ipHash: job.ipHash ?? null,
@@ -1248,7 +1263,7 @@ function jobFromQuery(req) {
 function handleStream(req, res, job) {
   res.writeHead(200, {
     'content-type': 'text/event-stream; charset=utf-8',
-    'cache-control': 'no-cache, no-transform',
+    'cache-control': 'private, no-store, no-transform',
     connection: 'keep-alive',
     'x-accel-buffering': 'no',          // ask nginx not to buffer the stream.
     'referrer-policy': 'no-referrer',
@@ -1441,6 +1456,38 @@ function setVerifyTurnstileForTest(fn) {
   verifyTurnstileImpl = fn ?? verifyTurnstile;
 }
 
+function sendFormError(res, lang, code, status = 400) {
+  if (status === 413) res.setHeader('connection', 'close');
+  const e = t(lang).error[code];
+  const page = errorPage(e.title, e.message, { status, lang });
+  send(res, status, 'text/html; charset=utf-8', page.html);
+}
+
+async function auditFields(req, res, lang, { comparison = false } = {}) {
+  const query = new URL(req.url, 'http://localhost').searchParams;
+  // Never copy questions into req.url: proxies and browser history retain URLs.
+  if (query.has('priorityQuestions')) {
+    sendFormError(res, lang, comparison ? 'questionsUnsupported' : 'questionsPost');
+    return null;
+  }
+  if (req.method !== 'POST') return query;
+  if (!/^application\/x-www-form-urlencoded(?:\s*;|$)/i.test(req.headers['content-type'] ?? '')) {
+    sendFormError(res, lang, 'auditBodyType', 415);
+    return null;
+  }
+  const body = await readBody(req, MAX_QUESTION_BODY_BYTES, false);
+  if (body === null) {
+    sendFormError(res, lang, 'auditBodyLarge', 413);
+    return null;
+  }
+  const fields = new URLSearchParams(body);
+  if (comparison) {
+    sendFormError(res, lang, 'questionsUnsupported');
+    return null;
+  }
+  return fields;
+}
+
 // Rate-limit + SSRF check, then create the job and return the progress page.
 // Execution is lazy: the audit itself is kicked off by /audit/stream or
 // /audit/result (added in Tasks 5-8), whichever the client hits first.
@@ -1458,7 +1505,14 @@ async function handleAuditStart(req, res) {
     return;
   }
 
-  const rawUrl = parsed.searchParams.get('url') ?? '';
+  const fields = await auditFields(req, res, lang);
+  if (!fields) return;
+  const priorityQuestions = parsePriorityQuestions(fields.getAll('priorityQuestions'));
+  if (priorityQuestions === null) { sendFormError(res, lang, 'questionLimit'); return; }
+  if (priorityQuestions.length && (fields.has('compare') || fields.has('compare2') || fields.has('baseline'))) {
+    sendFormError(res, lang, 'questionsUnsupported'); return;
+  }
+  const rawUrl = fields.get('url') ?? '';
   const normalized = normalizeInput(rawUrl);
   if (normalized === '') {
     const e = t(lang).error.missingUrl;
@@ -1486,7 +1540,7 @@ async function handleAuditStart(req, res) {
   // Env-gated: with no keys, this block never runs and the token is never
   // even read — behavior is byte-identical to before Turnstile existed.
   if (turnstileEnabled()) {
-    const token = parsed.searchParams.get('cf-turnstile-response');
+    const token = fields.get('cf-turnstile-response');
     const { ok } = await verifyTurnstileImpl(token, ip, { secret: process.env.TURNSTILE_SECRET_KEY });
     if (!ok) {
       const e = t(lang).error.captchaFailed;
@@ -1499,7 +1553,7 @@ async function handleAuditStart(req, res) {
   // Create the job but DO NOT run the audit yet — execution is lazy, kicked off
   // by /audit/stream or /audit/result (whichever the client hits first).
   const ipHash = await hashIp(ip);
-  const job = jobs.create({ url: url.href, lang, ipHash, maxPages: parsePages(parsed.searchParams.get('pages')) });
+  const job = jobs.create({ url: url.href, lang, ipHash, maxPages: parsePages(fields.get('pages')), priorityQuestions });
   const nonce = crypto.randomBytes(16).toString('base64');
   const csp = "default-src 'self'; style-src 'self' 'unsafe-inline'; "
     + `script-src 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; `
@@ -1637,6 +1691,10 @@ function compareProgressPage(jobId, lang, nonce) {
 async function handleCompareStart(req, res) {
   const parsed = new URL(req.url, 'http://localhost');
   const lang = normalizeLang(parsed.searchParams.get('lang'));
+  if (req.method === 'POST' || parsed.searchParams.has('priorityQuestions')) {
+    await auditFields(req, res, lang, { comparison: true });
+    return;
+  }
   const errHtml = (title, message, status = 400) => {
     const p = localizedErrorPage(lang, title, message, { status });
     send(res, p.status, 'text/html; charset=utf-8', p.html);
@@ -1808,7 +1866,7 @@ async function handleCompareExport(req, res, job) {
 // attacker-chosen amount of memory.
 const MAX_BODY_BYTES = 2_000_000;
 
-function readBody(req, limit = MAX_BODY_BYTES) {
+function readBody(req, limit = MAX_BODY_BYTES, destroyOnLimit = true) {
   return new Promise((resolve) => {
     const declared = Number(req.headers['content-length']);
     if (Number.isFinite(declared) && declared > limit) { resolve(null); return; }
@@ -1816,7 +1874,12 @@ function readBody(req, limit = MAX_BODY_BYTES) {
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > limit) { resolve(null); req.destroy(); return; }
+      if (size > limit) {
+        resolve(null);
+        if (destroyOnLimit) req.destroy();
+        else req.pause(); // send the bounded 413 before the connection closes
+        return;
+      }
       chunks.push(chunk);
     });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
@@ -1844,6 +1907,10 @@ async function handleBaselineDiff(req, res) {
     send(res, 404, 'text/html; charset=utf-8', p.html);
     return;
   }
+  if (job.priorityQuestions.length) {
+    sendFormError(res, lang, 'questionsUnsupported');
+    return;
+  }
   const raw = baselineInput(body, req.headers['content-type'] ?? '');
   let baseline;
   try {
@@ -1861,6 +1928,10 @@ async function handleBaselineDiff(req, res) {
     send(res, 400, 'text/html; charset=utf-8', p.html);
     return;
   }
+  if (validation.report.priorityAnswers?.length) {
+    sendFormError(res, lang, 'questionsUnsupported');
+    return;
+  }
   const diff = diffReports(job.report, validation.report);
   const html = renderHtml(job.report, undefined, lang, { collapsed: true, diff });
   send(res, 200, 'text/html; charset=utf-8', withResultChrome(html, job.id, lang));
@@ -1870,11 +1941,16 @@ async function handleBaselineDiff(req, res) {
 // Server
 // ---------------------------------------------------------------------------
 const server = http.createServer((req, res) => {
-  // GET/HEAD everywhere, plus POST on exactly one route: /{lang}/audit/diff
-  // (#59). Widening the method surface is a security decision, so it is spelled
-  // out here rather than being decided further down the dispatch chain.
+  // Temporary jobs and exports must not be cached by browsers or proxies,
+  // including errors after the job has expired and can no longer identify itself.
+  if (/^\/(?:en\/|fr\/)?(?:audit(?:[/.?]|$)|compare(?:[/?]|$))/.test(req.url ?? '')) {
+    res.setHeader('cache-control', 'private, no-store');
+  }
+  // Only explicit localized audit starts and baseline imports accept POST.
+  // Compare POST receives an explanatory refusal; comparison remains GET-only.
   const isDiffPost = req.method === 'POST' && /^\/[a-z]{2}\/audit\/diff(\?|$)/.test(req.url ?? '');
-  if (req.method !== 'GET' && req.method !== 'HEAD' && !isDiffPost) {
+  const isStartPost = req.method === 'POST' && /^\/(?:en|fr)\/(?:audit|compare\/start)(\?|$)/.test(req.url ?? '');
+  if (req.method !== 'GET' && req.method !== 'HEAD' && !isDiffPost && !isStartPost) {
     send(res, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', { allow: 'GET' });
     return;
   }
@@ -2062,6 +2138,11 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (pathname === '/audit.json') {
+    if (new URL(req.url, 'http://localhost').searchParams.has('priorityQuestions')) {
+      const e = t(requestLang(req)).error.questionsPost;
+      send(res, 400, 'application/json; charset=utf-8', JSON.stringify({ error: 'questions-require-form', message: e.message }));
+      return;
+    }
     handleAudit(req, res).catch((err) => {
       console.error('unhandled /audit.json error:', err);
       if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Internal Server Error');

@@ -194,10 +194,14 @@ function countSchemaFaqPairs(nodes: Record<string, unknown>[], ids: Map<string, 
 function countDetailsFaq(root: ReturnType<typeof parse>): number {
   let count = 0;
   for (const details of root.querySelectorAll('details')) {
+    // A disclosure is not necessarily an answer: forms and navigation use the
+    // same accessible HTML element for controls and menus.
+    if (details.closest('form, nav, header, footer, aside')
+      || details.querySelector('input, select, textarea, form')) continue;
     const summary = details.querySelector('summary');
     const summaryText = summary?.textContent.trim() ?? '';
     const bodyText = details.textContent.replace(summaryText, '').trim();
-    if (summaryText && bodyText.length > 5) count += 1;
+    if (isQuestionHeading(summaryText) && bodyText.length > 5) count += 1;
   }
   return count;
 }

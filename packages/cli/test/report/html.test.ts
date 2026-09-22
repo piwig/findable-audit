@@ -117,8 +117,8 @@ describe('renderHtml', () => {
   it('titles the subscore summary section', () => {
     expect(html).toContain('Category subscores');
   });
-  it('shows a fix for a failing check', () => {
-    expect(html).toContain('Add a /llms.txt file.');
+  it('qualifies an optional failing check without making it a required fix', () => {
+    expect(html).toContain('Optional: publish or maintain this file only for an identified use.');
   });
   it('escapes site-derived text', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
@@ -128,12 +128,12 @@ describe('renderHtml', () => {
     // The weakest axis here is "understood" (llm-content 0, structured-data 100),
     // and it is under 60 -> the strong wording of that axis.
     expect(html).toContain('class="hero"');
-    expect(html).toMatch(/it can describe you, it cannot cite you/);
-    expect(html).toMatch(/2 to fix/);          // 1 fail + 1 warn ('evil') => 2
+    expect(html).toMatch(/these checks do not measure whether an AI assistant understands or cites/);
+    expect(html).toMatch(/2 findings/);          // 1 fail + 1 warn ('evil') => 2
   });
   it('regroups the eight families into three reader-facing axes', () => {
     expect(html).toContain('class="axes"');
-    for (const axis of ['Reachable', 'Understood', 'Usable']) expect(html).toContain(axis);
+    for (const axis of ['Reachable', 'Readable', 'Usable']) expect(html).toContain(axis);
     // ai-access / technical-seo are absent from this fixture -> that axis is n/a,
     // never a misleading 0.
     expect(html).toMatch(/<div class="axis-score">n\/a<\/div>/);
@@ -143,19 +143,18 @@ describe('renderHtml', () => {
     for (const id of ['#verdict', '#plan', '#cwv', '#detail']) expect(html).toContain(`href="${id}"`);
     expect(html).toMatch(/position:\s*sticky/);
   });
-  it('groups the action plan into effort lanes with a real score projection', () => {
+  it('groups the plan by qualification without promising a score projection', () => {
     expect(html).toContain('Action plan');
     expect(html).toContain('class="lane"');
-    expect(html).toMatch(/Quick wins|Moderate|Bigger projects/); // llms-txt=Moderate, evil=Quick win
-    expect(html).toContain('Add a /llms.txt file.');             // the fix text
-    expect(html).toMatch(/\+\d+ pts/);                           // impact badge
-    // The projection is the recomputed score, not a point sum: fixing llms-txt
-    // alone (llm-content 0 -> 10/10) re-blends the weighted subscores to 91.
-    expect(html).toContain('the 1 of them: 72 → 91 (A)');
+    expect(html).toContain('Needs review');
+    expect(html).toContain('Conditional advice');
+    expect(html).not.toContain('the 1 of them: 72 → 91 (A)');
+    expect(html).not.toMatch(/\+\d+ pts/);
   });
   it('names the offending paths on a plan item (says WHERE, not only what)', () => {
     const withPaths = renderHtml({
       ...report,
+      sampledPages: ['/', '/a', '/b/c'],
       results: [{ ...report.results[0], message: 'no <h1> on /a and /b/c' }],
     }, new Date('2026-07-20T00:00:00Z'));
     expect(withPaths).toContain('class="ap-where"');
@@ -163,13 +162,15 @@ describe('renderHtml', () => {
     expect(withPaths).toContain('<code>/b/c</code>');
   });
   it('carries a ready-to-paste snippet in the per-item "how to do it"', () => {
-    expect(html).toContain('class="ap-how"');
-    expect(html).toContain('How to do it');
-    expect(html).toContain('class="snippet"');  // llms-txt has a catalogued snippet
+    const withDefect = renderHtml({ ...report, results: [{ id: 'canonical', family: 'technical-seo', evidence: 'measured', status: 'fail', points: 0, maxPoints: 4, message: 'missing canonical', fix: 'Add canonical' }] });
+    expect(withDefect).toContain('class="ap-how"');
+    expect(withDefect).toContain('How to do it');
+    expect(withDefect).toContain('class="snippet"');
+    expect(html).not.toContain('class="snippet"'); // optional declarations do not receive a paste-first instruction
   });
   it('adds a doc link next to the fix in the per-family check table', () => {
     // llms-txt is a failing llm-content check -> family fallback docUrl (llmstxt.org)
-    expect(html).toMatch(/class="fix">Add a \/llms\.txt file\.[\s\S]*?href="https:\/\/llmstxt\.org\/"/);
+    expect(html).toMatch(/class="fix">Optional:[\s\S]*?href="https:\/\/llmstxt\.org\/"/);
   });
 });
 
@@ -251,11 +252,11 @@ describe('renderHtml in French', () => {
     expect(html).toContain('<html lang="fr">');
     expect(html).toContain('Rapport findable-audit');
     expect(html).toContain('<span class="grade ok">Note C</span>');
-    expect(html).toMatch(/il peut vous décrire, pas vous citer/); // FR verdict sentence
-    expect(html).toMatch(/2 à corriger/);          // FR stats
+    expect(html).toMatch(/ces contrôles ne mesurent ni la compréhension ni les citations/);
+    expect(html).toMatch(/2 constats/);          // FR stats
     expect(html).toContain('Sous-scores par catégorie');
     expect(html).toContain("Plan d'action");
-    expect(html).toContain('Compréhensible');      // FR axis label
+    expect(html).toContain('Lisible');             // FR axis label
     expect(html).toMatch(/Rapide|Modéré|Chantier/); // FR effort lanes
     expect(html).toContain('Pages auditées :');
     expect(html).toContain('En savoir plus →');
@@ -267,11 +268,11 @@ describe('renderHtml in French', () => {
     // An interpolated message keeps its values while the wording changes.
     expect(html).toContain('1 bloc(s) JSON-LD valides');
     // The fix is now translated on a French report (#1/#53) — no English fix leak.
-    expect(html).toContain('Ajoutez un fichier /llms.txt');
+    expect(html).toContain('Facultatif : publiez ou entretenez ce fichier seulement pour un usage identifié.');
     expect(html).not.toContain('Add a /llms.txt file.');
     // A French "why this matters" line is shown for catalogued checks.
     expect(html).toMatch(/class="why"/);
-    expect(html).toMatch(/Vérifie que \/llms\.txt/);
+    expect(html).toContain('aucun gain de citation ou de classement n’est établi');
   });
 });
 

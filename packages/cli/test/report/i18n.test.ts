@@ -26,12 +26,12 @@ describe('report i18n catalog', () => {
   });
 
   it('builds parameterized strings per language', () => {
-    expect(messages('en').stats(1, 2, 3)).toBe('1 passed · 2 to fix · 3 pages');
-    expect(messages('fr').stats(1, 2, 3)).toBe('1 réussis · 2 à corriger · 3 pages');
-    expect(messages('en').verdict('C', 2)).toMatch(/priority/);
-    expect(messages('fr').verdict('C', 2)).toMatch(/priorité/);
-    expect(messages('en').verdict('A', 0)).toMatch(/Excellent/);
-    expect(messages('fr').verdict('A', 0)).toMatch(/Excellent/);
+    expect(messages('en').stats(1, 2, 3)).toBe('1 passed · 2 findings · 3 pages');
+    expect(messages('fr').stats(1, 2, 3)).toBe('1 réussis · 2 constats · 3 pages');
+    expect(messages('en').verdict('C', 2)).toContain('2 failed checks');
+    expect(messages('fr').verdict('C', 2)).toContain('2 contrôles en échec');
+    expect(messages('en').verdict('A', 0)).toContain('Strong results');
+    expect(messages('fr').verdict('A', 0)).toContain('Bons résultats');
     expect(messages('en').moreRecs(5)).toBe('+5 more — see the per-family detail below.');
     expect(messages('fr').moreRecs(5)).toBe('+5 autre(s) — voir le détail par famille ci-dessous.');
   });
@@ -52,7 +52,7 @@ describe('report i18n catalog', () => {
   });
 
   it('localizes the action-plan effort labels', () => {
-    expect(messages('en').effortLabel.quick).toBe('Quick win');
+    expect(messages('en').effortLabel.quick).toBe('Quick');
     expect(messages('en').effortLabel.involved).toBe('Involved');
     expect(messages('fr').effortLabel.quick).toBe('Rapide');
     expect(messages('fr').effortLabel.involved).toBe('Conséquent');

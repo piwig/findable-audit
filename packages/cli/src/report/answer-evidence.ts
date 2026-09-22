@@ -3,11 +3,41 @@ import type { Lang } from './i18n.js';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+const priorityLabels = (lang: Lang) => lang === 'fr'
+  ? { found: 'Passage retrouvé', review: 'À vérifier', 'not-found': 'Absent de l’échantillon' }
+  : { found: 'Passage found', review: 'Review required', 'not-found': 'Absent from the sample' };
+const priorityTitle = (lang: Lang) => lang === 'fr' ? 'Vos questions prioritaires' : 'Your priority questions';
+const priorityScope = (lang: Lang) => lang === 'fr'
+  ? 'Vos questions sont recherchées dans les pages examinées par simple repérage lexical. « Passage retrouvé » signifie qu’un titre correspondant est suivi de texte ; cela ne prouve ni la justesse ni la qualité de la réponse. Relisez les extraits. Une absence concerne uniquement cet échantillon. Ces résultats ne changent pas la note et ne prédisent aucune citation IA.'
+  : 'Your questions are checked against the examined pages using lexical matching. “Passage found” means a matching heading is followed by text; it does not establish that the answer is correct or useful. Review the excerpts. Absence applies only to this sample. These results do not change the score or predict AI citations.';
+
+/** Operator-supplied questions are deliberately separate from inferred demand. */
+export function renderPriorityAnswers(report: AuditReport, lang: Lang): string {
+  const answers = report.priorityAnswers;
+  if (!answers?.length) return '';
+  const labels = priorityLabels(lang);
+  const rows = answers.map(answer => `<details class="answer-proof" open><summary><span class="answer-state ${answer.status}">${labels[answer.status]}</span> ${esc(answer.question)}</summary>`
+    + (answer.proof ? `<p class="proof-source">${lang === 'fr' ? 'Page examinée' : 'Examined page'} : <code>${esc(answer.proof.path)}</code>${answer.proof.heading ? ` · ${esc(answer.proof.heading)}` : ''}</p><blockquote>${esc(answer.proof.excerpt)}</blockquote>`
+      : `<p>${lang === 'fr' ? 'Aucun passage correspondant retrouvé. Vérifiez les autres pages ou reformulez la question avant de conclure.' : 'No matching passage found. Check other pages or rephrase the question before drawing a conclusion.'}</p>`)
+    + '</details>').join('\n');
+  return `<section id="priority-answers"><h2>${priorityTitle(lang)}</h2><p class="scope-note">${priorityScope(lang)}</p>${rows}</section>`;
+}
+
+export function renderPriorityAnswersMarkdown(report: AuditReport, lang: Lang): string {
+  if (!report.priorityAnswers?.length) return '';
+  const md = (value: string) => esc(value).replace(/([\\`*_[\]{}()#+!|])/g, '\\$1').replace(/\r?\n/g, ' ');
+  const labels = priorityLabels(lang);
+  const rows = report.priorityAnswers.map(answer => `### ${md(answer.question)}\n\n**${labels[answer.status]}**\n`
+    + (answer.proof ? `\n${lang === 'fr' ? 'Page examinée' : 'Examined page'} : ${md(answer.proof.path)}${answer.proof.heading ? ` · ${md(answer.proof.heading)}` : ''}\n\n> ${md(answer.proof.excerpt)}\n` : ''));
+  return [`## ${priorityTitle(lang)}`, '', priorityScope(lang), '', ...rows].join('\n');
+}
+
 /** Readable evidence only; no score, remote calls, or claim of semantic understanding. */
 export function renderAnswerEvidence(report: AuditReport, lang: Lang): string {
   const fr = lang === 'fr';
   const cells = report.answerMatrix?.cells ?? [];
-  if (!report.answerMatrix) return '';
+  const priority = renderPriorityAnswers(report, lang);
+  if (!report.answerMatrix) return priority;
   const labels = fr
     ? { covered: 'Réponse détectée', weak: 'À vérifier', missing: 'Absent de l’échantillon' }
     : { covered: 'Answer detected', weak: 'Review required', missing: 'Absent from the sample' };
@@ -21,7 +51,7 @@ export function renderAnswerEvidence(report: AuditReport, lang: Lang): string {
         : `<p>${esc(fr ? 'Aucun extrait justificatif disponible dans ce rapport.' : 'No supporting excerpt is available in this report.')}</p>`)
       + '</details>';
   }).join('\n');
-  return `<section id="answer-evidence"><h2>${fr ? 'Questions et preuves' : 'Questions and evidence'}</h2>`
+  return priority + `<section id="answer-evidence"><h2>${fr ? 'Questions et preuves' : 'Questions and evidence'}</h2>`
     + `<p class="scope-note">${fr
       ? 'Ces questions proviennent des services, zones et informations du site. Ce ne sont pas des recherches mesurées. Les détections sont des indices à relire ; une absence concerne seulement les pages examinées, sans prédiction de citation IA.'
       : 'These questions come from the site’s services, areas and information, not measured search demand. Detections are clues to review; absence refers only to the examined pages, with no AI citation prediction.'}</p>`
@@ -67,6 +97,10 @@ export const ANSWER_EVIDENCE_STYLE = `
   .answer-proof summary { cursor: pointer; font-weight: 600; }
   .answer-state { display: inline-block; font-size: .74rem; font-weight: 600; color: var(--muted); background: var(--chip-bg); padding: .15rem .5rem; border-radius: 5px; margin-right: .4rem; }
   .answer-proof blockquote { margin: .6rem 0; padding: .5rem 1rem; border-left: 2px solid var(--accent); background: var(--panel); }
+  .answer-proof { overflow-wrap: anywhere; } .answer-proof code { white-space: normal; }
+  #priority-answers { padding: 1rem 1.2rem; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  #priority-answers h2 { margin-top: 0; } .answer-state.found { color: var(--good); background: var(--good-bg); }
+  .answer-state.review { color: var(--warn); background: var(--warn-bg); }
   .proof-source { font-size: .82rem; color: var(--muted); margin: .4rem 0; }
   .evidence-filters { margin: 1rem 0; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 10px; }
   .evidence-filters legend { font-weight: 700; } .evidence-filters label { display: inline-flex; gap: .3rem; align-items: center; margin: .3rem .9rem .3rem 0; min-height: 36px; cursor: pointer; }

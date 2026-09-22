@@ -1,25 +1,20 @@
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
-import { gradeOf } from '../scoring.js';
 import { renderCwvHtml } from './cwv.js';
-import { collectRecommendations, topFixes, type Recommendation } from './recommendations.js';
+import { collectRecommendations, topFixes, recommendationAdvice, recommendationFinding, ACTION_KINDS, type ActionKind, type Recommendation } from './recommendations.js';
 import { messages, FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, type Lang } from './i18n.js';
 import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
 import { localizeMessage } from './message-i18n.js';
 import { checkSnippet } from './snippets.js';
 import { renderDiffHtmlSection, type ReportDiff } from './diff.js';
 import { renderScoreGauge, renderPriorityBars, renderEntityGraphSvg, renderImpactEffortScatter, type ScatterPoint } from './charts.js';
-import { AXIS_ORDER, axisScores, projectScore, verdictSentence } from './axes.js';
-import type { Effort } from './effort.js';
+import { AXIS_ORDER, axisScores, verdictSentence } from './axes.js';
 import { renderSparklineSvg, checkTransitions, type HistoryEntry } from './history.js';
 import { renderAnswerEvidence, renderAuditScope, renderEvidenceFilters, renderLinkOpportunities, ANSWER_EVIDENCE_STYLE } from './answer-evidence.js';
 
 const STATUS_LABEL: Record<CheckResult['status'], string> = {
   pass: 'PASS', warn: 'WARN', fail: 'FAIL', skip: 'SKIP',
 };
-
-/** Effort lanes, easiest first — a reader arbitrates on effort, not on family. */
-const LANES: Effort[] = ['quick', 'moderate', 'involved'];
 
 /** Items shown per lane before the tail folds. Nothing is dropped — see planRest. */
 const LANE_VISIBLE = 6;
@@ -334,11 +329,12 @@ export function renderHtml(
   // One row per check. The human title leads; the technical id is demoted to a
   // small tag. Passing checks fold away — a report shows what is wrong first.
   const renderRow = (r: CheckResult): string => {
-    const why = checkWhy(r.id, lang);
+    const action = collectRecommendations([r])[0];
+    const why = action?.kind === 'conditional' ? undefined : checkWhy(r.id, lang);
     const whyHtml = why ? `<div class="why">${escapeHtml(why)}</div>` : '';
-    const fixText = checkFix(r.id, lang, r.fix);
-    const link = r.docUrl && r.status !== 'pass' && r.status !== 'skip'
-      ? ` <a class="fix-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
+    const fixText = action ? recommendationAdvice(action, lang) : checkFix(r.id, lang, r.fix);
+    const link = r.docUrl && /^https?:\/\//i.test(r.docUrl) && r.status !== 'pass' && r.status !== 'skip'
+      ? ` <a class="fix-more" href="${escapeHtml(r.docUrl)}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
     const fix = fixText && r.status !== 'pass' && r.status !== 'skip'
       ? `<div class="fix">${escapeHtml(fixText)}${link}</div>` : '';
     return `<tr class="row" data-evidence="${r.evidence === 'heuristic' ? 'heuristic' : 'measured'}">
@@ -499,17 +495,17 @@ ${(graph.stats?.danglingRefs ?? 0) > 0 ? `<p class="eg-legend"><span><span class
   }).join('\n');
 
   // ---------------------------------------------------------------- layer 2
-  const recs = collectRecommendations(report.results);
+  const recs = collectRecommendations(report);
   const renderApItem = (r: Recommendation): string => {
-    const more = r.docUrl
-      ? ` <a class="ap-more" href="${r.docUrl}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
+    const more = r.docUrl && /^https?:\/\//i.test(r.docUrl)
+      ? ` <a class="ap-more" href="${escapeHtml(r.docUrl)}" target="_blank" rel="noopener noreferrer">${m.learnMore}</a>` : '';
     // R9: the plan says WHERE. The check already names its offending paths in
     // its message; they are surfaced here instead of staying buried in layer 3.
     const where = r.offenders.length > 0
       ? `<div class="ap-where">${escapeHtml(m.planWhere)} ${r.offenders.map((p) => `<code>${escapeHtml(p)}</code>`).join(' ')}</div>`
-      : '';
-    const why = checkWhy(r.id, lang);
-    const snippet = checkSnippet(r.id);
+      : `<div class="ap-where">${escapeHtml(m.planLocationUnknown)}</div>`;
+    const why = r.kind === 'fix' ? checkWhy(r.id, lang) : undefined;
+    const snippet = r.kind === 'fix' ? checkSnippet(r.id) : undefined;
     const howBody = [
       why ? `<div class="why">${escapeHtml(why)}</div>` : '',
       snippet ? `<pre class="snippet"><code>${escapeHtml(snippet)}</code></pre>` : '',
@@ -521,29 +517,19 @@ ${(graph.stats?.danglingRefs ?? 0) > 0 ? `<p class="eg-legend"><span><span class
       <div class="ap-line">
         <span class="ap-sev ${r.status}"></span>
         <span class="chip">${escapeHtml(familyShort[r.family])}</span>
-        <span class="ap-fix"><strong>${escapeHtml(checkTitle(r.id, lang))}</strong> — ${escapeHtml(checkFix(r.id, lang, r.fix) ?? r.fix)}${more}</span>
-        <span class="ap-imp">+${r.impact} ${m.pts}</span>
+        <span class="ap-fix"><strong>${escapeHtml(checkTitle(r.id, lang))}</strong> — ${escapeHtml(recommendationAdvice(r, lang))}${more}</span>
+        <span class="chip">${escapeHtml(m.actionEvidence[r.evidence])} · ${escapeHtml(m.effortLabel[r.effort])}</span>
       </div>
+      <div class="ap-where">${escapeHtml(m.planFinding)} ${escapeHtml(recommendationFinding(r, lang))}</div>
       ${where}
       ${how}
     </div>`;
   };
 
-  const renderLane = (effort: Effort): string => {
-    const items = recs.filter((r) => r.effort === effort);
+  const renderLane = (kind: ActionKind): string => {
+    const items = recs.filter((r) => r.kind === kind);
     if (items.length === 0) return '';
-    // The projection is the real recomputed score, not an approximation: same
-    // weighted-renormalized formula as computeScore, with this lane's points
-    // credited to their families.
-    let projection = '';
-    if (report.familyScores.length > 0) {
-      const to = projectScore(report.familyScores, items);
-      projection = to > report.score
-        ? `<span class="lane-proj">${escapeHtml(m.laneProjection(items.length, report.score, to, gradeOf(to)))}</span>`
-        : `<span class="lane-proj flat">${escapeHtml(m.laneFlat(items.length, report.score))}</span>`;
-    }
-    const head = `<div class="lane-head"><h3>${escapeHtml(m.laneTitle[effort])}</h3>`
-      + `<span class="lane-hint">${escapeHtml(m.laneHint[effort])}</span>${projection}</div>`;
+    const head = `<div class="lane-head"><h3>${escapeHtml(m.actionKind[kind])}</h3></div>`;
     const shown = items.slice(0, LANE_VISIBLE).map(renderApItem).join('\n');
     // No silent cap (R9): the tail is folded, never dropped, and the summary
     // states how many are in it.
@@ -554,19 +540,17 @@ ${(graph.stats?.danglingRefs ?? 0) > 0 ? `<p class="eg-legend"><span><span class
     return `<div class="lane">${head}${shown}${rest}</div>`;
   };
 
-  // Backlog A3: the three best-payoff fixes (weighted points ÷ effort) open
-  // the plan, so the reader knows where to start before arbitrating lanes.
+  // The same priority order is used by terminal, Markdown and the short summary.
   const top = topFixes(recs);
   const topStrip = top.length === 0 ? '' : `<div class="top-fixes">
 <h3>${escapeHtml(m.topFixesTitle(top.length))}</h3>
 <ol>
-${top.map((r) => `<li><span class="ap-sev ${r.status}"></span><strong>${escapeHtml(checkTitle(r.id, lang))}</strong> — ${escapeHtml(checkFix(r.id, lang, r.fix) ?? r.fix)} <span class="ap-imp">+${r.impact} ${m.pts}</span> <span class="chip">${escapeHtml(m.laneTitle[r.effort])}</span></li>`).join('\n')}
+${top.map((r) => `<li><span class="ap-sev ${r.status}"></span><strong>${escapeHtml(checkTitle(r.id, lang))}</strong> — ${escapeHtml(recommendationAdvice(r, lang))} <span class="chip">${escapeHtml(m.actionKind[r.kind])} · ${escapeHtml(m.effortLabel[r.effort])}</span></li>`).join('\n')}
 </ol>
 </div>`;
 
-  // A48: the quick-wins ranking as a scatter — impact vs effort at a glance,
-  // for a reader who won't parse a ranked list. Same recs as the lanes below.
-  const scatterPoints: ScatterPoint[] = recs.map((r) => ({
+  // Only verified defects belong on this graph; check points are not a score projection.
+  const scatterPoints: ScatterPoint[] = recs.filter((r) => r.kind === 'fix').map((r) => ({
     id: r.id,
     label: checkTitle(r.id, lang),
     impact: r.impact,
@@ -580,7 +564,8 @@ ${renderImpactEffortScatter(scatterPoints, lang)}
 
   const actionPlan = `<section class="action-plan" id="plan">
 <h2>${m.actionPlan}</h2>
-${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `${topStrip}\n${scatterSection}\n${LANES.map(renderLane).join('\n')}`}
+<p class="fam-info">${escapeHtml(m.planQualificationNote)}</p>
+${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `${topStrip}\n${scatterSection}\n${ACTION_KINDS.map(renderLane).join('\n')}`}
 </section>`;
 
   return `<!doctype html>
@@ -598,6 +583,7 @@ ${recs.length === 0 ? `<p class="plan-empty">${escapeHtml(m.planEmpty)}</p>` : `
 <nav class="tocbar" aria-label="${escapeHtml(m.reportTitle)}">
   <a href="#verdict">${escapeHtml(m.nav.verdict)}</a>
   <a href="#plan">${escapeHtml(m.nav.plan)}</a>
+  ${report.priorityAnswers?.length ? `<a href="#priority-answers">${lang === 'fr' ? 'Vos questions' : 'Your questions'}</a>` : ''}
   <a href="#cwv">${escapeHtml(m.nav.cwv)}</a>
   <a href="#detail">${escapeHtml(m.nav.detail)}</a>
   ${report.answerMatrix ? `<a href="#answer-evidence">${lang === 'fr' ? 'Questions et preuves' : 'Questions and evidence'}</a>` : ''}

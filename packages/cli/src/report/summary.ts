@@ -4,7 +4,7 @@
 // it". A director, a client or a founder asks three different questions: where
 // do we stand, what are the few things worth doing, and what would they cost.
 // Everything here is assembled from pieces the report already computes — axes,
-// verdict sentence, recommendations, effort, projected score — so the summary
+// verdict sentence, qualified recommendations and effort — so the summary
 // can never disagree with the report it summarises.
 //
 // What it deliberately does NOT contain: the per-check table, the passing
@@ -13,9 +13,10 @@
 
 import type { AuditReport } from '../runner.js';
 import { messages, type Lang } from './i18n.js';
-import { checkTitle, checkFix } from './check-i18n.js';
-import { axisScores, projectScore, trustLens, verdictSentence, AXIS_ORDER } from './axes.js';
-import { collectRecommendations } from './recommendations.js';
+import { checkTitle } from './check-i18n.js';
+import { axisScores, trustLens, verdictSentence, AXIS_ORDER } from './axes.js';
+import { collectRecommendations, topFixes, recommendationAdvice, recommendationFinding, type Recommendation } from './recommendations.js';
+import { markdownText } from './safe-text.js';
 
 /** How many actions a one-screen summary can carry before it stops being one. */
 export const SUMMARY_ACTIONS = 3;
@@ -33,31 +34,28 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/** The shared decision layer: score, verdict, axes, top actions, projection. */
+/** The shared decision layer: score, verdict, axes and qualified actions. */
 function summaryModel(report: AuditReport, lang: Lang) {
   const m = messages(lang);
   const axes = axisScores(report.familyScores);
   const blocked = report.results.some((r) => r.id === 'ai-crawlers-allowed' && r.status === 'fail');
-  const recs = collectRecommendations(report.results);
-  const top = recs.slice(0, SUMMARY_ACTIONS);
-  // Project only what the listed actions would earn — promising the gain of
-  // fixes the reader cannot see would be a number they can never verify.
-  const projected = projectScore(report.familyScores, top);
+  const recs = collectRecommendations(report);
+  const top = topFixes(recs, SUMMARY_ACTIONS);
   return {
     m, axes, top,
+    conditional: recs.filter((r) => r.kind === 'conditional'),
     // A37 — the E-E-A-T lens. Omitted (null) when none of its checks ran,
     // rather than shown as a hollow 0.
     trust: trustLens(report.results),
     verdict: verdictSentence(axes, report.score, blocked, lang),
-    projected,
     host: hostOf(report.url),
   };
 }
 
 export function renderSummaryMarkdown(report: AuditReport, now: Date, lang: Lang = 'en'): string {
-  const { m, axes, top, trust, verdict, projected, host } = summaryModel(report, lang);
+  const { m, axes, top, conditional, trust, verdict, host } = summaryModel(report, lang);
   const lines: string[] = [];
-  lines.push(`# ${m.summaryTitle} — ${host}`);
+  lines.push(`# ${m.summaryTitle} — ${markdownText(host)}`);
   lines.push('');
   lines.push(`**${report.score}${m.outOf100} · ${m.gradeLabel} ${report.grade}** — ${verdict}`);
   lines.push('');
@@ -81,7 +79,7 @@ export function renderSummaryMarkdown(report: AuditReport, now: Date, lang: Lang
   }
   lines.push('');
 
-  if (top.length === 0) {
+  if (top.length === 0 && conditional.length === 0) {
     lines.push(m.planEmpty);
     lines.push('');
     return lines.join('\n');
@@ -90,20 +88,21 @@ export function renderSummaryMarkdown(report: AuditReport, now: Date, lang: Lang
   lines.push(`## ${m.summaryActions}`);
   lines.push('');
   top.forEach((r, i) => {
-    // checkFix, not r.fix: the raw fix a check emits is English. A French
-    // summary that quoted it would leak exactly the way reports did before the
-    // localisation pass.
-    lines.push(`${i + 1}. **${checkTitle(r.id, lang)}** (\`${r.id}\`) — ${checkFix(r.id, lang, r.fix) ?? r.fix}`);
-    lines.push(`   _+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}_`);
+    lines.push(`${i + 1}. **${markdownText(checkTitle(r.id, lang))}** (${markdownText(r.id)}) — ${markdownText(recommendationAdvice(r, lang))}`);
+    lines.push(`   _${m.actionKind[r.kind]} · ${m.actionEvidence[r.evidence]} · ${m.effortLabel[r.effort]}_ ${m.planFinding} ${markdownText(recommendationFinding(r, lang))} ${r.offenders.length ? m.planWhere + ' ' + r.offenders.map(markdownText).join(', ') : m.planLocationUnknown}`);
   });
   lines.push('');
-  lines.push(`**${m.summaryProjection(report.score, projected)}**`);
+  if (conditional.length) {
+    lines.push(`## ${m.actionKind.conditional}`, '');
+    for (const r of conditional) lines.push(`- **${markdownText(checkTitle(r.id, lang))}** — ${markdownText(recommendationAdvice(r, lang))} ${m.actionEvidence[r.evidence]} · ${m.planFinding} ${markdownText(recommendationFinding(r, lang))} ${r.offenders.length ? m.planWhere + ' ' + r.offenders.map(markdownText).join(', ') : m.planLocationUnknown}`);
+  }
+  lines.push(m.planQualificationNote);
   lines.push('');
   return lines.join('\n');
 }
 
 export function renderSummaryHtml(report: AuditReport, now: Date, lang: Lang = 'en'): string {
-  const { m, axes, top, trust, verdict, projected, host } = summaryModel(report, lang);
+  const { m, axes, top, conditional, trust, verdict, host } = summaryModel(report, lang);
   const band = report.score >= 80 ? 'good' : report.score >= 60 ? 'ok' : 'bad';
 
   const axisCards = AXIS_ORDER.map((key) => {
@@ -122,11 +121,15 @@ export function renderSummaryHtml(report: AuditReport, now: Date, lang: Lang = '
     : `<div class="lens"><div class="ax-n">${trust.score}</div><div class="ax-l">${escapeHtml(m.trustLabel)}</div>`
       + `<div class="ax-q">${escapeHtml(m.trustQuestion)}</div></div>`;
 
-  const actions = top.length === 0
+  const actionItem = (r: Recommendation): string => `<li><b>${escapeHtml(checkTitle(r.id, lang))}</b> — ${escapeHtml(recommendationAdvice(r, lang))}`
+    + `<span class="cost">${escapeHtml(m.actionKind[r.kind])} · ${escapeHtml(m.actionEvidence[r.evidence])} · ${escapeHtml(m.effortLabel[r.effort])}</span>`
+    + `<span class="cost">${escapeHtml(m.planFinding)} ${escapeHtml(recommendationFinding(r, lang))}</span>`
+    + `<span class="cost">${escapeHtml(r.offenders.length ? m.planWhere + ' ' + r.offenders.join(', ') : m.planLocationUnknown)}</span></li>`;
+  const actions = top.length === 0 && conditional.length === 0
     ? `<p class="empty">${escapeHtml(m.planEmpty)}</p>`
-    : `<ol class="acts">${top.map((r) => `<li><b>${escapeHtml(checkTitle(r.id, lang))}</b> — ${escapeHtml(checkFix(r.id, lang, r.fix) ?? r.fix)}`
-      + `<span class="cost">+${r.impact} ${escapeHtml(m.pts)} · ${escapeHtml(m.effortLabel[r.effort])}</span></li>`).join('')}</ol>`
-      + `<p class="proj">${escapeHtml(m.summaryProjection(report.score, projected))}</p>`;
+    : `<ol class="acts">${top.map(actionItem).join('')}</ol>`
+      + (conditional.length ? `<h2>${escapeHtml(m.actionKind.conditional)}</h2><ul class="acts">${conditional.map(actionItem).join('')}</ul>` : '')
+      + `<p class="cost">${escapeHtml(m.planQualificationNote)}</p>`;
 
   return `<!doctype html>
 <html lang="${lang}">

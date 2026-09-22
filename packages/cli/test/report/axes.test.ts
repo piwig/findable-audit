@@ -108,8 +108,9 @@ describe('verdictSentence (A147)', () => {
   it('a blocked citation-time crawler outranks everything, in both languages', () => {
     const en = verdictSentence(axes(100, 100, 100), 100, true, 'en');
     const fr = verdictSentence(axes(100, 100, 100), 100, true, 'fr');
-    expect(en).toMatch(/turned away at the door/);
-    expect(fr).toMatch(/refusé à la porte/);
+    expect(en).toMatch(/restrict at least one crawler/);
+    expect(fr).toMatch(/restreint au moins un robot/);
+    expect(en).not.toMatch(/nothing else.*can help/);
     expect(en).not.toBe(fr);
   });
 
@@ -124,14 +125,15 @@ describe('verdictSentence (A147)', () => {
   });
 
   it('picks the weakest axis, weak below 60, mid otherwise', () => {
-    expect(verdictSentence(axes(30, 80, 80), 70, false, 'en')).toMatch(/struggle to reach/);   // reachable weak
-    expect(verdictSentence(axes(65, 80, 80), 70, false, 'en')).toMatch(/get in, but not everywhere/); // reachable mid
-    expect(verdictSentence(axes(80, 30, 80), 70, false, 'en')).toMatch(/cannot cite you/);     // understood weak
-    expect(verdictSentence(axes(80, 80, 59), 70, false, 'en')).toMatch(/page itself is what holds it back/); // usable weak
-    expect(verdictSentence(axes(80, 80, 60), 70, false, 'fr')).toMatch(/Rien ne bloque un robot/); // usable mid, fr
+    expect(verdictSentence(axes(30, 80, 80), 70, false, 'en')).toMatch(/Access and technical SEO have the lowest/);
+    expect(verdictSentence(axes(65, 80, 80), 70, false, 'en')).toMatch(/Access or technical SEO checks need attention/);
+    expect(verdictSentence(axes(80, 30, 80), 70, false, 'en')).toMatch(/do not measure whether an AI assistant/);
+    expect(verdictSentence(axes(80, 80, 59), 70, false, 'en')).toMatch(/not a complete accessibility or security assessment/);
+    expect(verdictSentence(axes(80, 80, 60), 70, false, 'fr')).toMatch(/contrôles de performance, d’accessibilité ou de sécurité/);
   });
 
   it('ignores null axes when looking for the weakest', () => {
-    expect(verdictSentence(axes(null, 30, 80), 70, false, 'en')).toMatch(/cannot cite you/);
+    expect(verdictSentence(axes(null, 30, 80), 70, false, 'en')).toMatch(/Content and metadata checks/);
+    expect(verdictSentence(axes(null, 30, 80), 70, false, 'en')).not.toMatch(/cannot cite you|orientation file/);
   });
 });

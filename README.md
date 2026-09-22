@@ -1,6 +1,6 @@
 # findable-audit
 
-**Your site can rank first on Google and still be invisible inside ChatGPT.** One command tells you which, and why.
+**Find technical barriers and reviewable content gaps in one crawl.** A local audit of the HTML your site serves, with findings you can inspect and act on.
 
 [![CI](https://github.com/piwig/findable-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/piwig/findable-audit/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/findable-audit)](https://www.npmjs.com/package/findable-audit)
@@ -56,6 +56,15 @@ Score: 73/100  Grade: C
 *Excerpt from a real run (`stripe.com --max-pages 6`); a full run prints every applicable check.* `--` rows are checks that did not apply — **skipped checks never count against the score**.
 
 Every audit also writes a self-contained **HTML report** and a Markdown one. See a real one, this project auditing itself: **[example report](https://findable.bordebat.fr/en/example-report/)**. We never publish audits of sites we do not own.
+
+The web app also accepts up to five optional visitor questions. The report shows matching
+passages and pages, or identifies questions to review in the sampled content. This is
+lexical matching, not semantic answer validation or a measure of AI citations. Questions
+stay in the temporary job and its downloads; personalized audits bypass the shared cache.
+
+Action plans distinguish verified defects, items to review and conditional advice.
+Optional markup no longer crowds out technical defects in the first actions. Ordering
+is consistent across reports; it does not predict traffic, rankings or return on investment.
 
 ## Why this one
 

@@ -27,7 +27,7 @@ export function createJobStore(opts = {}) {
   /** @type {Map<string, any>} */
   const jobs = new Map();
 
-  function create({ url, lang, kind = 'audit', urls = null, ipHash = null, maxPages = null }) {
+  function create({ url, lang, kind = 'audit', urls = null, ipHash = null, maxPages = null, priorityQuestions = [] }) {
     const job = {
       id: randomUUID(),
       url,
@@ -36,6 +36,7 @@ export function createJobStore(opts = {}) {
       urls,
       ipHash,
       maxPages,
+      priorityQuestions: [...priorityQuestions],
       reports: [],
       status: 'running',
       progress: null,

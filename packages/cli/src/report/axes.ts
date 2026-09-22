@@ -144,40 +144,40 @@ const VERDICT_TEXT: Record<Lang, {
 } & Record<AxisKey, Record<Band, string>>> = {
   en: {
     blocked:
-      'An assistant that tries to read you is turned away at the door: robots.txt blocks a crawler that fetches pages at citation time. Until that is lifted, nothing else on this page can help.',
+      'The robots.txt rules restrict at least one crawler used for AI search. Review the affected robot and paths against your publishing policy; this does not establish whether your site is cited elsewhere.',
     nothingMeasured: 'Nothing measurable was returned for this site.',
     excellent:
       'The sampled pages show strong results on the checks performed. This does not guarantee indexing, rankings or AI citations; review the remaining findings and the sample scope.',
     reachable: {
-      weak: 'Crawlers struggle to reach your pages at all: access rules and technical SEO are the bottleneck. Start there — every other finding assumes the page can be fetched.',
-      mid: 'Crawlers get in, but not everywhere: a few access and technical-SEO signals still send them down the wrong path.',
+      weak: 'Access and technical SEO have the lowest results in this sample. Review the affected rules and pages first; the score alone does not establish that every crawler is blocked.',
+      mid: 'Access or technical SEO checks need attention. Use the findings and page evidence to identify the remaining issues.',
     },
     understood: {
-      weak: 'Search engines read your site, but an AI assistant finds neither a structured identity nor an orientation file: it can describe you, it cannot cite you.',
-      mid: 'Your pages are readable, but the facts an assistant would quote are not stated plainly enough to be lifted as they are.',
+      weak: 'Content and metadata checks have low results in this sample. Review missing facts, markup and editorial advice separately; these checks do not measure whether an AI assistant understands or cites your site.',
+      mid: 'Some content or metadata checks need review. Inspect the supporting passages before making changes; no AI citation outcome is measured.',
     },
     usable: {
-      weak: 'The content is there and it is understandable — the page itself is what holds it back: speed, accessibility or security signals fall short, for humans and agents alike.',
-      mid: 'Nothing blocks a crawler; a handful of speed, accessibility and security signals still cost you points.',
+      weak: 'Performance, accessibility or security has the lowest results in this sample. Review the specific findings; this automated audit is not a complete accessibility or security assessment.',
+      mid: 'Some performance, accessibility or security checks need attention. The report identifies the measured issues and their scope.',
     },
   },
   fr: {
     blocked:
-      'Un assistant qui essaie de vous lire est refusé à la porte : le robots.txt bloque un robot qui va chercher les pages au moment de citer. Tant que ce point n’est pas levé, rien d’autre sur cette page ne peut aider.',
+      'Le robots.txt restreint au moins un robot utilisé pour la recherche IA. Vérifiez le robot et les chemins concernés selon votre politique de publication ; cela ne prouve pas l’absence de citations de votre site ailleurs.',
     nothingMeasured: 'Aucune mesure exploitable n’a été obtenue pour ce site.',
     excellent:
       'Les pages échantillonnées obtiennent de bons résultats sur les contrôles réalisés. Cela ne garantit ni indexation, ni classement, ni citation IA ; examinez les constats restants et le périmètre de l’échantillon.',
     reachable: {
-      weak: 'Les robots peinent simplement à atteindre vos pages : les règles d’accès et le SEO technique sont le goulot. Commencez par là — tout le reste suppose que la page puisse être récupérée.',
-      mid: 'Les robots entrent, mais pas partout : quelques signaux d’accès et de SEO technique les envoient encore sur la mauvaise piste.',
+      weak: 'L’accès et le SEO technique obtiennent les résultats les plus faibles de cet échantillon. Examinez d’abord les règles et pages concernées ; la note seule ne prouve pas que tous les robots sont bloqués.',
+      mid: 'Des contrôles d’accès ou de SEO technique demandent votre attention. Appuyez-vous sur les constats et les pages concernées pour identifier les points restants.',
     },
     understood: {
-      weak: 'Les moteurs lisent votre site, mais un assistant IA n’y trouve ni fiche d’identité structurée ni fichier d’orientation : il peut vous décrire, pas vous citer.',
-      mid: 'Vos pages sont lisibles, mais les faits qu’un assistant citerait n’y sont pas énoncés assez nettement pour être repris tels quels.',
+      weak: 'Les contrôles de contenu et de métadonnées obtiennent des résultats faibles dans cet échantillon. Distinguez faits manquants, balisage et conseils éditoriaux ; ces contrôles ne mesurent ni la compréhension ni les citations de votre site par une IA.',
+      mid: 'Certains contrôles de contenu ou de métadonnées sont à revoir. Relisez les passages justificatifs avant toute modification ; aucune citation IA n’est mesurée.',
     },
     usable: {
-      weak: 'Le contenu est là et il est compréhensible — c’est la page elle-même qui freine : vitesse, accessibilité ou sécurité restent en dessous, pour les humains comme pour les agents.',
-      mid: 'Rien ne bloque un robot ; une poignée de signaux de vitesse, d’accessibilité et de sécurité vous coûtent encore des points.',
+      weak: 'La performance, l’accessibilité ou la sécurité obtient les résultats les plus faibles de cet échantillon. Examinez les constats précis ; cet audit automatique ne constitue pas une évaluation complète d’accessibilité ou de sécurité.',
+      mid: 'Certains contrôles de performance, d’accessibilité ou de sécurité demandent votre attention. Le rapport précise les points mesurés et leur périmètre.',
     },
   },
 };

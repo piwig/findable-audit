@@ -65,7 +65,8 @@ test('the primary CTA uses the PB deep spectrum, keeping white text legible', as
 
 test('three axes lead; the eight families stay, one disclosure below', async () => {
   const { body } = await get('/en/');
-  for (const axis of ['Reachable', 'Understood', 'Usable']) assert.match(body, new RegExp(axis));
+  for (const axis of ['Reachable', 'Readable', 'Usable']) assert.match(body, new RegExp(axis));
+  assert.doesNotMatch(body, /do they understand what they read/);
   assert.match(body, /<ul class="ld-axes">/);
   // The families are folded, not deleted — and they keep their list markup.
   assert.match(body, /<details class="ld-fold">[\s\S]*?<ul class="ld-chips">/);

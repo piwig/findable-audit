@@ -13,7 +13,7 @@ const fold = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g,
   .replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const STOP = new Set('que quel quels quelle quelles est sont les des une dans pour vous nous votre vos notre nos avec comment combien what which where when does your ours the and for are this that with'.split(' '));
 const words = (text: string) => new Set(fold(text).split(' ').filter(w => w.length > 2 && !STOP.has(w)));
-const BLOCKS = 'h1,h2,h3,h4,h5,h6,p,li,blockquote,dt,dd';
+const BLOCKS = 'h1,h2,h3,h4,h5,h6,summary,p,li,blockquote,dt,dd';
 const hidden = (el: HTMLElement) => el.hasAttribute('hidden') || el.hasAttribute('inert') || el.getAttribute('aria-hidden')?.toLowerCase() === 'true';
 
 /** Lexical evidence only; found means an explicit heading has answer text, not that it is correct. */
@@ -22,10 +22,16 @@ export function evaluatePriorityQuestions(pages: FetchedResource[], questions: s
     const root = mainContent(page).root;
     for (let ancestor: HTMLElement | null = root; ancestor; ancestor = ancestor.parentNode) if (hidden(ancestor)) return [];
     for (const el of root.querySelectorAll('[hidden], [aria-hidden], [inert]')) if (hidden(el)) el.remove();
+    for (const form of root.querySelectorAll('form')) form.remove();
     const elements = root.querySelectorAll(BLOCKS).filter(el => el.querySelectorAll(BLOCKS).length === 0);
     let path = '/';
     try { path = new URL(page.finalUrl).pathname; } catch { /* supplied fixtures */ }
-    return [{ path, blocks: elements.map(el => ({ text: el.textContent.replace(/\s+/g, ' ').trim(), heading: /^H[1-6]$/i.test(el.tagName) })) }];
+    return [{ path, blocks: elements.map(el => ({
+      text: el.textContent.replace(/\s+/g, ' ').trim(),
+      heading: /^(H[1-6]|SUMMARY)$/i.test(el.tagName),
+      element: el,
+      disclosure: el.tagName === 'SUMMARY' || el.closest('summary') ? el.closest('details') : null,
+    })) }];
   });
   return questions.slice(0, 50).map(rawQuestion => {
     const question = boundedText(rawQuestion, 500);
@@ -41,7 +47,8 @@ export function evaluatePriorityQuestions(pages: FetchedResource[], questions: s
         const exact = block.heading && fold(block.text) === target;
         if (exact) {
           const next = page.blocks[i + 1];
-          const answered = next && !next.heading && fold(next.text) !== target && next.text.split(/\s+/).length >= 4;
+          const insideDisclosure = !block.disclosure || next?.element.closest('details') === block.disclosure;
+          const answered = next && insideDisclosure && !next.heading && fold(next.text) !== target && next.text.split(/\s+/).length >= 4;
           const proof = { kind: 'prose' as const, excerpt: boundedText(answered ? next.text : block.text), heading: boundedText(block.text), path: page.path };
           if (answered) return { question, status: 'found' as const, proof };
           best = { question, status: 'review', proof };

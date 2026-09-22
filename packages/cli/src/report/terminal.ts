@@ -2,7 +2,8 @@ import pc from 'picocolors';
 import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { FAMILY_LABELS_I18N, FAMILY_SHORT_I18N, messages, type Lang } from './i18n.js';
-import { collectRecommendations, topFixes } from './recommendations.js';
+import { collectRecommendations, topFixes, recommendationAdvice, recommendationFinding } from './recommendations.js';
+import { localizeMessage } from './message-i18n.js';
 import { axisScores, verdictSentence } from './axes.js';
 
 /** Terminal output stays English: labels & short chips derive from the EN catalog. */
@@ -38,23 +39,37 @@ export function renderTerminal(report: AuditReport, lang: Lang = 'en'): string {
     report.sampledPages.length,
   )));
   lines.push('');
-  // Backlog A3: best payoff first — recoverable points ÷ estimated effort —
-  // so the reader knows where to start before scrolling the flat list.
-  const top = topFixes(collectRecommendations(report.results));
+  // Shared qualification and priority order, without inferring a payoff from check points.
+  const recs = collectRecommendations(report);
+  const safe = (value: string): string => value.replace(/[\u0000-\u001f\u007f]/g, ' ');
+  const top = topFixes(recs);
   if (top.length > 0) {
     lines.push(pc.bold(m.topFixesTitle(top.length)));
     top.forEach((r, i) => {
-      lines.push(`  ${i + 1}. ${r.id.padEnd(22)} +${r.impact} pts  ${pc.dim(`[${r.effort}]`)}  ${r.fix}`);
+      lines.push(`  ${i + 1}. ${safe(r.id).padEnd(22)} ${pc.dim(`[${m.actionKind[r.kind]} · ${m.effortLabel[r.effort]}]`)} ${safe(recommendationAdvice(r, lang))}`);
+      lines.push(`     ${m.actionEvidence[r.evidence]} · ${m.planFinding} ${safe(recommendationFinding(r, lang))}`);
+      lines.push(`     ${r.offenders.length ? m.planWhere + ' ' + r.offenders.map(safe).join(', ') : m.planLocationUnknown}`);
     });
     lines.push('');
   }
+  const conditional = recs.filter((r) => r.kind === 'conditional');
+  if (conditional.length) {
+    lines.push(pc.bold(m.actionKind.conditional));
+    for (const r of conditional) {
+      lines.push(`  ${safe(r.id)} — ${safe(recommendationAdvice(r, lang))}`);
+      lines.push(`    ${m.actionEvidence[r.evidence]} · ${m.planFinding} ${safe(recommendationFinding(r, lang))}`);
+    }
+    lines.push('');
+  }
+  if (recs.length) lines.push(m.planQualificationNote, '');
   for (const family of Object.keys(labels) as Family[]) {
     const results = report.results.filter((x) => x.family === family);
     if (results.length === 0) continue; // families with no checks yet (e.g. performance)
     lines.push(pc.bold(labels[family]));
     for (const r of results) {
-      lines.push(`  ${ICONS[r.status]}${r.id.padEnd(22)} ${r.points}/${r.maxPoints}  ${r.message}`);
-      if (r.fix && r.status !== 'pass' && r.status !== 'skip') lines.push(pc.dim(`      ${chrome.fix}: ${r.fix}`));
+      lines.push(`  ${ICONS[r.status]}${safe(r.id).padEnd(22)} ${r.points}/${r.maxPoints}  ${safe(localizeMessage(r, lang))}`);
+      const action = recs.find((item) => item.id === r.id);
+      if (action) lines.push(pc.dim(`      ${m.actionKind[action.kind]}: ${safe(recommendationAdvice(action, lang))}`));
     }
     lines.push('');
   }

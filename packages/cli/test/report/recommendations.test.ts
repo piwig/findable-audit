@@ -13,16 +13,16 @@ const results: CheckResult[] = [
 describe('collectRecommendations', () => {
   const recs = collectRecommendations(results);
   it('keeps only fail/warn checks that have a fix', () => {
-    expect(recs.map((r) => r.id)).toEqual(['fail-perf', 'fail-onpage', 'warn-sec']);
+    expect(recs.map((r) => r.id)).toEqual(['fail-onpage', 'fail-perf', 'warn-sec']);
   });
-  it('orders fails before warns, then by weighted impact desc', () => {
-    // fail-perf: impact 6 * weight(performance .10)=0.6 ; fail-onpage: 3 * (.12)=0.36 -> perf first
-    expect(recs[0].id).toBe('fail-perf');
-    expect(recs[1].id).toBe('fail-onpage');
+  it('orders legacy findings by severity, then effort without claiming verified defects', () => {
+    expect(recs[0].id).toBe('fail-onpage');
+    expect(recs[1].id).toBe('fail-perf');
+    expect(recs.every((r) => r.kind === 'review')).toBe(true);
     expect(recs[2].status).toBe('warn');
   });
   it('computes recoverable points as impact', () => {
-    expect(recs[0].impact).toBe(6);
+    expect(recs.find((r) => r.id === 'fail-perf')!.impact).toBe(6);
     expect(recs.find((r) => r.id === 'warn-sec')!.impact).toBe(2);
   });
   it('assigns an effort estimate to each recommendation (family default here)', () => {
@@ -34,9 +34,7 @@ describe('collectRecommendations', () => {
 
 describe('topFixes', () => {
   const recs = collectRecommendations(results);
-  it('ranks by weighted payoff ÷ effort cost, not by raw impact', () => {
-    // fail-perf: 0.6/4 (involved) = 0.15 ; fail-onpage: 0.36/1 = 0.36 ;
-    // warn-sec: 2*.06=0.12/1 = 0.12 -> the cheap on-page fix outranks the big perf project.
+  it('keeps the same severity and effort ordering as the full plan', () => {
     expect(topFixes(recs).map((r) => r.id)).toEqual(['fail-onpage', 'fail-perf', 'warn-sec']);
   });
   it('caps at n and never mutates its input', () => {

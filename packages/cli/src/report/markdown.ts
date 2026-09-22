@@ -2,9 +2,11 @@ import type { AuditReport } from '../runner.js';
 import type { CheckResult, Family } from '../types.js';
 import { verdictOf } from './verdict.js';
 import { renderCwvMarkdown } from './cwv.js';
-import { collectRecommendations } from './recommendations.js';
+import { collectRecommendations, topFixes, ACTION_KINDS, recommendationAdvice, recommendationFinding } from './recommendations.js';
+import { markdownText } from './safe-text.js';
+import { renderPriorityAnswersMarkdown } from './answer-evidence.js';
 import { messages, FAMILY_LABELS_I18N, type Lang } from './i18n.js';
-import { checkWhy, checkFix, checkTitle } from './check-i18n.js';
+import { checkWhy, checkTitle } from './check-i18n.js';
 import { localizeMessage } from './message-i18n.js';
 import { renderDiffMarkdown, type ReportDiff } from './diff.js';
 
@@ -14,7 +16,7 @@ const ICONS: Record<CheckResult['status'], string> = {
 
 /** Escape characters that would break a Markdown table cell. */
 function cell(text: string): string {
-  return text.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+  return markdownText(text);
 }
 
 export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang: Lang = 'en', opts: { diff?: ReportDiff } = {}): string {
@@ -22,13 +24,38 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
   const familyLabels = FAMILY_LABELS_I18N[lang];
   const failCount = report.results.filter((r) => r.status === 'fail').length;
   const lines: string[] = [
-    `# ${m.mdTitle} — ${report.url}`,
+    `# ${m.mdTitle} — ${cell(report.url)}`,
     '',
     `**${m.mdScore} ${report.score}/100** · **${m.gradeLabel} ${report.grade}** — ${now.toISOString().slice(0, 10)}`,
     '',
     `> ${verdictOf(report.grade, failCount, lang)}`,
     '',
   ];
+
+  const answers = renderPriorityAnswersMarkdown(report, lang);
+  if (answers) lines.push(answers, '');
+  const recs = collectRecommendations(report);
+  if (recs.length > 0) {
+    lines.push(`## ${m.mdRecommendedFixes}`, '', m.planQualificationNote, '');
+    const top = topFixes(recs);
+    if (top.length > 0) {
+      lines.push(`### ${m.topFixesTitle(top.length)}`, '');
+      top.forEach((r, i) => lines.push(`${i + 1}. **${cell(checkTitle(r.id, lang))}** (${cell(r.id)}) — ${cell(m.actionKind[r.kind])} · ${cell(m.effortLabel[r.effort])}`));
+      lines.push('');
+    }
+    for (const kind of ACTION_KINDS) {
+      const items = recs.filter((r) => r.kind === kind);
+      if (!items.length) continue;
+      lines.push(`### ${m.actionKind[kind]}`, '');
+      for (const r of items) {
+        const where = r.offenders.length ? `${m.planWhere} ${r.offenders.map(cell).join(', ')}` : m.planLocationUnknown;
+        lines.push(`- **${cell(checkTitle(r.id, lang))}** (${cell(r.id)}) — ${cell(recommendationAdvice(r, lang))}`);
+        lines.push(`  ${cell(m.actionEvidence[r.evidence])} · ${cell(m.effortLabel[r.effort])}. ${cell(m.planFinding)} ${cell(recommendationFinding(r, lang))} ${where}`);
+        if (r.docUrl && /^https?:\/\//i.test(r.docUrl)) lines.push(`  [${m.mdDoc}](${encodeURI(r.docUrl).replace(/[()]/g, (c) => '%' + c.charCodeAt(0).toString(16))})`);
+      }
+      lines.push('');
+    }
+  }
 
   if (report.familyScores.length > 0) {
     lines.push(`## ${m.categorySubscores}`, '');
@@ -71,26 +98,14 @@ export function renderMarkdown(report: AuditReport, now: Date = new Date(), lang
     lines.push(m.mdCheckHeader);
     lines.push('|---|---|---|---|');
     for (const r of results) {
-      const why = checkWhy(r.id, lang);
+      const why = recs.find((action) => action.id === r.id)?.kind === 'conditional' ? undefined : checkWhy(r.id, lang);
       const text = localizeMessage(r, lang);
       const msg = why ? `${cell(text)} — _${cell(why)}_` : cell(text);
       // The human title leads, the technical id follows in code — same order as
       // the HTML report, so a reader moving between the two formats is not lost.
       // #63: a verdict resting on a bar we chose says so, next to the check.
       const ev = r.evidence === 'heuristic' ? ` _(${m.evidenceHeuristic})_` : '';
-      lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${r.id}\`${ev} | ${r.points}/${r.maxPoints} | ${msg} |`);
-    }
-    lines.push('');
-  }
-
-  const recs = collectRecommendations(report.results);
-  if (recs.length > 0) {
-    lines.push(`## ${m.mdRecommendedFixes}`, '');
-    for (const r of recs) {
-      const link = r.docUrl ? ` — [${m.mdDoc}](${r.docUrl})` : '';
-      const fix = checkFix(r.id, lang, r.fix) ?? r.fix;
-      const where = r.offenders.length > 0 ? ` — ${m.planWhere} ${r.offenders.map((p) => `\`${p}\``).join(' ')}` : '';
-      lines.push(`- ${ICONS[r.status]} **${cell(checkTitle(r.id, lang))}** \`${r.id}\` (+${r.impact} ${m.pts} · ${m.effortLabel[r.effort]}) — ${fix}${link}${where}`);
+      lines.push(`| ${ICONS[r.status]} | ${cell(checkTitle(r.id, lang))} \`${cell(r.id)}\`${ev} | ${r.points}/${r.maxPoints} | ${msg} |`);
     }
     lines.push('');
   }

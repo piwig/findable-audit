@@ -394,3 +394,35 @@ isolated temporary `DATA_DIR`; readiness Bash syntax plus simulated delayed
 availability (eighth probe), persistent absence and wrong-version responses.
 The simulations make no registry requests. Browser layout review and the real
 published-package smoke run are separate release checks.
+
+### Visitor questions — 0.13.0
+
+The single-site form accepts optional visitor questions through
+`POST /{en|fr}/audit` with an `application/x-www-form-urlencoded` body capped at
+64 KiB. `priorityQuestions` contains one question per line. Trimming, empty-line
+removal and exact deduplication happen before the limit of five questions.
+Each question is limited to 300 JavaScript string units (UTF-16, the same
+counting convention as HTML `maxlength`; some emoji use two units). Invalid
+input is rejected rather than silently shortened. Historic GET audits remain
+available without questions; URL query questions are refused.
+
+The job passes these questions to the existing deterministic engine. Matching
+is lexical evidence on sampled HTML, not proof of understanding, rankings or
+AI citations. Personalized audits neither read nor write the shared result
+cache. Their questions and results live only in the bounded in-memory job;
+finished jobs expire after 30 minutes. Statistics keep their existing explicit
+field allowlist, with no question or answer text. Job pages and downloads send
+`Cache-Control: private, no-store`; downloaded reports include the questions.
+No browser storage is used. Questions are never placed in links or logged.
+
+Competitor comparison and importing a previous report are not supported for
+personalized audits. Both return a localized 400 rather than discarding the
+questions; a personalized JSON report is likewise refused as a baseline. SSRF,
+Turnstile, concurrency and per-client rate limits keep their existing rules.
+
+The HTTP tests cover limits (including chunked bodies), deduplication, cache
+isolation in both directions, a subsequent ordinary audit, escaping, JSON
+exports, expiration, incompatible flows, statistics, SSRF, Turnstile and rate
+limiting. Tests use an isolated temporary `DATA_DIR` and stub network crawling.
+Verification on 2026-09-22: rebuild of CLI 0.13.0 and all **285 web tests passed**
+with an isolated `DATA_DIR`, including the real-engine dogfooding checks.

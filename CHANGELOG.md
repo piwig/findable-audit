@@ -7,6 +7,20 @@ minor because it changes your output.
 The project is older than its first npm release — `0.2.0` is where it became installable,
 not where it started.
 
+## 0.13.0 — 2026-09-22
+
+- Web audits accept up to five visitor questions through a bounded POST request. Their
+  passages and source pages appear in portable HTML and Markdown reports, independently
+  of inferred questions. Lexical evidence does not validate an answer or change the score.
+  Question headings in native FAQ disclosures are recognized, with their own answer text.
+- Personalized jobs bypass the shared cache and use private, no-store responses;
+  questions are not stored in statistics or browser storage. Downloads include the questions.
+- Action plans separate verified defects, review items and conditional advice. All
+  formats share the same priority selection, without a promised SEO return. Page locations
+  must match the actual sample rather than being guessed from free text.
+- FAQ detection no longer treats form controls, navigation or non-question disclosures
+  as FAQ content. This can turn the former false-positive FAQ warning into a skip.
+
 ## 0.12.1 — 2026-09-22
 
 - Every engine report now records its version, including reports created by the web app.

@@ -132,6 +132,13 @@ describe('sd-product', () => {
 });
 
 describe('sd-faq', () => {
+  it('does not mistake navigation and form disclosures for FAQ answers', async () => {
+    const body = '<main><form><details><summary>What would you like to check?</summary><label>Question<textarea></textarea></label></details></form>'
+      + '<details><summary>Browse all score families</summary><p>A description of the scoring system.</p></details>'
+      + '<details><summary>Need more options?</summary><label>Choose<select><option>Any option</option></select></label></details>'
+      + '<nav><details><summary>Where can I go?</summary><a href="/">Back to the home page</a></details></nav></main>';
+    expect((await sdFaq.run(ctxFromPages([page('/', html('', body))]))).status).toBe('skip');
+  });
   it('skips when there is no FAQ-shaped content', async () => {
     const ctx = ctxFromPages([page('/', html('', '<h2>About Us</h2><p>We are a bakery.</p>'))]);
     expect((await sdFaq.run(ctx)).status).toBe('skip');

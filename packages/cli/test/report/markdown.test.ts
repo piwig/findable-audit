@@ -53,7 +53,7 @@ describe('renderMarkdown', () => {
     expect(md).toContain('## Category subscores');
     expect(md).toContain('| Family | Subscore | Weight | Earned/Max |');
     expect(md).toContain('| AI crawler access | 25/100 | 16% | 4/16 |');
-    expect(md).toContain('| On-page & content | 50/100 | 12% | 2/4 |');
+    expect(md).toContain('| On-page &amp; content | 50/100 | 12% | 2/4 |');
   });
 
   it('omits the subscore table when familyScores is empty', () => {
@@ -66,18 +66,19 @@ describe('renderMarkdown', () => {
   });
 
   it('lists fixes with fails before warns', () => {
-    const fixes = md.slice(md.indexOf('## Recommended fixes'));
+    const fixes = md.slice(md.indexOf('## Action plan'));
     expect(fixes.indexOf('ai-crawlers-allowed')).toBeLessThan(fixes.indexOf('meta-description'));
     expect(fixes).toContain('Remove the Disallow rules.');
   });
 
   it('omits the fixes section when everything passes', () => {
     const clean = renderMarkdown({ ...report, results: [r({})] });
-    expect(clean).not.toContain('## Recommended fixes');
+    expect(clean).not.toContain('## Action plan');
   });
 
   it('shows a verdict line under the score', () => {
-    expect(md).toMatch(/priority|Decent|Excellent|Solid|Fragile|Foundations/i);
+    expect(md).toContain('Mixed results on the sampled checks');
+    expect(md).toContain('does not establish indexing, rankings or AI citations');
   });
 
   it('renders a Core Web Vitals table when psi is present', () => {
@@ -87,7 +88,7 @@ describe('renderMarkdown', () => {
   });
 
   it('adds doc links to the recommended fixes', () => {
-    const fixes = md.slice(md.indexOf('## Recommended fixes'));
+    const fixes = md.slice(md.indexOf('## Action plan'));
     expect(fixes).toMatch(/\[doc\]\(https?:\/\/[^)]+\)/);
   });
 
@@ -101,13 +102,14 @@ describe('renderMarkdown in French', () => {
   it('localizes the report chrome', () => {
     expect(md).toContain('**Score : 72/100**');
     expect(md).toContain('**Note C**');
-    expect(md).toMatch(/priorité/);                       // FR verdict, grade C
+    expect(md).toContain('Résultats contrastés sur les contrôles de l’échantillon');
+    expect(md).toContain('ne démontre ni indexation, ni classement, ni citation IA');
     expect(md).toContain('## Sous-scores par catégorie');
     expect(md).toContain('| Famille | Sous-score | Poids | Acquis/Max |');
     expect(md).toContain('| Accès crawler IA | 25/100 | 16% | 4/16 |');
     expect(md).toContain('## Accès crawler IA (4/16)');
     expect(md).toContain('## On-page & contenu (2/4)');
-    expect(md).toContain('## Corrections recommandées');
+    expect(md).toContain('## Plan d’action');
   });
   it('localizes the message, the fix and appends a French "why" per check', () => {
     // the dynamic message is rebuilt in French, keeping its interpolated value (#1, lot E)

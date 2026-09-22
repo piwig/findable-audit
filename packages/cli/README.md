@@ -11,6 +11,11 @@ security & trust — scored `/100` with an A–F grade and a prioritized fix lis
 
 The default audit runs **151** checks; the catalogue also includes one optional, unscored agent-standards diagnostic. HTML reports show the sample scope, bounded answer evidence and internal-link candidates requiring review. `--local-plan` checks supplied priority questions lexically against the sampled HTML, without predicting rankings or citations.
 
+HTML and Markdown exports show supplied questions with supporting excerpts and page paths.
+Action plans distinguish verified defects, items to review and conditional advice, with
+consistent priorities across formats. The web app accepts up to five optional questions;
+personalized jobs bypass its shared cache. Neither feature changes the audit score.
+
 ```bash
 npx findable-audit https://your-site.com
 ```

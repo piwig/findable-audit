@@ -49,22 +49,23 @@ describe('renderSummaryMarkdown', () => {
   });
 
   it('carries the three axes, named and scored', () => {
-    for (const axis of ['Reachable', 'Understood', 'Usable']) expect(md).toContain(axis);
+    for (const axis of ['Reachable', 'Readable', 'Usable']) expect(md).toContain(axis);
   });
 
-  it('lists exactly the top actions, highest gain first, with their cost', () => {
+  it('lists the common top actions before optional advice, with estimated effort', () => {
     const items = [...md.matchAll(/^\d+\. /gm)];
     expect(items.length).toBeLessThanOrEqual(SUMMARY_ACTIONS);
-    // llms-txt recovers 10 points in the heaviest family: it cannot be second.
-    const first = md.indexOf('llms-txt');
-    const second = md.indexOf('sd-organization');
+    const first = md.indexOf('(csp)');
+    const second = md.indexOf('(hsts)');
     expect(first).toBeGreaterThan(-1);
     expect(first).toBeLessThan(second);
-    expect(md).toMatch(/\+10/);
+    expect(md.indexOf('## Conditional advice')).toBeGreaterThan(md.indexOf('(open-graph)'));
+    expect(md).toContain('Verified defect · Measured · Quick');
   });
 
-  it('says what the fixes would be worth together, rather than leaving arithmetic to the reader', () => {
-    expect(md).toMatch(/68 → \d+/);
+  it('does not turn conditional advice or check points into a promised score projection', () => {
+    expect(md).not.toMatch(/68 → \d+/);
+    expect(md).toContain('not a promised score');
   });
 
   it('is a summary: no per-check table, no passing checks, no 121 rows', () => {

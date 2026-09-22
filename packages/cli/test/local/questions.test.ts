@@ -11,6 +11,13 @@ describe('supplied priority questions', () => {
     expect(row.status).toBe('review');
   });
   const question = 'Réparez-vous les vélos électriques ?';
+  it('finds accessible FAQ disclosure answers without borrowing outside an empty disclosure or form', () => {
+    const answer = 'Oui, notre atelier répare les vélos électriques Bosch sur rendez-vous.';
+    expect(evaluatePriorityQuestions([page(`<details><summary>${question}</summary><p>${answer}</p></details>`)], [question])[0]).toMatchObject({ status: 'found', proof: { excerpt: answer, heading: question } });
+    expect(evaluatePriorityQuestions([page(`<details><summary>${question}</summary></details><p>${answer}</p>`)], [question])[0].status).toBe('review');
+    expect(evaluatePriorityQuestions([page(`<details><summary><h3>${question}</h3></summary></details><p>${answer}</p>`)], [question])[0].status).toBe('review');
+    expect(evaluatePriorityQuestions([page(`<form><details><summary>${question}</summary><p>${answer}</p><input></details></form>`)], [question])[0].status).toBe('not-found');
+  });
   it('finds an explicit question and its actual following answer', () => {
     const result = evaluatePriorityQuestions([page('<h2>Réparez-vous les vélos électriques ?</h2><p>Oui, notre atelier répare les vélos électriques Bosch sur rendez-vous.</p>')], [question]);
     expect(result[0]).toMatchObject({ question, status: 'found', proof: { kind: 'prose', path: '/services', excerpt: 'Oui, notre atelier répare les vélos électriques Bosch sur rendez-vous.', heading: question } });
