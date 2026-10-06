@@ -138,7 +138,14 @@ const FONT_STYLE = `
 const FONT_FILES = new Map(['geist-latin.woff2', 'bricolage-grotesque-latin.woff2'].map((name) =>
   [`/fonts/${name}`, readFileSync(new URL(`./public/fonts/${name}`, import.meta.url))]));
 
-const PAGE_STYLE = `${FONT_STYLE}
+const SUPPORT_STYLE = `
+  .pb-support h2 { font-size: 1.2rem; margin: 0 0 .5rem; }
+  .pb-support p { margin: 0 0 .6rem; }
+  .pb-support .support-limit { font-size: .85rem; color: var(--muted); }
+  .pb-support a { display: inline-block; min-height: 44px; padding: .5rem 0; font-weight: 600; }
+`;
+
+const PAGE_STYLE = `${FONT_STYLE}${SUPPORT_STYLE}
   :root {
     color-scheme: light;
     --bg: #fff; --ink: #2a2447; --title: #211c38; --muted: #5a5387; --faint: #6e6890;
@@ -382,8 +389,8 @@ function robotsTxt() {
 // the corresponding copy changes — sitemap-lastmod wants real, distinct,
 // non-future values, never a synthetic build date).
 const SITE_PAGES = [
-  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:42:00+02:00' },
-  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-09-22T09:42:00+02:00' },
+  { path: '/en/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-10-06T22:05:00+02:00' },
+  { path: '/fr/', alt: { en: '/en/', fr: '/fr/' }, lastmod: '2026-10-06T22:05:00+02:00' },
   { path: '/en/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/fr/about/', alt: { en: '/en/about/', fr: '/fr/about/' }, lastmod: '2026-09-22T08:30:00+02:00' },
   { path: '/en/contact/', alt: { en: '/en/contact/', fr: '/fr/contact/' }, lastmod: '2026-09-22T08:28:00+02:00' },
@@ -619,6 +626,17 @@ ${bodyHtml}
 `;
 }
 
+// Only page context is passed to PB: never a job ID, audited URL or visitor input.
+// Suppress the Referer too, since result URLs contain the private job identifier.
+function supportSection(lang, source, className = 'ld-sec') {
+  const s = t(lang).support;
+  const href = `https://pb-ot.fr/contact/?service=presence-numerique&utm_source=findable&utm_medium=referral&utm_content=${source}`;
+  return `<section class="${className} pb-support" aria-labelledby="pb-support-heading">`
+    + `<h2 id="pb-support-heading">${escapeHtml(s.heading)}</h2>`
+    + `<p>${escapeHtml(s.body)}</p><p class="support-limit">${escapeHtml(s.limit)}</p>`
+    + `<a href="${escapeHtml(href)}" referrerpolicy="no-referrer" rel="noreferrer">${escapeHtml(s.cta)}</a></section>`;
+}
+
 // Redesigned landing page: ports pb-ot.fr's "Aube" design system to a green
 // accent, self-contained (no external fonts/resources), CSP-safe (no inline
 // script — the landing keeps `script-src 'none'`). Preserves the DOM
@@ -740,6 +758,7 @@ function landingPage(lang = 'en') {
   <p class="ld-eyebrow">${escapeHtml(s.howTitle)}</p>
   <ol class="ld-steps">${steps}</ol>
 </section>
+${supportSection(lang, 'landing')}
 <section class="ld-sec" id="cli">
   <h2 class="ld-eyebrow" style="font-size:.8rem">${escapeHtml(s.devTitle)}</h2>
   <p class="lead" style="margin:.1rem 0 .7rem">${escapeHtml(s.devLead)}</p>
@@ -785,7 +804,8 @@ function exampleReportPage(lang = 'en') {
     + `<span style="color:var(--muted);font-size:.82rem;margin-left:.6rem">${escapeHtml(note)}</span></nav>`;
   return withWebReportStyle(renderHtml(EXAMPLE_REPORT, EXAMPLE_REPORT_DATE, lang))
     .replace('</head>', '<meta name="robots" content="noindex, follow">\n</head>')
-    .replace('<body>', `<body>\n${banner}`);
+    .replace('<body>', `<body>\n${banner}`)
+    .replace(/(?=<footer>|<\/body>)/, supportSection(lang, 'example_report', 'result-tools'));
 }
 
 // SEO/OG metadata + a connected JSON-LD @graph for the landing (dogfooding: this
@@ -1004,7 +1024,7 @@ function blockedUrlMessage(lang, err) {
 // packages/cli/src/generate/index.ts) plus the required bilingual warning.
 // Every link hits /audit/generate, which regenerates the file IN MEMORY on
 // each request — nothing is ever written to disk.
-const REPORT_CHROME_STYLE = `${FONT_STYLE}
+const REPORT_CHROME_STYLE = `${FONT_STYLE}${SUPPORT_STYLE}
   body { font-family: Geist, system-ui, sans-serif; }
   h1, h2, h3 { font-family: Bricolage, Geist, system-ui, sans-serif; }
   .result-tools { max-width: 1080px; margin: 1rem auto 1.5rem; padding: 1.1rem; border: 1px solid #e2e0ef; border-radius: 16px; color: #2a2447; background: #f6f5fc; font: 14px/1.6 Geist, system-ui, sans-serif; }
@@ -1082,7 +1102,8 @@ function withResultChrome(reportHtml, jobId, lang) {
     + `<p class="result-expiry">${escapeHtml(t(lang).result.expiry)}</p>`
     + generateFilesSection(jobId, lang)
     + baselineFormSection(jobId, lang) + '</section>';
-  reportHtml = withWebReportStyle(reportHtml);
+  reportHtml = withWebReportStyle(reportHtml)
+    .replace(/(?=<footer>|<\/body>)/, supportSection(lang, 'audit_report', 'result-tools'));
   const marker = '<body>';
   const idx = reportHtml.indexOf(marker);
   if (idx === -1) return bar + reportHtml;

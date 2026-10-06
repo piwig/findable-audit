@@ -255,6 +255,12 @@ export const WEB_MESSAGES = {
       en: 'English',
       fr: 'Français',
     },
+    support: {
+      heading: 'From priorities to practical fixes',
+      body: 'Want help choosing and fixing the issues that matter to your business? Pierig at PB OpenTech, based in Orgères near Rennes, offers personal support for your website.',
+      limit: 'Findable checks a technical sample; it does not measure your actual visibility.',
+      cta: 'Discuss my website with Pierig',
+    },
     result: {
       // Punctuation is baked in (locale-dependent): EN uses a plain colon…
       download: 'Download:',
@@ -510,6 +516,12 @@ export const WEB_MESSAGES = {
       ariaLabel: 'Langue',
       en: 'English',
       fr: 'Français',
+    },
+    support: {
+      heading: 'Des priorités aux corrections concrètes',
+      body: 'Besoin d’aide pour choisir et corriger les points utiles à votre activité ? Pierig, chez PB OpenTech à Orgères près de Rennes, vous accompagne avec un suivi personnalisé de votre site.',
+      limit: 'Findable contrôle un échantillon technique ; il ne mesure pas votre visibilité réelle.',
+      cta: 'Parler de mon site avec Pierig',
     },
     result: {
       // …FR puts a non-breaking space before the colon (French typography).
