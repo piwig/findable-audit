@@ -20,7 +20,7 @@ git pull --ff-only
 echo "== apres : $(git rev-parse --short HEAD)"
 
 npm ci --no-audit --no-fund
-npm run build --workspaces
+npm run build
 
 systemctl restart findable-web
 sleep 4
